@@ -1,0 +1,33 @@
+# Builds buffettbot.zip and attaches it to a GitHub release when a version
+# tag is pushed (git tag v1.0.0 && git push origin v1.0.0). The README's
+# "latest release" link is where new users get the skill.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run the tests
+        run: |
+          python3 -m pip install -q pytest
+          python3 -m pytest -q
+
+      - name: Build the skill zip
+        run: python3 scripts/build_zip.py
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/buffettbot.zip \
+            --title "BuffettBot ${GITHUB_REF_NAME}" --generate-notes

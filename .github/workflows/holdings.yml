@@ -1,0 +1,142 @@
+# Downloads each ETF's full holdings file from its issuer and publishes the
+# raw files to the `holdings-data` branch.
+#
+# Why here: on a Claude Pro plan the PC's shell and Claude's workspace can
+# only reach package registries and GitHub, never ssga.com / ishares.com /
+# vanguard.co.uk / amundietf.de. GitHub's runners have open internet, and
+# both of those can read this repo. See DECISIONS.md, 2026-10-10.
+#
+# The branch holds only the latest run (one force-pushed commit), so the repo
+# does not grow by ~1 MB a day. `fetch.log` on it says what each fund returned.
+#
+# Separately, `fund_holdings.py snapshot` keeps about one compact CSV per fund
+# per week on the `holdings-history` branch, which is appended to and never
+# force-pushed, so `fund_holdings.py changes` can say what each fund's holdings
+# changed week on week (~0.5 MB a week before git's compression).
+
+name: Fund holdings
+
+on:
+  schedule:
+    - cron: "23 5 * * *"  # daily 05:23 UTC
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - scripts/fund_holdings.py
+      - .github/workflows/holdings.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fund-holdings
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # A copy that has not run setup yet (no me/funds.md, or no fund in it)
+      # has nothing to fetch: the run ends here, green, and writes no branch.
+      - name: Check there are funds to fetch
+        id: funds
+        run: |
+          if [ -f me/funds.md ] && grep -qE '^\| *[A-Z0-9]+ *\| *[A-Z]{2}[A-Z0-9]{9}[0-9] *\|' me/funds.md; then
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No fund in me/funds.md yet - say \"set up BuffettBot\" in Claude to add yours."
+          fi
+
+      - name: Fetch each fund's issuer file
+        if: steps.funds.outputs.any == 'true'
+        id: fetch
+        run: |
+          mkdir -p out
+          set +e
+          python3 scripts/fund_holdings.py fetch --holdings-dir out > out/fetch.log 2>&1
+          code=$?
+          set -e
+          cat out/fetch.log
+          {
+            echo "run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "commit: ${GITHUB_SHA}"
+            echo "utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "exit: ${code}"
+          } >> out/fetch.log
+          if grep -q "Not available" out/fetch.log; then
+            echo "partial=true" >> "$GITHUB_OUTPUT"
+          fi
+          # Unusable files (refused by the checks) are not published.
+          for f in out/*-????-??-??.*; do
+            t=$(basename "$f" | cut -d- -f1)
+            grep -q "^${t}: Not available" out/fetch.log && rm -f "$f" || true
+          done
+          ls -la out
+
+      # A fund refused today keeps the last good file it had on the branch, so
+      # one issuer being down does not erase a file the brief could still use.
+      # The file keeps its own fetch date in its name, so the brief sees its age.
+      - name: Carry over the previous file for a fund that failed
+        if: steps.fetch.outputs.partial == 'true'
+        run: |
+          git fetch -q --depth 1 origin holdings-data || { echo "no previous holdings-data branch"; exit 0; }
+          for t in $(grep -o "^[A-Z]*: Not available" out/fetch.log | cut -d: -f1); do
+            prev=$(git ls-tree --name-only FETCH_HEAD | grep "^${t}-....-..-..\." | sort | tail -1)
+            if [ -n "$prev" ]; then
+              git show "FETCH_HEAD:${prev}" > "out/${prev}"
+              echo "${t}: carried over ${prev} from the previous run" >> out/fetch.log
+            else
+              echo "${t}: no previous file to carry over" >> out/fetch.log
+            fi
+          done
+          ls -la out
+
+      - name: Publish to the holdings-data branch
+        if: steps.funds.outputs.any == 'true'
+        run: |
+          cd out
+          git init -q -b holdings-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Fund holdings $(date -u +%F)" -m "From ${GITHUB_SHA}"
+          git push -q --force \
+            "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" \
+            holdings-data
+
+      - name: Append weekly snapshots to the holdings-history branch
+        if: steps.funds.outputs.any == 'true'
+        run: |
+          url="https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git"
+          mkdir hist
+          cd hist
+          git init -q -b holdings-history
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch -q --depth 1 "$url" holdings-history; then
+            git checkout -q -B holdings-history FETCH_HEAD
+          else
+            echo "no holdings-history branch yet; this run starts it"
+          fi
+          cd ..
+          # A fund refused today has no new file, and a carried-over file is
+          # older than its newest snapshot, so neither writes one.
+          python3 scripts/fund_holdings.py snapshot --holdings-dir out --history-dir hist
+          cd hist
+          git add -A
+          if git diff --cached --quiet; then
+            echo "no snapshot due this run"
+            exit 0
+          fi
+          git commit -q -m "Holdings snapshots $(date -u +%F)" -m "From ${GITHUB_SHA}"
+          git push -q "$url" HEAD:holdings-history
+
+      - name: Fail the run when a fund was not fetched
+        if: steps.funds.outputs.any == 'true' && steps.fetch.outputs.partial == 'true'
+        run: |
+          grep "Not available" out/fetch.log
+          exit 1

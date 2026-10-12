@@ -1,0 +1,27 @@
+# Account data — never commit
+data/
+.env
+.env.*
+!.env.example
+
+# Trading 212 exports (current location of raw CSVs)
+trading212/
+
+# Raw broker CSVs, wherever they land - a misnamed directory is exactly
+# when account data escapes. Fixtures are the one exception.
+*.csv
+!tests/fixtures/*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Built skill zip (scripts/build_zip.py) - rebuilt from HEAD, never committed
+dist/
+
+# Local-only on the PC: run journal and files set aside for deletion
+/log/
+_to_delete/

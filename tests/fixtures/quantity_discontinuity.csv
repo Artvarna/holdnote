@@ -1,0 +1,4 @@
+Action,Time (UTC),ISIN,Ticker,Name,No. of shares,Price / share,Currency (Price / share),Exchange rate,Result,Currency (Result),Total,Currency (Total),Withholding tax,Currency (Withholding tax),Notes,ID,Currency conversion fee
+Deposit,2025-10-12 10:15:00,,,,,,,,,,1000.00,EUR,,,Bank transfer,d-002,
+Market buy,2025-10-15 15:05:00,US02079K3059,GOOGL,Alphabet Inc Class A,1.0000000000,648.00,USD,1.0800,,,600.00,EUR,,,,b-005,0.00
+Market sell,2025-12-01 16:00:00,US02079K3059,GOOGL,Alphabet Inc Class A,10.0000000000,70.20,USD,1.0800,50.00,EUR,650.00,EUR,,,,s-002,0.00
