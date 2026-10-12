@@ -1,12 +1,19 @@
-# Builds buffettbot.zip and attaches it to a GitHub release when a version
-# tag is pushed (git tag v1.0.0 && git push origin v1.0.0). The README's
-# "latest release" link is where new users get the skill.
+# Builds buffettbot.zip and attaches it to a GitHub release, either when a
+# version tag is pushed (git tag v1.0.0 && git push origin v1.0.0) or from
+# Actions -> Release -> Run workflow with a version. The README's "latest
+# release" link is where new users get the skill.
 
 name: Release
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. v1.0.0"
+        required: true
+        default: "v1.0.0"
 
 permissions:
   contents: write
@@ -14,6 +21,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,5 +38,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" dist/buffettbot.zip \
-            --title "BuffettBot ${GITHUB_REF_NAME}" --generate-notes
+          gh release create "$VERSION" dist/buffettbot.zip \
+            --target "$GITHUB_SHA" --title "BuffettBot $VERSION" --generate-notes
