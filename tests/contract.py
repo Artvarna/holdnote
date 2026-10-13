@@ -887,6 +887,8 @@ _PCT = re.compile(r"^\d+(?:\.\d+)?$")
 def allocation_problems(sections: dict[str, str]) -> list[str]:
     """Allocation: Diff is Weight - Target, as a signed number and nothing else.
 
+    A Target of ``-`` (no target set) carries a Diff of ``-``.
+
     The difference column is arithmetic; a word in it ("overweight",
     "rebalance") is a reading of the number, which is the user's to make.
     Holding weights, when all are printed, sum to 100 within rounding.
@@ -915,6 +917,10 @@ def allocation_problems(sections: dict[str, str]) -> list[str]:
             continue
         if not is_total:
             held.append(Decimal(weight) if _PCT.match(weight) else None)
+        if target == "-":  # no target set (holdings.csv): nothing to subtract
+            if diff != "-":
+                problems.append(f"{name}: Diff {diff!r} printed without a target")
+            continue
         if not (_PP.match(diff) and _PCT.match(weight) and _PCT.match(target)):
             problems.append(f"{name}: Diff {diff!r} is not a signed number of pp")
             continue

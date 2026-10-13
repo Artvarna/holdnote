@@ -11,6 +11,8 @@ trading212/
 # when account data escapes. Fixtures are the one exception.
 *.csv
 !tests/fixtures/*.csv
+# ...except your holdings file, which setup commits to your private copy
+!me/holdings.csv
 
 # Python
 __pycache__/

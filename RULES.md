@@ -390,6 +390,7 @@ Mode: Fund brief (Mode A)
 Mode: Stock brief
 Mode: Market context (holdings)
 Mode: Portfolio sync
+Mode: Any broker
 Mode: Thesis journal
 Mode: Run journal
 ```

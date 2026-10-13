@@ -495,7 +495,7 @@ ex-date falls in the period (market-context → Distributions inside the
 period; VUSA and the three stocks can, the three Acc funds cannot). Its rows are
 the **instruments in the set**: each one the request names, or, where the
 request scopes to the portfolio without naming any ("my portfolio"), each
-instrument in `portfolio.md`. Held or not decides nothing — Mode C is
+instrument in `holdings.csv` or `portfolio.md`. Held or not decides nothing — Mode C is
 reached on test 2 for a named instrument whether or not the user owns it,
 so a row is never added or dropped by what `portfolio.md` contains. The
 period % is the instrument's move, not the position's: a portfolio total
@@ -505,12 +505,19 @@ or a weight × move contribution needs market weights (`portfolio-sync.md`
 ### Allocation table
 
 What share of the portfolio each holding is at the brief's closes, next to
-the target in `pies.md`. Printed when the request scopes to the portfolio
+the target in `holdings.csv` (any broker) or `pies.md` (Trading 212). Printed when the request scopes to the portfolio
 ("my portfolio"); a set the user named reads `none` here, because a weight is
 a share of the whole portfolio and a named set is not it.
 
 **The table is the output of `scripts/market_weights.py`, pasted unchanged.**
-Run it in the repo folder on the user's computer (device shell):
+
+- **Holdings from any broker** (`holdings.csv`): run it in Claude's
+  workspace with the skill's own scripts and a copy of the file, exactly as
+  `references/any-broker.md` → How the portfolio view uses it shows. Its
+  first column is `Group`; a holding without a target prints `-` in Target
+  and Diff.
+- **Trading 212 sync**: run it in the repo folder on the user's computer
+  (device shell), where the exports are:
 
 ```
 cd "$HOME/mnt/<folder>" && python3 scripts/market_weights.py --prices "$HOME/prices.json"
@@ -533,22 +540,28 @@ from memory:
   25–26 December). `METHOD` says which date and why. A period that ends
   before the last trade in the exports has no Allocation: the script refuses
   it, and the table reads its one-line refusal.
-- `prices`: one entry per pie ISIN — that instrument's close on `as_of`
+- `prices`: one entry per held ISIN (each `holdings.csv` row, or each pie
+  ISIN) — that instrument's close on `as_of`
   from the closes Performance already fetched (its end close, or its base
   close when `as_of` is the base session), its listing
   currency (`GBX` for MEUD, or `GBp` as Yahoo writes it; both are pence and the
   script divides by 100, while `GBP` is pounds), its date and source. The
   script withholds a value over 10× or under 1/10 of the holding's cost basis
   as a likely unit error, naming both figures.
-- `fx`: `USD` and `GBP` as units per 1 EUR from the ECB euro foreign
-  exchange reference rates for `as_of`. Read them in the built-in browser
+- `fx`: every currency those closes are in other than EUR (`USD`, `GBP`,
+  and `CHF`, `PLN`, `SEK` … for holdings that trade there) as units per 1 EUR
+  from the ECB euro foreign exchange reference rates for `as_of`. Read them in the built-in browser
   from an `ecb.europa.eu` tab: `fetch('/stats/eurofxref/eurofxref-hist-90d.xml')`
   and take the `Cube time="<as_of>"` row (both shells are refused by the ECB).
   WebFetch reaches the same file and returned the same 2026-10-02 rates, but
   it summarises: its figure confirms the browser's, it never replaces it.
   A rate is never reused from a trade row of the export, and never recalled.
 
-Quantities come from the T212 exports through `scripts/t212_holdings.py`
+With `holdings.csv`, quantities are the file's, as of its `as_of`; `METHOD`
+copies the script's `Allocation …` lines, which name the file, its date and
+its source, and a trade after that date is not in the table until the user
+imports again. With a Trading 212 sync, quantities come from the T212
+exports through `scripts/t212_holdings.py`
 (same cutoff, same FIFO split as the sync), so the script needs nothing else.
 It refuses an `as_of` before the last trade in the exports, and withholds
 every weight when any holding cannot be valued at `as_of` (portfolio-sync →
@@ -597,8 +610,10 @@ on GitHub's servers and force-pushes the raw files and its `fetch.log` to the
    `device_commit_files` them to `<repo>/data/holdings/` on the computer
    (inside `data/`, so never committed). Files only — never paste rows into
    the conversation.
-3. **The computer's shell**, after the Allocation table's `prices.json`
-   exists:
+   With `holdings.csv` (any broker) skip this step: `report` runs in the
+   workspace on the clone itself, as `references/any-broker.md` shows.
+3. **The computer's shell** (Trading 212 sync), after the Allocation table's
+   `prices.json` exists:
 
 ```
 cd "$HOME/mnt/<folder>" && python3 scripts/fund_holdings.py report --prices "$HOME/prices.json"
@@ -751,7 +766,8 @@ checked.
 
 One row per **individual stock in the set**, the same set the Performance
 table uses: each stock the request names, or, for "my portfolio", each stock
-in `portfolio.md`'s stock pie, in that file's order. A request that names only
+in `holdings.csv` with kind `stock` (or `portfolio.md`'s stock pie), in that
+file's order. A request that names only
 funds has no stocks in its set and the table reads `none`. Held or not decides
 nothing, as it decides nothing for Performance.
 
