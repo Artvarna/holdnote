@@ -21,7 +21,7 @@ on:
     - cron: "23 5 * * *"  # daily 05:23 UTC
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [main, master]
     paths:
       - scripts/fund_holdings.py
       - .github/workflows/holdings.yml
@@ -35,6 +35,8 @@ concurrency:
 
 jobs:
   fetch:
+    # The public template has no funds of its own; only users' copies fetch.
+    if: github.repository != 'Artvarna/buffettbot'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

@@ -43,6 +43,7 @@ full evidence: every source, its date, and the arithmetic behind each figure.
 1. Click **Use this template** → **Create a new repository**. Name it
    `buffettbot` and choose **Private**.
 2. In your new repo, open **Actions** and enable workflows if GitHub asks.
+   Setup will ask you to run **Fund holdings** once after your funds are in.
 3. Get `buffettbot.zip` from the [latest release](../../releases/latest)
    and add it to Claude as a skill.
 4. Connect GitHub in Claude, then say **"set up BuffettBot"**. A short

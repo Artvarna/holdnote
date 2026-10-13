@@ -199,7 +199,7 @@ BGN_RATE = (
 
 def write_ownership(
     path: Path,
-    cutoff="2025-10-12",
+    cutoff="2025-10-13",
     declared=(),
     updated="2026-09-17",
     fixed_rate: str | None = None,
@@ -223,7 +223,7 @@ def workspace(tmp_path: Path) -> Path:
     return tmp_path
 
 
-CUTOFF = date(2025, 10, 12)
+CUTOFF = date(2025, 10, 13)
 
 
 def load(directory: Path, cutoff: date = CUTOFF):
@@ -480,7 +480,7 @@ def test_cutoff_boundary_is_inclusive(workspace):
     write_export(
         data,
         "a.csv",
-        [buy(qty="1.0", time="2025-10-12 00:00:01+00:00", tx_id="EOF1")],
+        [buy(qty="1.0", time="2025-10-13 00:00:01+00:00", tx_id="EOF1")],
     )
     _, positions = load(data)
     position = positions["IE00BFY0GT14"]
@@ -524,7 +524,7 @@ def test_cutoff_override_beats_the_file(workspace):
         workspace / "ownership.md", cutoff_override=date(2024, 5, 1)
     )
     assert ownership.cutoff == date(2024, 5, 1)
-    assert "overriding 2025-10-12" in ownership.cutoff_source
+    assert "overriding 2025-10-13" in ownership.cutoff_source
 
 
 def test_missing_ownership_file_halts_unless_cutoff_given(workspace):
@@ -532,9 +532,9 @@ def test_missing_ownership_file_halts_unless_cutoff_given(workspace):
     with pytest.raises(t.Halt, match="ownership file not found"):
         t.load_ownership(workspace / "ownership.md")
     ownership = t.load_ownership(
-        workspace / "ownership.md", cutoff_override=date(2025, 10, 12)
+        workspace / "ownership.md", cutoff_override=date(2025, 10, 13)
     )
-    assert ownership.cutoff == date(2025, 10, 12)
+    assert ownership.cutoff == date(2025, 10, 13)
     assert ownership.declared == {}
 
 
@@ -569,7 +569,7 @@ def test_declared_but_unimplemented_key_halts(workspace, key, value):
     """
     path = write_policy(
         workspace / "ownership.md",
-        ["Last updated: 2026-09-17", "Cutoff: 2025-10-12", f"{key}: {value}"],
+        ["Last updated: 2026-09-17", "Cutoff: 2025-10-13", f"{key}: {value}"],
     )
     with pytest.raises(t.Halt) as excinfo:
         t.load_ownership(path)
@@ -585,7 +585,7 @@ def test_unhandled_key_halts_wherever_it_sits(workspace):
     for key, value in UNHANDLED_KEYS:
         path = write_policy(
             workspace / "ownership.md",
-            [f"{key}: {value}", "Cutoff: 2025-10-12"],
+            [f"{key}: {value}", "Cutoff: 2025-10-13"],
         )
         with pytest.raises(t.Halt, match=f"declares {key}"):
             t.load_ownership(path)
@@ -596,7 +596,7 @@ def test_unhandled_key_halts_before_the_report_is_built(workspace):
     write_export(workspace / "data" / "t212", "a.csv", [buy(qty="1.0")])
     write_policy(
         workspace / "ownership.md",
-        ["Cutoff: 2025-10-12", "CASH_CONSUMPTION: pro-rata"],
+        ["Cutoff: 2025-10-13", "CASH_CONSUMPTION: pro-rata"],
     )
     with pytest.raises(t.Halt, match="declares CASH_CONSUMPTION"):
         run_in(workspace)
@@ -612,7 +612,7 @@ def test_a_multi_word_key_in_the_block_still_halts(workspace):
     """
     path = write_policy(
         workspace / "ownership.md",
-        ["Cutoff: 2025-10-12", "HOLDER CASH AT OWN FROM: 2025-06-01"],
+        ["Cutoff: 2025-10-13", "HOLDER CASH AT OWN FROM: 2025-06-01"],
     )
     with pytest.raises(t.Halt) as excinfo:
         t.load_ownership(path)
@@ -625,7 +625,7 @@ def test_a_key_outside_the_block_is_not_a_declaration(workspace):
     """Below the fence nothing is policy, including what would halt above it."""
     path = write_policy(
         workspace / "ownership.md",
-        ["Last updated: 2026-09-17", "Cutoff: 2025-10-12"],
+        ["Last updated: 2026-09-17", "Cutoff: 2025-10-13"],
         body=[
             "# Ownership",
             "",
@@ -640,7 +640,7 @@ def test_a_key_outside_the_block_is_not_a_declaration(workspace):
         ],
     )
     ownership = t.load_ownership(path)
-    assert ownership.cutoff == date(2025, 10, 12)
+    assert ownership.cutoff == date(2025, 10, 13)
     assert ownership.updated == "2026-09-17"
 
 
@@ -648,7 +648,7 @@ def test_a_missing_policy_block_halts_naming_the_file(workspace):
     """A file with no block is an error, never a silent empty parse."""
     path = write_lines(
         workspace / "ownership.md",
-        ["# Ownership", "", "Cutoff: 2025-10-12"],
+        ["# Ownership", "", "Cutoff: 2025-10-13"],
     )
     with pytest.raises(t.Halt, match="ownership.md: no policy block"):
         t.load_ownership(path)
@@ -657,7 +657,7 @@ def test_a_missing_policy_block_halts_naming_the_file(workspace):
 def test_an_unclosed_policy_block_halts_naming_the_file(workspace):
     path = write_lines(
         workspace / "ownership.md",
-        ["---", "Cutoff: 2025-10-12", "", "# Ownership"],
+        ["---", "Cutoff: 2025-10-13", "", "# Ownership"],
     )
     with pytest.raises(t.Halt, match="ownership.md: policy block opens"):
         t.load_ownership(path)
@@ -666,7 +666,7 @@ def test_an_unclosed_policy_block_halts_naming_the_file(workspace):
 def test_a_non_declaration_inside_the_block_halts(workspace):
     path = write_lines(
         workspace / "ownership.md",
-        ["---", "Cutoff: 2025-10-12", "just prose, no colon", "---"],
+        ["---", "Cutoff: 2025-10-13", "just prose, no colon", "---"],
     )
     with pytest.raises(t.Halt, match="ownership.md:3: .* is not a 'Key: value'"):
         t.load_ownership(path)
@@ -712,12 +712,12 @@ def test_handled_keys_are_read_not_merely_tolerated(workspace):
         workspace / "ownership.md",
         [
             "Last updated: 2026-09-17",
-            "Cutoff: 2025-10-12",
+            "Cutoff: 2025-10-13",
             f"Fixed rate: {BGN_RATE}",
         ],
     )
     ownership = t.load_ownership(path)
-    assert ownership.cutoff == date(2025, 10, 12)
+    assert ownership.cutoff == date(2025, 10, 13)
     assert ownership.updated == "2026-09-17"
     assert ownership.fixed_rate.rate == Decimal("1.95583")
     assert t.OWNERSHIP_KEYS == {"CUTOFF", "FIXED RATE", "LAST UPDATED"}
@@ -735,7 +735,7 @@ def test_prose_with_a_colon_is_not_read_as_a_declaration(workspace):
         workspace / "ownership.md",
         [
             "---",
-            "Cutoff: 2025-10-12",
+            "Cutoff: 2025-10-13",
             "---",
             "",
             "# Ownership",
@@ -749,7 +749,7 @@ def test_prose_with_a_colon_is_not_read_as_a_declaration(workspace):
             "```",
         ],
     )
-    assert t.load_ownership(path).cutoff == date(2025, 10, 12)
+    assert t.load_ownership(path).cutoff == date(2025, 10, 13)
 
 
 def test_declared_isin_is_excluded_even_when_it_looks_clean(workspace):
@@ -1076,7 +1076,7 @@ def test_single_currency_book_ignores_the_rate(workspace):
 def test_malformed_fixed_rate_halts(workspace, value, message):
     path = write_policy(
         workspace / "ownership.md",
-        ["Last updated: 2026-09-17", "Cutoff: 2025-10-12", f"Fixed rate: {value}"],
+        ["Last updated: 2026-09-17", "Cutoff: 2025-10-13", f"Fixed rate: {value}"],
     )
     with pytest.raises(t.Halt, match=message) as info:
         t.load_ownership(path)
@@ -2117,7 +2117,7 @@ def test_sources_lists_every_file_read(complete_run):
     sources = complete_run.sections["SOURCES"]
     assert "a.csv" in sources
     assert "pies.md (updated 2026-09-17)" in sources
-    assert "ownership.md (cutoff 2025-10-12, updated 2026-09-17)" in sources
+    assert "ownership.md (cutoff 2025-10-13, updated 2026-09-17)" in sources
     assert sources.count("published n/a - local file") == 3
 
 
@@ -2128,7 +2128,7 @@ def test_context_carries_values_not_a_file_list(complete_run):
     rather than adding a field.
     """
     period = complete_run.context()["Latest period"]
-    assert "ownership cutoff 2025-10-12" in period
+    assert "ownership cutoff 2025-10-13" in period
     assert "policy as of 2026-09-17" in period
     assert ".md" not in complete_run.sections["CONTEXT"]
 
@@ -2137,17 +2137,17 @@ def test_context_carries_values_not_a_file_list(complete_run):
 # written. Each is a CLI run, because what is under test is the printed
 # STATUS line rather than the exception.
 POLICY_HALTS = {
-    "missing block": ["# Ownership", "", "Cutoff: 2025-10-12"],
-    "unclosed block": ["---", "Cutoff: 2025-10-12", "", "# Ownership"],
+    "missing block": ["# Ownership", "", "Cutoff: 2025-10-13"],
+    "unclosed block": ["---", "Cutoff: 2025-10-13", "", "# Ownership"],
     "unhandled key": [
-        "---", "Cutoff: 2025-10-12", "CASH_CONSUMPTION: pro-rata", "---",
+        "---", "Cutoff: 2025-10-13", "CASH_CONSUMPTION: pro-rata", "---",
     ],
     "multi-word key": [
-        "---", "Cutoff: 2025-10-12", "HOLDER CASH AT OWN FROM: 2025-06-01",
+        "---", "Cutoff: 2025-10-13", "HOLDER CASH AT OWN FROM: 2025-06-01",
         "---",
     ],
     "non-declaration line": [
-        "---", "Cutoff: 2025-10-12", "just prose, no colon", "---",
+        "---", "Cutoff: 2025-10-13", "just prose, no colon", "---",
     ],
 }
 
@@ -2498,7 +2498,7 @@ def test_blank_template_ownership_halts_with_the_way_forward(tmp_path):
 def test_missing_files_point_to_setup_not_to_anyones_cutoff(tmp_path):
     with pytest.raises(t.Halt) as info:
         t.load_ownership(tmp_path / "ownership.md")
-    assert "set up BuffettBot" in info.value.message and "2025-10-12" not in info.value.message
+    assert "set up BuffettBot" in info.value.message and "2025-10-13" not in info.value.message
     with pytest.raises(t.Halt, match="set up BuffettBot"):
         t.load_pies(tmp_path / "pies.md")
     with pytest.raises(t.Halt, match="History -> Export"):

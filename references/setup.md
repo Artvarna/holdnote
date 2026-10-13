@@ -31,11 +31,10 @@ BuffettBot keeps each user's files in their own **private** GitHub repo,
 copied from the public template. Ask whether they have one.
 
 - **Not yet:** give these steps, then wait for the repo's name:
-  1. Open the BuffettBot repo on GitHub and click **Use this template** →
-     **Create a new repository**.
+  1. Open https://github.com/Artvarna/buffettbot and click **Use this
+     template** → **Create a new repository**.
   2. Name it `buffettbot`, choose **Private**, click **Create repository**.
-  3. In the new repo, open **Actions** and enable workflows if GitHub asks,
-     then run **Fund holdings** once (**Run workflow**).
+  3. In the new repo, open **Actions** and enable workflows if GitHub asks.
 - **Already have one:** ask for `owner/name`.
 
 Attach it with push access (`add_repo`, `access: "push"`) and clone it. If
@@ -95,6 +94,10 @@ in what the conversation gave, then show a short summary:
 
 Commit as `Set up BuffettBot` and push. Never overwrite a file that already
 has content: show the difference and ask first.
+
+If `me/funds.md` got any rows, ask the user to run the Action once now:
+their repo → **Actions** → **Fund holdings** → **Run workflow**. Running it
+before this push would find no funds and fetch nothing.
 
 ## 7. The first report
 

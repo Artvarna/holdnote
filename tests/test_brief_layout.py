@@ -58,7 +58,7 @@ RED_FLAGS = [
     "| Type | Item | Source | Status |",
     "|---|---|---|---|",
     "| Filing risk | Supply concentration in one region | 10-K FY2025, Item 1A | New |",
-    "| Thesis | \"Services growth below 5% for two years\" | thesis 2025-10-12 | Not reached |",
+    "| Thesis | \"Services growth below 5% for two years\" | thesis 2025-10-13 | Not reached |",
     "",
 ]
 SEGMENTS = [
