@@ -32,8 +32,11 @@ the report length, the lenses every brief runs, whether Buffett notes print,
 and the base currency. Read on every run that has the user's files; without
 them, the defaults in `templates/me/profile.md` apply.
 
-`me/portfolio.md` — current holdings and their **target** weights (a decision,
-not a measurement; market weights come from Mode C's Allocation table). Read
+`me/holdings.csv` (any broker, `references/any-broker.md`) or
+`me/portfolio.md` (Trading 212 sync) — current holdings and their **target**
+weights (a decision, not a measurement; market weights come from Mode C's
+Allocation table). `holdings.csv` wins when both exist. An export, screenshot
+or holdings file attached in this conversation is read in their place. Read
 whenever the request
 touches "my portfolio", "what I own", overlap, look-through, or how a
 candidate would sit beside existing holdings. Never ask for weights already
@@ -44,33 +47,43 @@ touch it — see `references/market-context.md` → Market-wide mode.
 
 ## Your files
 
-Every user's own data lives in a `me/` folder in **their own private GitHub
-repo**, copied from the BuffettBot template — never in the installed skill,
-which is read-only and the same for everyone. That folder is their vault:
+Every user's own data lives in a `me/` folder that is theirs — never in the
+installed skill, which is read-only and the same for everyone. The folder is
+in one of three places, whichever they chose at setup:
+
+- **a folder on their computer**, reached through the Claude desktop app;
+- **their own private GitHub repo**, copied from the BuffettBot template,
+  which adds a daily Action fetching every fund's full holdings;
+- **nowhere**: they attach their export or `holdings.csv` when they ask.
 
 ```
 me/profile.md      preferences, circle of competence, default lenses
-me/portfolio.md    holdings, OWN_FROM, watchlist
-me/pies.md         target weights
-me/ownership.md    ownership cutoff
-me/funds.md        the funds the GitHub Action fetches
+me/holdings.csv    holdings from any broker (references/any-broker.md)
 me/theses/         one file per thesis, never edited
 me/log/            the run journal
+me/funds.md        GitHub only: the funds the Action fetches
+me/portfolio.md    Trading 212 sync only: holdings, OWN_FROM, watchlist
+me/pies.md         Trading 212 sync only: target weights
+me/ownership.md    Trading 212 sync only: ownership cutoff
 ```
 
 Wherever a reference names one of these files without a folder
 (`portfolio.md`, `pies.md`, `ownership.md`, `log/`), it means this one.
 
-**Finding it.** The repo's `owner/name` comes from the user: from this
-conversation, or from what Claude remembers of an earlier one. If neither
-has it, ask once. In a cloud session, attach it (`add_repo`, push access)
-and clone it; with the user's computer linked and the repo there, read it
-in place. The scripts run from the repo's root and default to `me/`.
+**Finding it.** Where it is — a folder on their computer, or a repo's
+`owner/name` — comes from the user: from this conversation, or from what
+Claude remembers of an earlier one. If neither has it, ask once. A repo is
+attached (`add_repo`, push access) and cloned; a computer folder is read
+through the device tools. Any-broker files are copied into Claude's
+workspace and the skill's own `scripts/` run there
+(`references/any-broker.md`); a Trading 212 sync runs where its exports are.
 
-**No files yet.** Briefs still run: the portfolio view, thesis checks and
-What changed print `Not available — no BuffettBot files (say "set up
-BuffettBot")`, and `METHOD` offers setup on its `Next:` line. Setup is
-`references/setup.md`.
+**No files yet.** Nothing is a gate. Briefs run; an attached export or
+screenshot gives the portfolio view in the same reply
+(`references/any-broker.md`). Without either, the portfolio view, thesis
+checks and What changed print `Not available — no BuffettBot files (attach
+your broker export, or say "set up BuffettBot")`, and `METHOD` offers setup
+on its `Next:` line. Setup is `references/setup.md`.
 
 **Writing.** A thesis, a logged run, a portfolio sync or a profile change is
 written into `me/`, committed with a message naming what changed, and
@@ -89,9 +102,10 @@ that fails is said plainly, with the text printed so nothing is lost.
 | Policy rates, inflation, earnings dates, index changes affecting holdings | `references/market-context.md` |
 | Where the market, an index or a sector stands and how it moved — not scoped to holdings | `references/market-context.md` → Market-wide mode |
 | "Why did I buy this", writing or checking a thesis | `references/thesis-journal.md` |
-| "Update my portfolio", "here's my T212 export", or a CSV path is supplied — **or a Trading 212 export is attached, whatever the question** | `references/portfolio-sync.md` — market weights are Mode M (opt-in), Step 4b. An attached export is read even when the question also routes elsewhere ("what do I own?" with an export is Portfolio sync + Mode C), because a question asked beside the user's own data is about that data |
+| Holdings from **any other broker or app** — an export (CSV, Excel), a screenshot of a holdings screen, or a typed list — attached or pasted, **whatever the question**; "update my holdings" for a user with `me/holdings.csv` | `references/any-broker.md`, then the route the question needs (attached + "what do I own?" is Any broker + Mode C) |
+| "Update my portfolio", "here's my T212 export", or a Trading 212 CSV path is supplied — **or a Trading 212 export is attached, whatever the question** | `references/portfolio-sync.md` — market weights are Mode M (opt-in), Step 4b. An attached export is read even when the question also routes elsewhere ("what do I own?" with an export is Portfolio sync + Mode C), because a question asked beside the user's own data is about that data |
 | Logging a completed run, or "what did the last run print / show / say" | `references/run-journal.md` |
-| "Set up BuffettBot", "get started", or the first request that needs the user's files when none exist | `references/setup.md` |
+| "Set up BuffettBot", "get started", "save my portfolio", "change my settings" | `references/setup.md` |
 | "Should I buy X", "thinking of adding X", "checklist for X" | `references/checklist.md`, with the stock or fund brief it runs |
 | What Buffett's ideas are, where a rule comes from, "why is it called BuffettBot" | `references/buffett.md`, answered from its Principles table; never what he would think of an instrument |
 | "Which build / version is this?" | Answer with the text of the `BUILD` file in this skill's folder and nothing else |
@@ -120,6 +134,7 @@ Market-wide mode → Trigger.
 | "what's in the S&P 500" · "how is MSCI World built" | `Mode: Index construction (Mode B)` | construction, not level |
 | "how's my portfolio done this week" | `Mode: Portfolio (Mode C)` | ownership scope |
 | "what do I own?" with a Trading 212 export attached | `Mode: Portfolio sync + Portfolio (Mode C)` | an attached export is always read |
+| "what do I own?" with any other broker's export, or a screenshot of holdings | `Mode: Any broker + Portfolio (Mode C)` | an attached export is always read, whoever the broker |
 | "how's VUSA done since Monday" | `Mode: Portfolio (Mode C)` | instrument named directly |
 | "how's iShares Core FTSE 100 done this month" | `Mode: Portfolio (Mode C)` | instrument named; not held changes nothing |
 | "how's my S&P 500 tracker doing" | `Mode: Portfolio (Mode C)` | possessive plus instrument; outranks the index-name match |

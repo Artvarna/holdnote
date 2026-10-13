@@ -966,11 +966,14 @@ def lookthrough_table(order: list[str], exps: dict[str, Exposure],
 # --- market weights ---------------------------------------------------------
 
 def market_weights(prices_path: Path, data_dir: Path, pies_path: Path,
-                   ownership_path: Path) -> tuple[dict[str, Decimal], dict[str, str], dict[str, str], date]:
+                   ownership_path: Path, holdings_path: Path | None = None,
+                   ) -> tuple[dict[str, Decimal], dict[str, str], dict[str, str], date]:
     """Weight (market) per ISIN, exactly as the Allocation table prints it.
 
-    Returns (weights, tickers by ISIN, pies by ISIN, as-of). Raises Refused
-    with the Allocation table's own reason when a weight cannot be printed.
+    Returns (weights, tickers by ISIN, kinds by ISIN -- "stock" or "fund" --,
+    as-of). Quantities come from holdings.csv when it exists, else from the
+    Trading 212 exports, as in market_weights.main. Raises Refused with the
+    Allocation table's own reason when a weight cannot be printed.
     """
     import market_weights as mw
     import t212_holdings as t
@@ -981,10 +984,14 @@ def market_weights(prices_path: Path, data_dir: Path, pies_path: Path,
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise Refused(f"{prices_path}: {exc}")
     try:
-        rows, _pies, last_trade = mw.holdings_rows(data_dir, pies_path, ownership_path)
+        if holdings_path is not None and holdings_path.exists():
+            rows, _targets, _snapshot, _source = mw.csv_rows(holdings_path)
+            last_trade = None
+        else:
+            rows, _pies, last_trade = mw.holdings_rows(data_dir, pies_path, ownership_path)
     except (mw.Refused, t.Halt) as exc:
         raise Refused(str(exc))
-    if as_of < last_trade:
+    if last_trade is not None and as_of < last_trade:
         raise Refused(f"as-of {as_of} precedes the last trade in the exports ({last_trade})")
     priced = mw.price_rows(rows, as_of, spec.get("prices", {}), spec.get("fx", {}))
     missing = [f"{p.row.ticker} ({p.reason})" for p in priced if p.value is None]
@@ -995,7 +1002,7 @@ def market_weights(prices_path: Path, data_dir: Path, pies_path: Path,
         raise Refused("portfolio value is zero")
     weights = {p.row.isin: mw._q(p.value / total * 100) for p in priced}
     return (weights, {p.row.isin: p.row.ticker for p in priced},
-            {p.row.isin: p.row.pie for p in priced}, as_of)
+            {p.row.isin: "stock" if p.row.is_stock else "fund" for p in priced}, as_of)
 
 
 # --- report -----------------------------------------------------------------
@@ -1116,7 +1123,8 @@ def cmd_report(args: argparse.Namespace) -> int:
     else:
         try:
             weights, tickers, pies, as_of = market_weights(
-                args.prices, args.data_dir, args.pies, args.ownership)
+                args.prices, args.data_dir, args.pies, args.ownership,
+                getattr(args, "holdings", None))
         except Refused as exc:
             lt_reason = str(exc)
     if weights:
@@ -1135,8 +1143,8 @@ def cmd_report(args: argparse.Namespace) -> int:
 
     stats = None
     if not lt_reason:
-        unpriced = [isin for isin, pie in pies.items()
-                    if isin not in SOURCES and pie != "Stock" and weights.get(isin)]
+        unpriced = [isin for isin, kind in pies.items()
+                    if isin not in SOURCES and kind.lower() != "stock" and weights.get(isin)]
         missing = [t for t in order if t not in funds and weights.get(ISIN_OF[t], Decimal(0)) > 0]
         if unpriced:
             lt_reason = "no holdings source for " + ", ".join(tickers[i] for i in unpriced)
@@ -1151,8 +1159,8 @@ def cmd_report(args: argparse.Namespace) -> int:
         fund_weights = {s.ticker: weights[isin] for isin, s in SOURCES.items()}
         direct = {}
         direct_names = {}
-        for isin, pie in pies.items():
-            if pie == "Stock" and isin not in SOURCES:
+        for isin, kind in pies.items():
+            if kind.lower() == "stock" and isin not in SOURCES:
                 k = company_key(isin)
                 direct[k] = direct.get(k, Decimal(0)) + weights[isin]
                 direct_names[k] = tickers[isin]
@@ -1545,6 +1553,9 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--data-dir", type=Path, default=Path("data/t212"))
     r.add_argument("--pies", type=Path, default=Path("me/pies.md"))
     r.add_argument("--ownership", type=Path, default=Path("me/ownership.md"))
+    r.add_argument("--holdings", type=Path, default=Path("me/holdings.csv"),
+                   help="broker-neutral holdings; used instead of the Trading 212 exports "
+                        "whenever it exists")
     r.add_argument("--top", type=int, default=15,
                    help="how many companies beyond the directly held to print")
     r.add_argument("--min-country", type=Decimal, default=Decimal("0.50"),

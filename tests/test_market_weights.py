@@ -281,10 +281,18 @@ def test_an_ordinary_gain_passes_the_cost_guard():
     assert priced[0].value == Decimal("60.00")  # 3x cost: plausible
 
 
-@pytest.mark.parametrize("ccy", ["CHF", "", "pence"])
+@pytest.mark.parametrize("ccy", ["", "pence", "CHFX"])
 def test_an_unsupported_currency_is_named(ccy):
     priced, _ = table(prices(I1={"price": "30", "currency": ccy, "date": DAY}))
     assert priced[0].value is None and priced[0].reason.startswith("price currency")
+
+
+def test_any_currency_with_an_ecb_rate_is_valued():
+    p = prices(I1={"price": "30", "currency": "CHF", "date": DAY})
+    priced, _ = table(p)
+    assert priced[0].value is None and priced[0].reason == "no CHF rate supplied"
+    priced, _ = table(p, fx={**FX, "CHF": {"per_eur": "0.94", "date": DAY}})
+    assert priced[0].value == Decimal("63.83")  # 2 x 30 / 0.94
 
 
 @needs_real
@@ -343,3 +351,86 @@ def test_lookthrough_not_available_passes():
     na = ["Look-through", "| Company | Total |", "|---|---|",
           "| all | Not available — no market weights |", ""]
     assert look(na) == []
+
+
+# --- holdings.csv: any broker ----------------------------------------------
+
+HOLDINGS_CSV = """# as_of: 2026-10-01
+# source: positions.csv (positions)
+isin,ticker,name,kind,quantity,group,target_pct
+IE00BFY0GT14,SPPW,SPDR MSCI World,fund,2,ETFs,{t1}
+US0378331005,AAPL,Apple,stock,1,Stocks,{t2}
+"""
+CSV_PRICES = {
+    "as_of": DAY,
+    "prices": {
+        "IE00BFY0GT14": {"price": "30", "currency": "EUR", "date": DAY},
+        "US0378331005": {"price": "44", "currency": "USD", "date": DAY},
+    },
+    "fx": {"USD": {"per_eur": "1.1", "date": DAY}},
+}
+
+
+def run_csv(tmp_path, t1="60", t2="40", groups=True):
+    text = HOLDINGS_CSV.format(t1=t1, t2=t2)
+    if not groups:
+        text = text.replace(",ETFs,", ",,").replace(",Stocks,", ",,")
+    h = tmp_path / "holdings.csv"
+    h.write_text(text, encoding="utf-8")
+    f = tmp_path / "prices.json"
+    f.write_text(json.dumps(CSV_PRICES), encoding="utf-8")
+    return subprocess.run(
+        [sys.executable, str(REPO / "scripts" / "market_weights.py"), "--prices", str(f),
+         "--holdings", str(h), "--data-dir", str(tmp_path / "no-exports")],
+        capture_output=True, text=True, cwd=tmp_path,
+    )
+
+
+def test_holdings_csv_with_targets(tmp_path):
+    proc = run_csv(tmp_path)
+    assert proc.returncode == 0, proc.stdout
+    out = proc.stdout
+    assert "| Group | Ticker |" in out
+    assert "| ETFs | SPPW | 2 | EUR 30 | 60.00 | 60.00 | 60.00 | 0.00 |" in out
+    assert "| Stocks | AAPL | 1 | USD 44 | 40.00 | 40.00 | 40.00 | 0.00 |" in out
+    assert "| ETFs | total |" in out and "| Portfolio | total | | | 100.00 | 100.00 | 100.00 | 0.00 |" in out
+    assert "positions as of 2026-10-01, from positions.csv (positions)" in out
+    result = out.split("\n\n")[0]
+    assert contract.allocation_problems({"RESULT": result}) == []
+
+
+def test_holdings_csv_without_targets(tmp_path):
+    proc = run_csv(tmp_path, t1="", t2="", groups=False)
+    assert proc.returncode == 0, proc.stdout
+    out = proc.stdout
+    assert "| Portfolio | SPPW | 2 | EUR 30 | 60.00 | 60.00 | - | - |" in out
+    assert "| Portfolio | total | | | 100.00 | 100.00 | - | - |" in out
+    assert out.count("| Portfolio | total |") == 1  # one group: no separate group total
+    assert "no targets set" in out
+    assert contract.allocation_problems({"RESULT": out.split("\n\n")[0]}) == []
+
+
+def test_holdings_csv_targets_not_summing_to_100_show_the_gap(tmp_path):
+    proc = run_csv(tmp_path, t1="50", t2="30")
+    out = proc.stdout
+    assert "| Portfolio | total | | | 100.00 | 100.00 | 80.00 | +20.00 |" in out
+    assert contract.allocation_problems({"RESULT": out.split("\n\n")[0]}) == []
+
+
+def test_contract_refuses_a_diff_without_a_target():
+    result = ("Allocation (market weights)\n"
+              "| Group | Ticker | Quantity | Close | Value (EUR) | Weight (market) | Target | Diff (pp) |\n"
+              "|---|---|---|---|---|---|---|---|\n"
+              "| Portfolio | AAA | 1 | EUR 1 | 1.00 | 100.00 | - | +3.00 |\n")
+    assert contract.allocation_problems({"RESULT": result}) == ["AAA: Diff '+3.00' printed without a target"]
+
+
+def test_bad_holdings_csv_is_refused_with_the_reason(tmp_path):
+    h = tmp_path / "holdings.csv"
+    h.write_text("isin,quantity,kind\nUS0378331006,1,stock\n")
+    f = tmp_path / "prices.json"
+    f.write_text(json.dumps(CSV_PRICES))
+    proc = subprocess.run([sys.executable, str(REPO / "scripts" / "market_weights.py"),
+                           "--prices", str(f), "--holdings", str(h)],
+                          capture_output=True, text=True, cwd=tmp_path)
+    assert proc.returncode == 1 and "not a valid ISIN" in proc.stdout

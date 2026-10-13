@@ -941,3 +941,41 @@ market weights the figure can be measured.
 - **Half-up rounding in both scripts.** `fund_holdings` used Python's default
   half-even; `market_weights` rounds half up. They now agree, so a 0.045
   cell is 0.05 in both. Today's Look-through printed the same either way.
+
+## Any broker, and setup without GitHub, 2026-10-13
+
+Before launch, setup took six steps and a GitHub repo, and "my portfolio"
+worked only from Trading 212 exports. Most people who would try BuffettBot use
+another app, and many have never made a repo.
+
+- **One broker-neutral file, `me/holdings.csv`.** ISIN, quantity, kind
+  (fund or stock), optional group and target %. Every broker can produce
+  what it needs: a positions export, a buy/sell history, a screenshot, or a
+  typed list. `scripts/import_holdings.py` writes it; Allocation,
+  Look-through and Stocks read it, and it wins over a Trading 212 sync when
+  both exist. Trading 212's full sync stays for cutoff and FIFO.
+- **Columns by header, ISINs by check digit.** Headers are matched in
+  several languages; an ISIN is also found in any cell when its check digit
+  passes, so a `Symbol/ISIN` or `Product` column still yields it. A wrong
+  check digit is refused, including one the run supplies.
+- **Ask, don't guess, where a guess would be a wrong number.** A row without
+  an ISIN, a file without a quantity column, a history with splits or
+  transfers, or sells exceeding buys stops the write with what is needed. A
+  quantity is never value ÷ price. `kind` is the one guess, from the name,
+  and the summary marks it for the user to confirm.
+- **Re-import keeps decisions.** Kind, group and target come from the
+  existing file by ISIN, so a fresh export only moves quantities.
+- **Any ECB currency.** Prices in CHF, PLN, SEK and so on are valued when the
+  run supplies that ECB rate, not refused.
+- **No targets is a valid portfolio.** Target and Diff print `-`, and the
+  contract checks a `-` target carries a `-` diff.
+- **GitHub is optional.** Files live in a folder on the user's computer, in
+  their own repo, or nowhere (attach each time). Only the repo brings full
+  holdings files; without it a fund falls back to its factsheet top 10, as
+  before when the branch could not be read.
+- **Setup is one screen.** Disclaimer, where files live, how to add holdings.
+  Currency, length, lenses and circle of competence default and are changed
+  on request. Briefs never wait for setup.
+- **Any-broker scripts run in Claude's workspace**, from the skill's own
+  `scripts/`, so they no longer need the computer's shell; the zip now
+  carries `import_holdings`, `market_weights` and `fund_holdings`.

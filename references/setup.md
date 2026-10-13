@@ -2,112 +2,122 @@
 
 Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
 
-Runs on "set up BuffettBot", "get started", or the first time a request needs
-the user's files (`SKILL.md` → Your files) and none can be found. It takes a
-new user from nothing to a first report in about ten minutes, by
-conversation, and writes everything into their own private repo. Questions
-go through `AskUserQuestion` where it exists, one step at a time. A step the
-user skips is left blank and named at the end. Nothing is filled in for
-them.
+Runs on "set up BuffettBot", "get started", or "save my portfolio". The goal
+is the user's first portfolio report in about two minutes: **one screen of
+taps, one file or screenshot, done.** Everything else has a default and is
+changed later only if they want to (Settings, later).
 
-## 1. The disclaimer, once
+Setup is never a gate. A stock or fund brief needs no setup at all, and a
+user who attaches any broker export and asks "what do I own?" gets the answer
+straight away (`references/any-broker.md`); setup is only how they keep it.
 
-Before anything else, print these four lines and ask the user to confirm:
+## 1. One screen
 
-```
-BuffettBot is a research tool, not a financial adviser.
-It describes what filings and fund documents say; it never says buy, sell or hold.
-It can be wrong. Check anything important in the original documents.
-It is not affiliated with or endorsed by Warren Buffett or Berkshire Hathaway.
-```
+A single `AskUserQuestion` call with three questions. Where that tool is not
+available, ask the same three in one plain message.
 
-Options: `I understand` · `Stop`. On `Stop`, end setup politely. On
-`I understand`, the date goes into `me/profile.md` as `Disclaimer seen:`
-and the question is never asked again.
+1. **Disclaimer** — the question text is these four lines:
+   ```
+   BuffettBot is a research tool, not a financial adviser.
+   It describes what filings and fund documents say; it never says buy, sell or hold.
+   It can be wrong. Check anything important in the original documents.
+   It is not affiliated with or endorsed by Warren Buffett or Berkshire Hathaway.
+   ```
+   Options: `I understand` · `Stop`. On `Stop`, end setup politely and save
+   nothing.
+2. **Where should your files live?**
+   - `On this computer` — a folder on their computer, through the Claude
+     desktop app. Nothing to create anywhere.
+   - `GitHub` — a private repo of their own. Adds every fund's full holdings
+     (not just a top 10) and week-on-week holdings changes, fetched daily.
+   - `Don't save` — they attach their export or holdings file when they ask.
+3. **How do you want to add what you own?** — `Upload an export` ·
+   `Screenshot` · `Type it` · `Later`.
 
-## 2. Their private copy
+The disclaimer's date goes into `me/profile.md` as `Disclaimer seen:` and the
+question is never asked again.
 
-BuffettBot keeps each user's files in their own **private** GitHub repo,
-copied from the public template. Ask whether they have one.
+## 2. What they own
 
-- **Not yet:** give these steps, then wait for the repo's name:
+Unless they chose `Later`, ask for the file, the screenshot or the list in one
+line, then follow `references/any-broker.md`. A Trading 212 user who uploads
+a full **history** export is routed to Portfolio sync instead
+(`references/portfolio-sync.md`), which keeps a shared account's cutoff: only
+then ask whether the account is only theirs, and if not, the date of their
+first deposit (`me/ownership.md` → `Cutoff`).
+
+The import's confirm step is the only other question setup asks. Targets are
+offered once, as any-broker step 6 says, and skipping them is fine.
+
+## 3. Save
+
+Write only what the conversation gave: `me/profile.md` (from
+`templates/me/profile.md`, with the defaults and `Disclaimer seen:`) and
+`me/holdings.csv`. Never copy blank templates the user has no use for yet;
+`me/theses/` and `me/log/` are created the first time something is written to
+them. Never overwrite a file that already has content: show the difference
+and ask first.
+
+- **On this computer.** Ask for a folder in one line (suggest
+  `Documents/BuffettBot`), request access to it
+  (`device_request_folder_access`), and write the files into its `me/`.
+  If the computer is not linked, say how to link it (open this chat in the
+  Claude desktop app on that computer, then send a message) and send the
+  files with `SendUserFile` meanwhile.
+- **GitHub.** Give these steps and wait for the repo's `owner/name`:
   1. Open https://github.com/Artvarna/buffettbot and click **Use this
      template** → **Create a new repository**.
   2. Name it `buffettbot`, choose **Private**, click **Create repository**.
   3. In the new repo, open **Actions** and enable workflows if GitHub asks.
-- **Already have one:** ask for `owner/name`.
 
-Attach it with push access (`add_repo`, `access: "push"`) and clone it. If
-attaching is refused, relay the reason the tool gives; the most common fix
-is connecting GitHub in Claude's settings. Without a repo, setup can still
-continue: the files are printed at the end for the user to add by hand.
+  Attach it with push access (`add_repo`, `access: "push"`) and clone it;
+  if attaching is refused, relay the tool's reason (most often: connect
+  GitHub in Claude's settings) and fall back to `On this computer` or
+  `Don't save`. Then fill `me/funds.md` (below), commit as
+  `Set up BuffettBot`, push, and — when `funds.md` got any rows — ask them to
+  run the Action once: their repo → **Actions** → **Fund holdings** → **Run
+  workflow**. Before the push it would find no funds and fetch nothing.
+- **Don't save.** Send `holdings.csv` with `SendUserFile`: attaching it next
+  time gives the same portfolio view. Saving can be set up any time.
 
-## 3. About them
+### Their funds (GitHub only)
 
-One `AskUserQuestion` call, four questions:
-
-1. **Base currency** — EUR · USD · GBP (any other: typed)
-2. **Broker** — Trading 212 · another broker
-3. **Report length** — Short (the rendered report) · Full (every detail table)
-4. **Extra lenses on every brief** (multi-select) — Graham · Lynch ·
-   Piotroski · none. Buffett always runs; the rest stay available on request.
-
-Then, in plain text: **Which industries do you understand well enough to
-judge a company in them?** Map the answer to GICS sector names, read them
-back, and write the confirmed list under Circle of competence. "None yet"
-is a valid answer and is written as such.
-
-## 4. What they own
-
-- **Trading 212:** ask for a CSV export (History → Export, all columns) and
-  run Portfolio sync (`references/portfolio-sync.md`) to fill
-  `me/portfolio.md`. Ask whether the account is only theirs. Only theirs →
-  `Cutoff` and `OWN_FROM` are the account's first transaction. Shared →
-  the date of their first deposit, which they give.
-- **Another broker:** ask them to list each holding as `ticker, ISIN if
-  they know it, target %`. Write the targets into `me/pies.md` and the
-  holdings into `me/portfolio.md`. Quantities stay empty; market weights
-  then need a Trading 212 export, and the portfolio view says so.
-
-Targets are theirs. Setup never proposes a target, a split or a fund.
-
-## 5. Their funds
-
-For each ETF they hold, find its issuer from its ISIN. For SSGA, iShares,
+For each `fund` row, find its issuer from its ISIN. For SSGA, iShares,
 Vanguard UK or Amundi, find the one thing `me/funds.md` needs (the holdings
-file link, the port ID, or nothing), using the issuer's own fund page in
-the browser, and write the row. A fund from any other issuer gets no row
-and is briefed from its factsheet; say so in one line.
+file link, the port ID, or nothing) from the issuer's own fund page in the
+browser, and write the row. A fund from any other issuer gets no row and is
+briefed from its factsheet; say so in one line.
 
-## 6. Write and save
+## 4. The first report
 
-Copy `templates/me/` into `me/` where a file does not already exist, fill
-in what the conversation gave, then show a short summary:
-
-| File | What's in it |
-|---|---|
-| `me/profile.md` | currency, broker, length, lenses, circle |
-| `me/portfolio.md` | holdings |
-| `me/pies.md` | targets |
-| `me/ownership.md` | cutoff |
-| `me/funds.md` | funds the Action fetches |
-
-Commit as `Set up BuffettBot` and push. Never overwrite a file that already
-has content: show the difference and ask first.
-
-If `me/funds.md` got any rows, ask the user to run the Action once now:
-their repo → **Actions** → **Fund holdings** → **Run workflow**. Running it
-before this push would find no funds and fetch nothing.
-
-## 7. The first report
-
-End with three things to try, using their own holdings:
+End with one line saying where the files are, then three things to try with
+their own holdings:
 
 ```
-Brief me on [largest stock]
 What do I own by sector?
-Should I buy [something on their watchlist, or any ticker]?
+Brief me on [their largest stock or fund]
+Should I buy [any ticker]?
 ```
 
-and one line: fund look-through starts working after the Action's first
-run, and week-on-week holdings changes a week after that.
+With GitHub, add one line: full look-through starts after the Action's first
+run, and week-on-week changes a week after that.
+
+## Settings, later
+
+Never asked during setup. Each has a default in `templates/me/profile.md` and
+is changed when the user says so ("change my settings", "use the Graham lens
+every time", "reports in full"), or offered once on a brief's `METHOD`
+`Next:` line the first time it would matter:
+
+- **Base currency** — EUR · USD · GBP (any other: typed)
+- **Report length** — Short · Full
+- **Extra lenses on every brief** — Graham · Lynch · Piotroski · none
+- **Circle of competence** — the industries they understand well enough to
+  judge a company in. Map the answer to GICS sector names, read them back,
+  and write the confirmed list. Until it is set, briefs print no circle
+  note (`references/buffett.md`), and the checklist's first filter rests on
+  the user's own answer alone.
+- **Name** — how reports address them.
+
+One `AskUserQuestion` call carries the first four when they ask to change
+settings without naming one.
