@@ -11,9 +11,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release, e.g. v1.0.0"
+        description: "New version to release, e.g. v1.2.0 (must not exist yet)"
         required: true
-        default: "v1.0.0"
 
 permissions:
   contents: write
@@ -24,7 +23,22 @@ jobs:
     env:
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
+      # A version that is already released fails here, in words, instead of
+      # at the last step after the tests (Release #3, 2026-10-15).
+      - name: Check the version is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version '$VERSION' is not like v1.2.0"
+            exit 1
+          fi
+          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::$VERSION is already released. Run the workflow again (not Re-run) with a new version."
+            exit 1
+          fi
 
       - name: Run the tests
         run: |
