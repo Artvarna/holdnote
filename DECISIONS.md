@@ -979,3 +979,46 @@ another app, and many have never made a repo.
 - **Any-broker scripts run in Claude's workspace**, from the skill's own
   `scripts/`, so they no longer need the computer's shell; the zip now
   carries `import_holdings`, `market_weights` and `fund_holdings`.
+
+## Demo portfolio and quick briefs, 2026-10-15
+
+Both for the 1 November launch: a newcomer should see a full report before
+they set anything up, and a brief should not spend a large part of a Pro
+plan's usage when the user only wants the scorecard.
+
+- **The demo is frozen data, not a live run.** A live demo needs the
+  desktop browser for fund closes and GitHub for full holdings files, which
+  a newcomer on the web or a phone has neither of, and it would spend the
+  most usage at the moment a user is deciding whether to keep the skill.
+  `scripts/demo.py` reads a snapshot shipped in the zip and fetches
+  nothing. `Data as of` is the snapshot's date with `frozen — not today's
+  prices` beside it, so rule 5 holds: stale is acceptable when labelled.
+- **The snapshot is fetched on GitHub's runners**, the same reason as the
+  holdings files (2026-10-10): `.github/workflows/demo-data.yml` runs
+  `scripts/demo_snapshot.py` monthly and commits `demo/data/`, and each
+  release ships the latest. The runner reaches SSGA, the London Stock
+  Exchange, Nasdaq, Yahoo, the ECB and EDGAR directly (checked 2026-10-15);
+  Actions logs are not readable from Claude's session, so a failed run
+  leaves its output on the `demo-data-log` branch.
+- **Two SSGA funds and two US stocks.** SSGA's files carry an ISIN, country,
+  sector and currency on every row, so the demo's look-through, overlap,
+  sector and currency tables come out complete; an iShares file has no ISINs
+  and would only match through a third fund, and Vanguard's carries no
+  sector. ACWI IMI and the S&P 500 overlap by most of the latter, and
+  Amazon and Coca-Cola sit in both, so Look-through shows a company owned
+  three ways. The portfolio is synthetic and none of it is the author's.
+- **Closes from the exchange, checked against Yahoo.** Yahoo's chart data
+  leaves some completed LSE sessions null (2026-10-14 for both funds); such
+  a close is used from the exchange alone and said so on the Confirmation
+  line, never filled from another day. Two sources that disagree by more
+  than 0.10% stop the refresh.
+- **Earnings dates only from the company's page.** Coca-Cola's events page
+  lists dated event links; Amazon's renders its events by script, which the
+  runner does not run, so its cell says that rather than `not announced`.
+- **A quick brief is a mode, not a shorter render.** `Mode: Stock brief
+  (quick)` and `Mode: Fund brief (Mode A, quick)` print the scorecard and
+  any named lenses, and the references list the only documents they open,
+  because the saving is in fetches, not in printed rows. The scorecard is
+  the same scorecard, so a quick `Met` is a full `Met`. The contract checks
+  the layout and that `METHOD` names what was skipped and offers the rest.
+  `Report length: quick` in the profile makes it the default.

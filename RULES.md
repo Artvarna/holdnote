@@ -1,6 +1,6 @@
 # RULES.md — Research Agent Constitution
 
-Version 12 · Last edited 2026-10-11
+Version 13 · Last edited 2026-10-15
 
 Every module in this project obeys these rules. If a rule conflicts with a
 request, the rule wins. Each skill file must open with: `Follow RULES.md.`
@@ -388,11 +388,14 @@ the line:
 ```
 Mode: Fund brief (Mode A)
 Mode: Stock brief
+Mode: Fund brief (Mode A, quick)
+Mode: Stock brief (quick)
 Mode: Market context (holdings)
 Mode: Portfolio sync
 Mode: Any broker
 Mode: Thesis journal
 Mode: Run journal
+Mode: Demo + Portfolio (Mode C)
 ```
 
 Where routes combine, the line names each, joined by ` + `, in the order
@@ -585,6 +588,15 @@ If any box fails, fix it before output rather than shipping with a caveat.
 
 ## Changelog
 
+- **v13 (2026-10-15)** — Two modes. A quick brief
+  (`Mode: Stock brief (quick)`, `Mode: Fund brief (Mode A, quick)`) prints
+  the `Scorecard:` TL;DR line and the Buffett scorecard, plus lenses only
+  when named, and fetches only what the scorecard needs; its `METHOD` says
+  what was not built. The demo (`Mode: Demo + Portfolio (Mode C)`) runs
+  Mode C on a synthetic portfolio and a frozen, dated snapshot of public
+  data shipped with the skill; every figure keeps its source and both
+  dates, and `Data as of` is the snapshot's date, never today's. Part IV
+  is unnumbered; rules 1–15 are untouched.
 - **v12 (2026-10-11)** — The draft and the report. Part IV governs the
   six-section draft, which is checked and journaled; the user reads
   `scripts/render.py`'s rendering of it, which keeps every table and

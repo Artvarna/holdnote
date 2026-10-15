@@ -17,6 +17,8 @@ What it writes, all for one session date (`as_of`):
     demo/data/sources.json  every document read, with URL and both dates
     demo/data/snapshot.log  what each source returned
 
+and moves demo/holdings.csv's `as_of` to the same date.
+
 Every close is read from two sources -- the exchange (London Stock Exchange
 or Nasdaq) and Yahoo Finance -- and the exchange's figure is the one used.
 Nothing is estimated: a source that fails stops the run with exit 1 and the
@@ -290,6 +292,11 @@ def main() -> int:
     (work / "snapshot.log").write_text("\n".join(log) + "\n")
     shutil.rmtree(OUT, ignore_errors=True)
     work.rename(OUT)
+    # The demo's quantities are synthetic and stated as of the snapshot, so
+    # Allocation never reads them as months older than the prices.
+    holdings = DEMO / "holdings.csv"
+    holdings.write_text(re.sub(r"^# as_of: .*$", f"# as_of: {as_of.isoformat()}",
+                               holdings.read_text(), count=1, flags=re.MULTILINE))
     print("\n".join(log))
     return 0
 

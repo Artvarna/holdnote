@@ -162,6 +162,29 @@ against the prior year's filing — risk factors added, removed or reworded
 (`SKILL.md` → Red flags) — so the prior filing is fetched whenever the
 current one is.
 
+**Quick brief** (`SKILL.md` → Report layout → Quick brief). Only the
+documents the stock scorecard needs are opened, in this order, and nothing
+else:
+
+1. SEC submissions (`data.sec.gov/submissions/CIK##########.json`) — the
+   newest 10-K and 10-Q, and the cover-page shares outstanding date.
+2. SEC company facts (`…/api/xbrl/companyfacts/CIK##########.json`) — every
+   figure for Moat, Capital efficiency, Low debt and Owner earnings, and
+   the TTM addends.
+3. The newest 10-K's Item 1, read only as far as its first description of
+   what the company sells — the `Understandable` line.
+4. The daily close history for the price date (Price, in
+   `references/buffett-scorecard.md`).
+5. The 10-year government bond yield for the same date.
+
+The extension-tag fallback below still applies: a scorecard year missing
+from company facts is read from the filing it names, and that filing joins
+the list. Not fetched in a quick brief: the prior year's filing (Red flags),
+segment, geography and peer data, capital-return detail and the run
+journal. A lens the request names adds only what that lens's rows need from
+company facts, which is already open. `Coverage` counts scorecard checks:
+`5 of 6 scorecard checks (quick brief)`.
+
 **Where the numbers come from, and two traps.** SEC company facts
 (`data.sec.gov/api/xbrl/companyfacts/CIK##########.json`) carries the
 standard-tag figures for every period. Two things in it are easy to get

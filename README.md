@@ -15,6 +15,8 @@ number traceable.
 
 | Ask | You get |
 |---|---|
+| `Show me a demo` | A full portfolio report on a sample portfolio, in seconds, with no setup |
+| `Quick brief on KO` | Just the Buffett scorecard: the fastest brief, and the lightest on your plan's limits |
 | `Brief me on NVDA` | A Buffett scorecard (moat, returns on capital, debt, owner earnings, margin of safety), key numbers, what changed since your last run, and red flags from the filings |
 | `Brief me on VWCE with the Graham and Lynch lenses` | The same for a fund or stock, plus any of 7 investor lenses: Graham, Lynch, Greenblatt, Piotroski, Terry Smith, Munger, Bogle |
 | `What do I own?` + your broker export or a screenshot | Market weights for every holding, from any app or website |
@@ -50,7 +52,9 @@ full evidence: every source, its date, and the arithmetic behind each figure.
 
 1. Get `buffettbot.zip` from the [latest release](../../releases/latest)
    and add it to Claude as a skill (needs a paid Claude plan, see below).
-2. Ask anything: **"Brief me on NVDA"** works straight away, with no setup.
+2. Say **"show me a demo"** to see a full report on a sample portfolio.
+   Then ask anything: **"Brief me on NVDA"** works straight away, with no
+   setup.
    For your portfolio, attach your broker's export (or a screenshot) and ask
    **"What do I own?"**
 3. To keep your portfolio for next time, say **"set up BuffettBot"**: one

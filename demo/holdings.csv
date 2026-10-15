@@ -1,0 +1,7 @@
+# as_of: 2026-10-14
+# source: BuffettBot demo portfolio (synthetic quantities, not a real account)
+isin,ticker,name,kind,quantity,group,target_pct
+IE00B3YLTY66,SPYI,SPDR MSCI ACWI IMI UCITS ETF,fund,1250,Portfolio,60
+IE00B6YX5C33,SPY5,SPDR S&P 500 UCITS ETF (Dist),fund,9,Portfolio,25
+US1912161007,KO,The Coca-Cola Company,stock,25,Portfolio,8
+US0231351067,AMZN,Amazon.com Inc.,stock,8,Portfolio,7
