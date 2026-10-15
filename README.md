@@ -49,7 +49,7 @@ full evidence: every source, its date, and the arithmetic behind each figure.
 ## Get started
 
 1. Get `buffettbot.zip` from the [latest release](../../releases/latest)
-   and add it to Claude as a skill.
+   and add it to Claude as a skill (needs a paid Claude plan, see below).
 2. Ask anything: **"Brief me on NVDA"** works straight away, with no setup.
    For your portfolio, attach your broker's export (or a screenshot) and ask
    **"What do I own?"**
@@ -60,10 +60,16 @@ full evidence: every source, its date, and the arithmetic behind each figure.
 through **Use this template** → a private repo; full look-through starts
 after its Action's first run, and week-on-week changes a week after that.
 
-**Needs:** Claude with skills enabled. Live prices from the London Stock
-Exchange, Deutsche Börse and the ECB are read through the browser built into
-the Claude desktop app, so the full portfolio view needs the desktop app
-open on your computer. GitHub is optional.
+**Needs:**
+- **A paid Claude plan (Pro or higher).** Skills need code execution, and
+  one report makes dozens of searches and fetches, which the Free plan's
+  limits won't cover.
+- **Skills enabled:** turn on *Code execution and file creation*, then
+  upload the zip under Skills.
+- **The Claude desktop app, for the full portfolio view.** Live prices from
+  the London Stock Exchange, Deutsche Börse and the ECB are read through
+  the desktop app's built-in browser, so keep it open on your computer.
+- GitHub is optional.
 
 ## Repo layout
 
