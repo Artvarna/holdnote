@@ -80,16 +80,26 @@ def listings() -> list[dict]:
 # --- closes -----------------------------------------------------------------
 
 def yahoo_closes(symbol: str) -> tuple[dict[str, Decimal], str, str]:
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=1mo&interval=1d"
-    data = json.loads(get(url))
-    res = data["chart"]["result"][0]
-    tz = timezone(timedelta(seconds=res["meta"].get("gmtoffset", 0)))
-    closes = {}
-    for ts, close in zip(res["timestamp"], res["indicators"]["quote"][0]["close"]):
-        if close is not None:
-            day = datetime.fromtimestamp(ts, tz).date().isoformat()
-            closes[day] = Decimal(str(close)).quantize(Decimal("0.0001"))
-    return closes, res["meta"].get("currency", ""), url
+    """Yahoo's daily closes. Its chart data leaves some completed sessions
+    null (an LSE ETF on 2026-10-14), so two ranges and both hosts are read and
+    merged; a session null in all of them stays missing."""
+    closes: dict[str, Decimal] = {}
+    ccy, first_url = "", ""
+    for host in ("query1", "query2"):
+        for rng in ("1mo", "5d"):
+            url = f"https://{host}.finance.yahoo.com/v8/finance/chart/{symbol}?range={rng}&interval=1d"
+            first_url = first_url or url
+            try:
+                res = json.loads(get(url))["chart"]["result"][0]
+            except (Failed, KeyError, IndexError, TypeError, ValueError):
+                continue
+            ccy = ccy or res["meta"].get("currency", "")
+            tz = timezone(timedelta(seconds=res["meta"].get("gmtoffset", 0)))
+            for ts, close in zip(res.get("timestamp") or [], res["indicators"]["quote"][0]["close"]):
+                if close is not None:
+                    day = datetime.fromtimestamp(ts, tz).date().isoformat()
+                    closes.setdefault(day, Decimal(str(close)).quantize(Decimal("0.0001")))
+    return closes, ccy, first_url
 
 
 def lse_close(tidm: str) -> tuple[str, Decimal, str, str, str]:
@@ -216,23 +226,26 @@ def main() -> int:
                 close, ccy = closes[as_of.isoformat()], "USD"
                 exch = f"Nasdaq historical quotes, {code} close"
                 source(f"Nasdaq historical quotes, {code}", url, as_of.isoformat())
-            if as_of.isoformat() not in yclose:
-                raise Failed(f"Yahoo {r['yahoo']}: no close for {as_of}")
             if yccy and ccy and yccy != ccy:
                 raise Failed(f"{r['ticker']}: exchange currency {ccy}, Yahoo {yccy}")
-            other = yclose[as_of.isoformat()]
-            diff = (other - close) / close * 100
-            source(f"Yahoo Finance chart, {r['yahoo']}", yurl, as_of.isoformat())
-            if abs(diff) > TOLERANCE_PCT:
-                raise Failed(f"{r['ticker']}: {exch} {close} vs Yahoo {other} ({diff:.3f}%)")
-            prices[r["isin"]] = {
-                "price": str(close), "currency": ccy, "date": as_of.isoformat(),
-                "source": exch,
-                "confirmed_by": {"source": f"Yahoo Finance chart, {r['yahoo']}",
-                                 "price": str(other), "diff_pct": f"{diff:.3f}"},
-            }
+            entry = {"price": str(close), "currency": ccy, "date": as_of.isoformat(),
+                     "source": exch}
+            other = yclose.get(as_of.isoformat())
+            if other is None:
+                # One source, said so: the demo prints it on its Confirmation line.
+                entry["confirmed_by"] = None
+                entry["unconfirmed"] = f"Yahoo Finance chart, {r['yahoo']}, has no close for {as_of}"
+                log.append(f"{r['ticker']}: {ccy} {close} ({exch}); Yahoo has no close for {as_of}")
+            else:
+                diff = (other - close) / close * 100
+                source(f"Yahoo Finance chart, {r['yahoo']}", yurl, as_of.isoformat())
+                if abs(diff) > TOLERANCE_PCT:
+                    raise Failed(f"{r['ticker']}: {exch} {close} vs Yahoo {other} ({diff:.3f}%)")
+                entry["confirmed_by"] = {"source": f"Yahoo Finance chart, {r['yahoo']}",
+                                         "price": str(other), "diff_pct": f"{diff:.3f}"}
+                log.append(f"{r['ticker']}: {ccy} {close} ({exch}); Yahoo {other}, {diff:+.3f}%")
+            prices[r["isin"]] = entry
             currencies.add(ccy)
-            log.append(f"{r['ticker']}: {ccy} {close} ({exch}); Yahoo {other}, {diff:+.3f}%")
         fx = {c: {"per_eur": str(rates[as_of.isoformat()][c]), "date": as_of.isoformat(),
                   "source": "ECB euro foreign exchange reference rates"}
               for c in sorted(currencies) if c != "EUR"}
