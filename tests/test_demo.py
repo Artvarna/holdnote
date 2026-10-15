@@ -69,8 +69,9 @@ def test_snapshot_is_one_session_date_throughout():
 
 
 def test_every_fund_has_its_full_holdings_file():
-    fh.use_funds(REPO / "demo" / "funds.md")
-    for src in fh.SOURCES.values():
+    funds = fh.load_funds(REPO / "demo" / "funds.md")  # not use_funds: no global state
+    assert funds
+    for src in funds.values():
         path = fh.latest_file(DATA / "holdings", src.ticker)
         assert path is not None, f"no holdings file for {src.ticker}"
         fund = fh.load_fund(src, path)
