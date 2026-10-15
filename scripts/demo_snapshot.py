@@ -57,6 +57,11 @@ class Failed(Exception):
     pass
 
 
+class NotYet(Exception):
+    """Every market's close for one date is not available yet: no failure,
+    the committed snapshot simply stays."""
+
+
 def now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -224,7 +229,14 @@ def main() -> int:
             else:
                 closes, url = nasdaq_closes(code, as_of - timedelta(days=10), as_of)
                 if as_of.isoformat() not in closes:
-                    raise Failed(f"Nasdaq {code}: no close for {as_of}")
+                    # London closes at 15:30 UTC, New York at 20:00 UTC: a run in
+                    # between has London's close for a day New York has not
+                    # finished. The scheduled 06:17 UTC run never lands there.
+                    latest = max(closes)
+                    if latest < as_of.isoformat():
+                        raise NotYet(f"Nasdaq {code}: newest close is {latest}; the US session "
+                                     f"of {as_of} has not closed yet")
+                    raise NotYet(f"Nasdaq {code}: no session on {as_of} (a US market holiday)")
                 close, ccy = closes[as_of.isoformat()], "USD"
                 exch = f"Nasdaq historical quotes, {code} close"
                 source(f"Nasdaq historical quotes, {code}", url, as_of.isoformat())
@@ -281,6 +293,11 @@ def main() -> int:
                                  "ir": r["ir"]}
             log.append(f"{r['ticker']}: EDGAR {name}, {len(filings)} filings; earnings {when} ({why})")
         (work / "stocks.json").write_text(json.dumps(stocks, indent=2) + "\n")
+    except NotYet as exc:
+        print("\n".join(log))
+        print(f"SKIPPED: {exc}. The committed snapshot is unchanged; the next run takes it.")
+        shutil.rmtree(work, ignore_errors=True)
+        return 0
     except (Failed, fh.Refused, KeyError, ValueError) as exc:
         print("\n".join(log))
         print(f"FAILED: {exc}")
