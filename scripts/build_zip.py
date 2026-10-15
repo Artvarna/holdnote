@@ -36,11 +36,15 @@ FILES = {
     "templates/me/funds.md": "templates/me/funds.md",
     "templates/me/theses/README.md": "templates/me/theses/README.md",
     "scripts/check_output.py": "scripts/check_output.py",
+    "scripts/demo.py": "scripts/demo.py",
+    "demo/holdings.csv": "demo/holdings.csv",
+    "demo/funds.md": "demo/funds.md",
     "scripts/render.py": "scripts/render.py",
     "tests/contract.py": "scripts/contract.py",
     "references/buffett.md": "references/buffett.md",
     "references/buffett-scorecard.md": "references/buffett-scorecard.md",
     "references/checklist.md": "references/checklist.md",
+    "references/demo.md": "references/demo.md",
     "references/any-broker.md": "references/any-broker.md",
     "references/etf-brief.md": "references/etf-brief.md",
     "references/lenses.md": "references/lenses.md",
@@ -51,6 +55,19 @@ FILES = {
     "references/stock-brief.md": "references/stock-brief.md",
     "references/thesis-journal.md": "references/thesis-journal.md",
 }
+
+
+# The demo's frozen snapshot (scripts/demo_snapshot.py): every committed file
+# under it ships, whatever date its holdings files carry.
+DEMO_DATA = "demo/data"
+
+
+def demo_files() -> dict[str, str]:
+    names = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", "HEAD", DEMO_DATA + "/"], cwd=REPO,
+        capture_output=True, text=True, check=True,
+    ).stdout.split()
+    return {n: n for n in names}
 
 
 def committed(path: str) -> bytes:
@@ -70,7 +87,7 @@ def build_stamp() -> str:
 def build(target: Path = ZIP) -> Path:
     target.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as z:
-        for src, dst in FILES.items():
+        for src, dst in {**FILES, **demo_files()}.items():
             z.writestr("buffettbot/" + dst, committed(src))
         z.writestr("buffettbot/BUILD", build_stamp() + "\n")
     with zipfile.ZipFile(target) as z:
@@ -85,4 +102,4 @@ if __name__ == "__main__":
         head = subprocess.run(["git", "rev-parse", "--short", "HEAD~1"], cwd=REPO,
                               capture_output=True, text=True).stdout.strip()
         ZIP.replace(ZIP.with_name(f"buffettbot-{head}.zip"))
-    print(f"built {build()} with {len(FILES)} files")
+    print(f"built {build()} with {len(FILES) + len(demo_files())} files")

@@ -161,6 +161,22 @@ Key numbers    index tracked · holdings count · replication · domicile ·
 `Red flags` takes its `Filing risk` rows from changes to the KID's risk
 section and risk indicator against the previous KID on record.
 
+**Quick brief** (`SKILL.md` → Report layout → Quick brief). Only the
+documents the fund scorecard needs are opened, and nothing else:
+
+1. The fund's factsheet — TER, holdings count, top 10 weights, inception,
+   AUM, and the calendar-year or one-year fund and index returns behind
+   Tracks its index.
+2. The KID, only for a figure the factsheet does not carry (most often the
+   TER, or a calendar-year return).
+3. The index provider's factsheet — trailing P/E and P/BV for Quality
+   underneath.
+
+Not fetched in a quick brief: the previous KID (Red flags), the full
+holdings file, the prospectus and annual report unless a scorecard row
+needs one, and the run journal. Mode C questions are never quick: a quick
+brief is about one fund.
+
 The detail tables are built on every run and print after `Red flags` only
 when asked for ("full detail", or a question about one of them):
 

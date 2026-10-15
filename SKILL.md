@@ -83,7 +83,9 @@ screenshot gives the portfolio view in the same reply
 (`references/any-broker.md`). Without either, the portfolio view, thesis
 checks and What changed print `Not available — no BuffettBot files (attach
 your broker export, or say "set up BuffettBot")`, and `METHOD` offers setup
-on its `Next:` line. Setup is `references/setup.md`.
+on its `Next:` line. Setup is `references/setup.md`. Someone who wants to
+see what it does first gets the demo (`references/demo.md`): a full
+portfolio report on a synthetic portfolio, with nothing to set up.
 
 **Writing.** A thesis, a logged run, a portfolio sync or a profile change is
 written into `me/`, committed with a message naming what changed, and
@@ -107,6 +109,8 @@ that fails is said plainly, with the text printed so nothing is lost.
 | Logging a completed run, or "what did the last run print / show / say" | `references/run-journal.md` |
 | "Set up BuffettBot", "get started", "save my portfolio", "change my settings" | `references/setup.md` |
 | "Should I buy X", "thinking of adding X", "checklist for X" | `references/checklist.md`, with the stock or fund brief it runs |
+| "Quick brief on X", "quick look at X", "just the scorecard for X" — or any brief when the profile's `Report length` is `quick` and the request does not say "full" | The stock or fund brief, as a **quick brief** (Report layout → Quick brief) |
+| "Show me a demo", "try it", "example report", "what does BuffettBot do?" — with no holdings of the user's attached | `references/demo.md` |
 | What Buffett's ideas are, where a rule comes from, "why is it called BuffettBot" | `references/buffett.md`, answered from its Principles table; never what he would think of an instrument |
 | "Which build / version is this?" | Answer with the text of the `BUILD` file in this skill's folder and nothing else |
 
@@ -331,6 +335,36 @@ segments?" prints Segments). `METHOD` names the ones held back on a
 `Detail tables:` line.
 
 `scripts/check_output.py` holds a brief to this order.
+
+### Quick brief
+
+"Quick brief on NVDA" — or any brief when the profile's `Report length` is
+`quick` — prints the TL;DR's `Scorecard:` line and the Buffett scorecard,
+plus a lens table only when the request names one. Nothing else: no Key
+numbers, What changed, Red flags, Buffett notes or detail tables. The Mode
+line says so: `Mode: Stock brief (quick)` or `Mode: Fund brief (Mode A,
+quick)`.
+
+**It fetches only what the scorecard needs**, which is what makes it quick
+and light on the user's plan limits. `references/stock-brief.md` → Quick
+brief and `references/etf-brief.md` → Mode A → Quick brief list those
+documents; a document not on the list is not opened. The run journal is not
+read, because What changed is not printed.
+
+The scorecard itself is unchanged: the same checks, thresholds, sources and
+`Not available` rules as a full brief, so a quick `Met` is the same `Met`.
+
+`METHOD` carries one line naming what was skipped, and its `Next:` line
+offers the rest:
+
+```
+Quick brief:       Key numbers, What changed, Red flags and detail tables not built
+Next:              say "full brief on NVDA" for the rest
+```
+
+"Full brief", "full report" or "everything" in the request overrides a
+`quick` profile setting. A checklist ("should I buy X") always runs the full
+brief, because its tables need Key numbers and Red flags.
 
 Two slips the live runs of 2026-09-28 made, which the contract already
 forbids: an output that opened at `CONTEXT` with no `STATUS`, and a

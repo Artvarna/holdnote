@@ -1,5 +1,7 @@
 # Account data — never commit
 data/
+# ...except the demo's frozen snapshot of public data (scripts/demo_snapshot.py)
+!demo/data/
 .env
 .env.*
 !.env.example
@@ -13,6 +15,8 @@ trading212/
 !tests/fixtures/*.csv
 # ...except your holdings file, which setup commits to your private copy
 !me/holdings.csv
+# ...and the demo portfolio, which is synthetic and ships with the skill
+!demo/*.csv
 
 # Python
 __pycache__/

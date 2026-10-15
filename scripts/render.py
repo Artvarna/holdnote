@@ -70,6 +70,7 @@ def _title(text: str, mode: str) -> str:
     if m:
         return f"## {m['ticker']} · {m['name']}"
     names = {"Portfolio (Mode C)": "Your portfolio", "Market-wide": "The market",
+             "Demo": "Demo portfolio",
              "Portfolio sync": "Portfolio update", "Thesis journal": "Thesis journal"}
     return f"## {names.get(mode.split(' + ')[0], mode or 'BuffettBot')}"
 

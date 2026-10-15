@@ -15,7 +15,7 @@ settings" to pick your own.
 | Name | | How reports address you; leave blank for none |
 | Base currency | EUR | Currency portfolio values are shown in |
 | Broker | | Any app or website: its export, a screenshot or a typed list becomes `holdings.csv`. Trading 212 history exports can also be synced in full |
-| Report length | short | `short` = the rendered report; `full` = every detail table too |
+| Report length | short | `quick` = the Buffett scorecard only, fewest fetches; `short` = the rendered report; `full` = every detail table too |
 | Default lenses | Buffett | Lenses every brief runs; Buffett always runs. Add e.g. `Graham, Lynch` |
 | Buffett notes | on | One or two principles from Buffett's letters when a finding matches one |
 | Language | English | Language of the report text |

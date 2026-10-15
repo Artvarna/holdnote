@@ -110,7 +110,7 @@ every time", "reports in full"), or offered once on a brief's `METHOD`
 `Next:` line the first time it would matter:
 
 - **Base currency** — EUR · USD · GBP (any other: typed)
-- **Report length** — Short · Full
+- **Report length** — Quick · Short · Full (Quick: the Buffett scorecard only, fewest fetches)
 - **Extra lenses on every brief** — Graham · Lynch · Piotroski · none
 - **Circle of competence** — the industries they understand well enough to
   judge a company in. Map the answer to GICS sector names, read them back,

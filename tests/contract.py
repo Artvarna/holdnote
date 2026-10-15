@@ -1146,6 +1146,60 @@ def brief_layout_problems(sections: dict[str, str]) -> list[str]:
     return problems
 
 
+# --------------------------------------------------------------------------
+# Quick brief (SKILL.md -> Report layout -> Quick brief, RULES.md v13)
+#
+# The Scorecard: TL;DR line, the Buffett scorecard, and only the lens tables
+# the request named. METHOD names what was not built and offers the rest.
+# --------------------------------------------------------------------------
+
+QUICK_MODES = ("Stock brief (quick)", "Fund brief (Mode A, quick)")
+
+
+def is_quick(sections: dict[str, str]) -> bool:
+    mode = _mode_line(sections.get("RESULT", "")) or ""
+    return any(m in mode.split(" + ") for m in QUICK_MODES)
+
+
+def quick_brief_problems(sections: dict[str, str]) -> list[str]:
+    if not is_quick(sections):
+        return []
+    result = sections.get("RESULT", "")
+    method = sections.get("METHOD", "")
+    problems: list[str] = []
+    tldr = _tldr_lines(result)
+    if len(tldr) > 1 or any(not line.startswith("Scorecard:") for line in tldr):
+        problems.append(f"quick brief TL;DR is the Scorecard: line only, not {tldr}")
+    names = list(result_tables(result))
+    if not names or names[0] != "Buffett scorecard":
+        problems.append(f"first quick brief table is {names[0] if names else None!r}, "
+                        "not 'Buffett scorecard'")
+    fund = "Fund brief (Mode A, quick)" in (_mode_line(result) or "")
+    for name in names[1:]:
+        if not name.endswith(" lens"):
+            problems.append(f"{name!r} in a quick brief; it prints the scorecard and named lenses only")
+        elif name not in LENS_TABLES:
+            problems.append(f"{name!r} is not a lens references/lenses.md defines")
+        elif (name in FUND_LENSES) != fund:
+            kind = "funds" if name in FUND_LENSES else "stocks"
+            problems.append(f"{name} applies to {kind} only")
+    for name in [n for n in names if n == "Buffett scorecard" or n.endswith(" lens")]:
+        header = _table_header(result, name)
+        if "Result" not in header:
+            problems.append(f"{name} has no Result column")
+            continue
+        col = header.index("Result")
+        for row in result_tables(result)[name]:
+            cell = row[col] if col < len(row) else ""
+            if cell not in SCORECARD_RESULTS:
+                problems.append(f"{name} Result {cell!r} is not Met / Not met / Not available")
+    if not re.search(r"^\s*Quick brief:\s*\S", method, re.MULTILINE):
+        problems.append("quick brief METHOD has no Quick brief: line naming what was not built")
+    if not re.search(r"^\s*Next:.*full brief", method, re.MULTILINE | re.IGNORECASE):
+        problems.append("quick brief METHOD has no Next: line offering the full brief")
+    return problems
+
+
 def sources_summary_problems(sections: dict[str, str]) -> list[str]:
     """The one-line SOURCES of RULES.md Part IV v11.
 
@@ -1265,7 +1319,7 @@ def checklist_problems(sections: dict[str, str]) -> list[str]:
 
 def lens_source_problems(sections: dict[str, str]) -> list[str]:
     """A brief's SOURCES must not cite a page restating a lens's rules."""
-    if not is_brief(sections):
+    if not (is_brief(sections) or is_quick(sections)):
         return []
     return [f"SOURCES cites {host}: lens rules come from references/lenses.md, not the web"
             for host in LENS_RESTATEMENT_HOSTS
@@ -1296,7 +1350,7 @@ def output_problems(text: str) -> list[str]:
                   structural_problems, holdings_problems, allocation_problems,
                   lookthrough_problems, countries_problems,
                   sectors_problems, currencies_problems,
-                  brief_layout_problems, sources_summary_problems,
+                  brief_layout_problems, quick_brief_problems, sources_summary_problems,
                   lens_source_problems, buffett_notes_problems, checklist_problems):
         problems += check(sections)
     return problems

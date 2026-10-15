@@ -1,0 +1,10 @@
+# Where scripts/demo_snapshot.py reads each demo holding's close.
+# exchange: lse:<TIDM> (London Stock Exchange instrument data) or
+# nasdaq:<symbol> (Nasdaq historical quotes, which also carries NYSE stocks).
+# yahoo: the Yahoo Finance chart symbol, the second source for the same close.
+# cik and ir apply to stocks: the SEC filer and the company's own events page.
+isin,ticker,exchange,yahoo,cik,ir
+IE00B3YLTY66,SPYI,lse:IMID,IMID.L,,
+IE00B6YX5C33,SPY5,lse:SPY5,SPY5.L,,
+US1912161007,KO,nasdaq:KO,KO,0000021344,https://investors.coca-colacompany.com/news-events/events
+US0231351067,AMZN,nasdaq:AMZN,AMZN,0001018724,https://ir.aboutamazon.com/events/default.aspx
