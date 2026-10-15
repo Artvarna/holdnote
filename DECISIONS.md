@@ -1022,3 +1022,16 @@ plan's usage when the user only wants the scorecard.
   the same scorecard, so a quick `Met` is a full `Met`. The contract checks
   the layout and that `METHOD` names what was skipped and offers the rest.
   `Report length: quick` in the profile makes it the default.
+- **The issuers' holdings files are not shipped (same day, before v1.2.0).**
+  SSGA's files say no part may be reproduced or passed to third parties
+  without its written consent, and the first version committed them to the
+  repo and the zip. The snapshot job now reads them on the runner, runs
+  `fund_holdings.py report` on the demo portfolio there, and keeps only its
+  output (`demo/data/fund_report.txt`) — the weights of the largest
+  companies and the country, sector and currency splits, the depth a
+  factsheet publishes — plus each file's as-of and row counts. `demo.py`
+  pastes that report and refuses it if `demo/holdings.csv` or `prices.json`
+  changed since it was computed. Tests fail if an `.xlsx` is tracked under
+  `demo/` or reaches the zip. The two files committed earlier remain in git
+  history and in pull request #2, which matters only once the repo is
+  public.
