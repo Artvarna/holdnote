@@ -1,0 +1,62 @@
+# Refreshes the demo portfolio's frozen data in demo/data/ and commits it to
+# the branch it ran on. The skill zip ships that folder, so "show me a demo"
+# runs with no fetch at all (scripts/demo.py).
+#
+# Why here: Claude's workspace and the user's computer reach only package
+# registries and GitHub; GitHub's runners reach SSGA, the London Stock
+# Exchange, Nasdaq, Yahoo, the ECB and SEC EDGAR. See DECISIONS.md,
+# 2026-10-15.
+#
+# Runs monthly, by hand (Actions -> Demo data -> Run workflow), and when the
+# demo's own definition changes. Only in the public BuffettBot repo: users'
+# copies made from the template never run it.
+
+name: Demo data
+
+on:
+  schedule:
+    - cron: "17 6 2 * *"  # the 2nd of each month, 06:17 UTC
+  workflow_dispatch:
+  push:
+    paths:
+      - demo/listings.csv
+      - demo/funds.md
+      - scripts/demo_snapshot.py
+      - .github/workflows/demo-data.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: demo-data-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.repository == 'Artvarna/buffettbot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch the demo snapshot
+        run: python3 scripts/demo_snapshot.py
+
+      - name: Check the demo still renders
+        run: |
+          if [ -f tests/test_demo.py ]; then
+            pip install -q pytest
+            python3 -m pytest -q tests/test_demo.py
+          fi
+
+      - name: Commit it
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add demo/data
+          if git diff --cached --quiet; then
+            echo "Demo data unchanged."
+            exit 0
+          fi
+          git commit -q -m "Demo data: snapshot of $(head -1 demo/data/snapshot.log | cut -d' ' -f2)"
+          git push -q origin "HEAD:${GITHUB_REF_NAME}"
