@@ -1,6 +1,6 @@
 ---
 name: buffettbot
-description: Research ETFs, individual stocks, market indexes and portfolio overlap from primary sources — factsheets, KIDs, annual reports and regulatory filings — and maintain a written investment thesis journal. Use this whenever the user mentions a fund, ETF, index, ticker, ISIN, TER, holdings, replication, valuation, earnings, filings, portfolio overlap, concentration or diversification; whenever they name any company or fund they own or are considering; whenever they ask what they own, how two holdings compare, or what changed since last time — even if they never name this skill.
+description: Research ETFs, individual stocks, market indexes and portfolio overlap from primary sources — factsheets, KIDs, annual reports and regulatory filings — and maintain a written investment thesis journal. Use this whenever the user mentions a fund, ETF, index, ticker, ISIN, TER, holdings, replication, valuation, earnings, filings, portfolio overlap, concentration or diversification; whenever they name any company or fund they own or are considering; whenever they ask what they own, how two holdings compare, or what changed since last time — even if they never name this skill. Also use it when they ask to see a BuffettBot demo or a quick brief.
 ---
 
 # BuffettBot
@@ -291,7 +291,9 @@ Fund facts rows from `references/etf-brief.md` → Mode A.
 
 **What changed.** Against the most recent logged run of the same ISIN or
 ticker in `log/` (`references/run-journal.md`), quoted from that run's
-file, never reconstructed (rule 15). Columns:
+file, never reconstructed (rule 15). A logged quick brief carries only its
+scorecard, so a metric it did not print is compared with the most recent
+logged run that did. Columns:
 
 | Metric | Last run (date) | Now | Change |
 

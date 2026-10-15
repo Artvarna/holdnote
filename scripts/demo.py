@@ -6,10 +6,12 @@
 Runs Mode C (references/etf-brief.md) on the synthetic demo portfolio in
 demo/holdings.csv and the frozen snapshot of public data in demo/data/,
 which scripts/demo_snapshot.py refreshes on GitHub's runners. The tables
-come from the skill's own scripts -- market_weights for Allocation,
-fund_holdings for Holdings, Look-through, Countries, Sectors and Currencies
--- exactly as a real run pastes them; the Stocks table is built from the
-snapshot's EDGAR filings and company events pages.
+come from the skill's own scripts, exactly as a real run pastes them:
+market_weights runs here for Allocation; fund_holdings ran in the snapshot
+job for Holdings, Look-through, Countries, Sectors and Currencies, because
+the issuers' holdings files may not be redistributed and are not shipped
+(demo/data/fund_report.txt is its output). The Stocks table is built from
+the snapshot's EDGAR filings and company events pages.
 
 It writes the full RULES.md Part IV draft to --draft, checks it with the
 same contract as scripts/check_output.py, and prints the rendered report
@@ -17,13 +19,15 @@ same contract as scripts/check_output.py, and prints the rendered report
 and nothing is recalled: every figure is in demo/data/ with its source and
 dates, and Data as of is the snapshot's date, never today's.
 
-Exit codes: 0 printed; 1 the draft failed a contract check (problems on
-stdout, draft kept for inspection).
+Exit codes: 0 printed; 1 the draft failed a contract check, or the fund
+report was computed from a different demo/holdings.csv or prices.json than
+the ones here (problems on stdout).
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -53,6 +57,10 @@ DEFAULT = ["Allocation", "Holdings", "Look-through", "Countries", "Sectors", "St
 # Mode C tables the snapshot cannot fill, and why.
 NOT_IN_DEMO = ("Performance, Comparison, Structural and Holdings changes "
                "(they need live closes, factsheets or a week of history)")
+
+
+class Stale(Exception):
+    """The shipped fund report does not match the shipped portfolio."""
 
 
 def build_stamp() -> str:
@@ -188,14 +196,17 @@ def build(tables_wanted: list[str], proof: bool) -> tuple[str, str]:
 
     alloc_tables, alloc_method, _ = blocks(run(
         "market_weights.py", "--prices", str(prices_path), "--holdings", "demo/holdings.csv"))
-    fund_tables, fund_method, fund_proof = blocks(run(
-        "fund_holdings.py", "report", "--funds", "demo/funds.md", "--holdings-dir", "demo/data/holdings",
-        "--prices", str(prices_path), "--holdings", "demo/holdings.csv"))
+    meta = json.loads((DATA / "funds.json").read_text())
+    stale = [p for p, h in meta["inputs"].items()
+             if hashlib.sha256((ROOT / p).read_bytes()).hexdigest() != h]
+    if stale:
+        raise Stale(f"demo/data/fund_report.txt was computed from a different {', '.join(stale)}; "
+                    "run the Demo data workflow to rebuild it")
+    fund_tables, fund_method, fund_proof = blocks((DATA / "fund_report.txt").read_text())
     stock_rows, missing, stock_proof = stocks_table(stocks, holdings, as_of)
     printed = {**alloc_tables, **fund_tables, "Stocks": stock_rows}
 
-    files = sorted((DATA / "holdings").glob("*-????-??-??.*"))
-    file_dates = ", ".join(f"{p.name.split('-', 1)[0]} {p.stem.split('-', 1)[1]}" for p in files)
+    file_dates = ", ".join(f"{t} {m['as_of']}" for t, m in meta["funds"].items())
     tickers = {h.isin: h.ticker for h in holdings}
     confirm, unverified = confirmation(prices["prices"], tickers)
     funds = sum(1 for h in holdings if h.kind == "fund")
@@ -213,7 +224,10 @@ def build(tables_wanted: list[str], proof: bool) -> tuple[str, str]:
         f"Tables: {', '.join(t for t in ORDER if t in tables_wanted)} ({asked})",
         f"Demo: a synthetic portfolio (demo/holdings.csv) on a frozen snapshot of public data fetched "
         f"{fetched} by scripts/demo_snapshot.py; nothing was fetched in this run. Not in the demo: {NOT_IN_DEMO}",
-        *[ln for ln in alloc_method if ln.startswith("Allocation")],
+        # market_weights words its prices for a live run, which also prints a
+        # Performance table; the demo's closes come from the snapshot.
+        *[ln.replace("the Performance closes of", "the snapshot's closes of")
+          for ln in alloc_method if ln.startswith("Allocation")],
         *fund_method,
         f"Stocks window:     8-Ks filed in the 30 days to {as_of}, by EDGAR filing date",
         "Earnings dates:    company-announced only, never estimated",
@@ -270,7 +284,11 @@ def main(argv: list[str] | None = None) -> int:
         if unknown:
             print(f"not a demo table: {', '.join(unknown)} (choose from {', '.join(ORDER)})")
             return 2
-    draft, report = build(wanted, args.proof)
+    try:
+        draft, report = build(wanted, args.proof)
+    except Stale as exc:
+        print(exc)
+        return 1
     args.draft.parent.mkdir(parents=True, exist_ok=True)
     args.draft.write_text(draft, encoding="utf-8")
     problems = contract.output_problems(draft) + contract.output_problems(report)

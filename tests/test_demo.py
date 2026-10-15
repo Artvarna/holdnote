@@ -68,14 +68,32 @@ def test_snapshot_is_one_session_date_throughout():
     assert {f["date"] for f in prices["fx"].values()} == {as_of}
 
 
-def test_every_fund_has_its_full_holdings_file():
+def test_fund_report_covers_every_fund_from_its_full_file():
     funds = fh.load_funds(REPO / "demo" / "funds.md")  # not use_funds: no global state
-    assert funds
-    for src in funds.values():
-        path = fh.latest_file(DATA / "holdings", src.ticker)
-        assert path is not None, f"no holdings file for {src.ticker}"
-        fund = fh.load_fund(src, path)
-        assert sum(1 for r in fund.rows if r.equity) >= 100
+    meta = json.loads((DATA / "funds.json").read_text())["funds"]
+    report = (DATA / "fund_report.txt").read_text()
+    assert set(meta) == {s.ticker for s in funds.values()}
+    for ticker, m in meta.items():
+        assert m["equity_rows"] >= 100, f"{ticker}: not a full holdings file"
+        assert f"Holdings file {ticker}: SSGA daily holdings file (read by the snapshot job, not kept)" in report
+    for table in ("Holdings", "Look-through", "Countries", "Sectors", "Currencies"):
+        assert re.search(rf"^{table} \(", report, re.MULTILINE), f"no {table} table in the fund report"
+
+
+def test_no_issuer_holdings_file_is_shipped_or_tracked():
+    # SSGA's files may not be reproduced or passed on (DECISIONS.md, 2026-10-15).
+    tracked = subprocess.run(["git", "ls-files", "demo"], cwd=REPO, capture_output=True,
+                             text=True, check=True).stdout.split()
+    assert not [t for t in tracked if t.endswith((".xlsx", ".xls")) or "/holdings/" in t]
+    assert not list(DATA.rglob("*.xlsx"))
+
+
+def test_fund_report_was_computed_from_the_shipped_portfolio_and_prices():
+    import hashlib
+    inputs = json.loads((DATA / "funds.json").read_text())["inputs"]
+    for path, digest in inputs.items():
+        assert hashlib.sha256((REPO / path).read_bytes()).hexdigest() == digest, (
+            f"{path} changed after the fund report was computed: run the Demo data workflow")
 
 
 def test_every_close_names_its_source_and_any_second_source():
@@ -158,6 +176,17 @@ def test_all_tables(run):
     assert "### 💱 Currencies" in out
 
 
+def test_a_report_for_another_portfolio_is_refused(run, tmp_path, monkeypatch):
+    holdings = REPO / "demo" / "holdings.csv"
+    original = holdings.read_text()
+    try:
+        holdings.write_text(original.replace(",8,Portfolio,7", ",9,Portfolio,7"))
+        code, out, _ = run()
+    finally:
+        holdings.write_text(original)
+    assert code == 1 and "computed from a different demo/holdings.csv" in out
+
+
 def test_unknown_table_is_refused(run):
     code, out, _ = run("--tables", "Performance")
     assert code == 2 and "not a demo table: Performance" in out
@@ -181,7 +210,8 @@ def test_zip_ships_the_demo(tmp_path):
     import build_zip
     names = set(build_zip.demo_files())
     assert {"demo/data/prices.json", "demo/data/stocks.json", "demo/data/sources.json"} <= names
-    assert any(n.startswith("demo/data/holdings/") for n in names)
+    assert {"demo/data/fund_report.txt", "demo/data/funds.json"} <= names
+    assert not [n for n in names if n.endswith(".xlsx")]
     for path in ("scripts/demo.py", "demo/holdings.csv", "demo/funds.md", "references/demo.md"):
         assert path in build_zip.FILES
     target = build_zip.build(tmp_path / "b.zip")
@@ -189,3 +219,4 @@ def test_zip_ships_the_demo(tmp_path):
         listed = set(z.namelist())
     assert "buffettbot/demo/data/prices.json" in listed
     assert "buffettbot/scripts/demo.py" in listed
+    assert not [n for n in listed if n.endswith((".xlsx", ".xls"))]

@@ -11,13 +11,25 @@ so "show me a demo" runs with no fetch at all (scripts/demo.py).
 
 What it writes, all for one session date (`as_of`):
 
-    demo/data/holdings/<TICKER>-<date>.xlsx  each fund's full SSGA holdings file
-    demo/data/prices.json   closes and ECB rates, in market_weights' format
-    demo/data/stocks.json   each stock's EDGAR filings and next earnings date
-    demo/data/sources.json  every document read, with URL and both dates
-    demo/data/snapshot.log  what each source returned
+    demo/data/prices.json       closes and ECB rates, in market_weights' format
+    demo/data/fund_report.txt   fund_holdings' report on the demo portfolio:
+                                Holdings, Look-through, Countries, Sectors,
+                                Currencies, with its METHOD and PROOF lines
+    demo/data/funds.json        each fund file's as-of, row counts and URL,
+                                and the inputs the report was computed from
+    demo/data/stocks.json       each stock's EDGAR filings and next earnings date
+    demo/data/sources.json      every document read, with URL and both dates
+    demo/data/snapshot.log      what each source returned
 
 and moves demo/holdings.csv's `as_of` to the same date.
+
+**The issuers' holdings files are never kept.** SSGA's files state that no
+part may be reproduced or passed to third parties without its written
+consent, so they are read on the runner, reduced to the report the demo
+prints, and deleted before anything is committed. The report carries the
+same depth of information as a factsheet: weights of the largest companies
+and the country, sector and currency splits, applied to the demo
+portfolio. See DECISIONS.md, 2026-10-15.
 
 Every close is read from two sources -- the exchange (London Stock Exchange
 or Nasdaq) and Yahoo Finance -- and the exchange's figure is the one used.
@@ -28,7 +40,9 @@ committed snapshot stays as it was.
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
+import subprocess
 import re
 import shutil
 import sys
@@ -184,6 +198,12 @@ def earnings_date(url: str, as_of: date) -> tuple[str | None, str]:
 
 # --- run ----------------------------------------------------------------------
 
+def digest(path: Path) -> str:
+    """What the report was computed from: demo.py refuses a report whose
+    inputs have changed since, rather than mix two portfolios."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def main() -> int:
     log: list[str] = []
     sources: list[dict] = []
@@ -266,18 +286,48 @@ def main() -> int:
         (work / "prices.json").write_text(json.dumps(
             {"as_of": as_of.isoformat(), "prices": prices, "fx": fx}, indent=2) + "\n")
 
-        # 2. Full fund holdings files, through the skill's own fetcher.
+        # 2. Full fund holdings files, through the skill's own fetcher, read
+        # here and reduced to the demo's report; the files themselves are
+        # deleted below and never committed.
+        # The demo's quantities are synthetic and stated as of the snapshot, so
+        # Allocation never reads them as months older than the prices. Written
+        # to demo/holdings.csv only once the whole snapshot has succeeded.
+        holdings_text = re.sub(r"^# as_of: .*$", f"# as_of: {as_of.isoformat()}",
+                               (DEMO / "holdings.csv").read_text(), count=1, flags=re.MULTILINE)
+        (work / "holdings.csv").write_text(holdings_text)
         fh.use_funds(DEMO / "funds.md")
+        raw = work / "holdings"
+        funds_meta: dict[str, dict] = {}
         for src in fh.SOURCES.values():
             data = fh.fetch(src)
-            tmp = work / "holdings" / f"{src.ticker}.tmp"
+            tmp = raw / f"{src.ticker}.tmp"
             tmp.write_bytes(data)
             fund = fh.load_fund(src, tmp)
-            path = tmp.with_name(f"{src.ticker}-{fund.as_of.isoformat()}.{src.ext}")
-            tmp.rename(path)
+            tmp.rename(tmp.with_name(f"{src.ticker}-{fund.as_of.isoformat()}.{src.ext}"))
             equity = sum(1 for x in fund.rows if x.equity)
             source(f"SSGA daily holdings file, {src.ticker}", src.url, fund.as_of.isoformat())
+            funds_meta[src.ticker] = {"isin": src.isin, "as_of": fund.as_of.isoformat(),
+                                      "rows": len(fund.rows), "equity_rows": equity, "url": src.url}
             log.append(f"{src.ticker}: {len(fund.rows)} rows, {equity} equity, as of {fund.as_of}")
+        report = subprocess.run(
+            [sys.executable, str(REPO / "scripts" / "fund_holdings.py"), "report",
+             "--funds", str(DEMO / "funds.md"), "--holdings-dir", str(raw),
+             "--prices", str(work / "prices.json"), "--holdings", str(work / "holdings.csv")],
+            cwd=REPO, capture_output=True, text=True)
+        if report.returncode != 0:
+            raise Failed(f"fund_holdings report refused the demo: {report.stdout.strip()}")
+        text = report.stdout
+        for t, meta in funds_meta.items():
+            # The METHOD lines name the raw file's path; the file is not kept.
+            text = re.sub(rf"\S*/{t}-{meta['as_of']}\.\w+",
+                          f"SSGA daily holdings file (read by the snapshot job, not kept)", text)
+        (work / "fund_report.txt").write_text(text)
+        (work / "funds.json").write_text(json.dumps({
+            "funds": funds_meta,
+            "inputs": {"demo/holdings.csv": digest(work / "holdings.csv"),
+                       "demo/data/prices.json": digest(work / "prices.json")},
+        }, indent=2) + "\n")
+        shutil.rmtree(raw)
 
         # 3. Stocks: EDGAR filings and the company's own earnings date.
         stocks = {}
@@ -307,13 +357,10 @@ def main() -> int:
     (work / "sources.json").write_text(json.dumps(sources, indent=2, ensure_ascii=False) + "\n")
     log.insert(0, f"as_of {as_of} · run {now()}")
     (work / "snapshot.log").write_text("\n".join(log) + "\n")
+    (DEMO / "holdings.csv").write_text((work / "holdings.csv").read_text())
+    (work / "holdings.csv").unlink()
     shutil.rmtree(OUT, ignore_errors=True)
     work.rename(OUT)
-    # The demo's quantities are synthetic and stated as of the snapshot, so
-    # Allocation never reads them as months older than the prices.
-    holdings = DEMO / "holdings.csv"
-    holdings.write_text(re.sub(r"^# as_of: .*$", f"# as_of: {as_of.isoformat()}",
-                               holdings.read_text(), count=1, flags=re.MULTILINE))
     print("\n".join(log))
     return 0
 

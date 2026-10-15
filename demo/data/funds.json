@@ -1,0 +1,22 @@
+{
+  "funds": {
+    "SPYI": {
+      "isin": "IE00B3YLTY66",
+      "as_of": "2026-10-14",
+      "rows": 6038,
+      "equity_rows": 5982,
+      "url": "https://www.ssga.com/ie/en_gb/intermediary/library-content/products/fund-data/etfs/emea/holdings-daily-emea-en-spyi-gy.xlsx"
+    },
+    "SPY5": {
+      "isin": "IE00B6YX5C33",
+      "as_of": "2026-10-14",
+      "rows": 511,
+      "equity_rows": 505,
+      "url": "https://www.ssga.com/ie/en_gb/intermediary/library-content/products/fund-data/etfs/emea/holdings-daily-emea-en-spy5-gy.xlsx"
+    }
+  },
+  "inputs": {
+    "demo/holdings.csv": "315fa9a7d0ccdfe51359cec53750e88a2c2f21e8152a5dd7a74f12f2dc4b9bb0",
+    "demo/data/prices.json": "81cc4a7d6c43bbae080fe18f5327036610b28c5c6284615ca13aae18539bfc4e"
+  }
+}

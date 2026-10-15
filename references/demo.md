@@ -36,11 +36,12 @@ suggestion of what to hold — say so if asked.
 
 ## Run it
 
-`<skill>` is the folder this skill's `SKILL.md` is in. In Claude's
-workspace:
+`<skill>` is the folder this skill's `SKILL.md` is in, and `<scratch>` any
+folder the run can write to (the skill's own folder is read-only). In
+Claude's workspace:
 
 ```
-python3 <skill>/scripts/demo.py --draft "$SCRATCH/demo-draft.md"
+python3 <skill>/scripts/demo.py --draft <scratch>/demo-draft.md
 ```
 
 It writes the full draft (RULES.md Part IV, with `PROOF` and every
@@ -63,8 +64,9 @@ tables a question gets picks them:
 | "everything" | `all` |
 | "show proof" | the same tables, plus `--proof` |
 
-Exit 1 means a contract check failed: print the problems it lists, say the
-demo could not be shown, and offer a stock brief instead. Never build the
+Exit 1 means a contract check failed or the shipped data does not fit
+together: print what it says, say the demo could not be shown, and offer a
+stock brief instead. Never build the
 demo's tables by hand or from memory.
 
 ## What the demo cannot show
@@ -76,8 +78,10 @@ one question away ("Quick brief on KO").
 
 ## The snapshot
 
-`demo/data/` holds, for one session date: each fund's full SSGA holdings
-file, the closes (London Stock Exchange or Nasdaq, checked against Yahoo
+`demo/data/` holds, for one session date: `fund_report.txt`, the output of
+`fund_holdings.py report` on the demo portfolio, computed from each fund's
+full SSGA holdings file on the runner (the files themselves are not kept:
+SSGA does not allow them to be passed on), the closes (London Stock Exchange or Nasdaq, checked against Yahoo
 Finance), the ECB rate, each stock's EDGAR filings and its earnings date
 from the company's own events page, and `sources.json`, every document with
 its URL and both dates. `scripts/demo_snapshot.py` fetches it on GitHub's
