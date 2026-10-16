@@ -1,4 +1,4 @@
-# as_of: 2026-10-14
+# as_of: 2026-10-15
 # source: BuffettBot demo portfolio (synthetic quantities, not a real account)
 isin,ticker,name,kind,quantity,group,target_pct
 IE00B3YLTY66,SPYI,SPDR MSCI ACWI IMI UCITS ETF,fund,1250,Portfolio,60
