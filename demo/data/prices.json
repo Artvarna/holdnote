@@ -1,49 +1,55 @@
 {
-  "as_of": "2026-10-15",
+  "as_of": "2026-10-16",
   "prices": {
     "IE00B3YLTY66": {
-      "price": "13.17",
+      "price": "13.18",
       "currency": "USD",
-      "date": "2026-10-15",
+      "date": "2026-10-16",
       "source": "London Stock Exchange, IMID last close",
-      "confirmed_by": null,
-      "unconfirmed": "Yahoo Finance chart, IMID.L, has no close for 2026-10-15"
+      "confirmed_by": {
+        "source": "Yahoo Finance chart, IMID.L",
+        "price": "13.1800",
+        "diff_pct": "0.000"
+      }
     },
     "IE00B6YX5C33": {
-      "price": "771.47",
+      "price": "770.415",
       "currency": "USD",
-      "date": "2026-10-15",
+      "date": "2026-10-16",
       "source": "London Stock Exchange, SPY5 last close",
-      "confirmed_by": null,
-      "unconfirmed": "Yahoo Finance chart, SPY5.L, has no close for 2026-10-15"
+      "confirmed_by": {
+        "source": "Yahoo Finance chart, SPY5.L",
+        "price": "770.4150",
+        "diff_pct": "0.000"
+      }
     },
     "US1912161007": {
-      "price": "92.00",
+      "price": "93.90",
       "currency": "USD",
-      "date": "2026-10-15",
+      "date": "2026-10-16",
       "source": "Nasdaq historical quotes, KO close",
       "confirmed_by": {
         "source": "Yahoo Finance chart, KO",
-        "price": "92.0000",
+        "price": "93.9000",
         "diff_pct": "0.000"
       }
     },
     "US0231351067": {
-      "price": "254.76",
+      "price": "250.00",
       "currency": "USD",
-      "date": "2026-10-15",
+      "date": "2026-10-16",
       "source": "Nasdaq historical quotes, AMZN close",
       "confirmed_by": {
         "source": "Yahoo Finance chart, AMZN",
-        "price": "254.7600",
+        "price": "250.0000",
         "diff_pct": "0.000"
       }
     }
   },
   "fx": {
     "USD": {
-      "per_eur": "1.1208",
-      "date": "2026-10-15",
+      "per_eur": "1.1253",
+      "date": "2026-10-16",
       "source": "ECB euro foreign exchange reference rates"
     }
   }
