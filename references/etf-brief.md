@@ -26,7 +26,7 @@ gets, under Mode C output), and a table it prints keeps its rows when the
 set is small: a set of one prints its asked-for tables with their single
 row, or `none` where a fund alone has nothing to put in them. A table
 dropped because the set is small is a table no reader can tell has run.
-A full report prints all eleven Mode C tables.
+A full report prints all twelve Mode C tables.
 
 ---
 
@@ -449,7 +449,7 @@ names prints `0` in both columns. `contract.holdings_problems` checks this.
 Same sections. `RESULT` opens with `Mode: Portfolio (Mode C)` — or
 `Mode: Fund brief (Mode A) + Portfolio (Mode C)` when the two combine — and
 then carries the tables below — the asked-for ones, in this order — and
-no prose between them. A full report carries all eleven tables:
+no prose between them. A full report carries all twelve tables:
 
 ```
 Performance      Performance row, one per instrument in the set
@@ -461,6 +461,9 @@ Structural       one row per pair: overlapping | disjoint, and the index
                  fact that makes it so
 Holdings         one row per pair: shared names, shared weight
 Look-through     one row per company: weight via each fund, and the total
+Hidden bets      one row per company reached through two or more holdings
+                 with a Total of 1.00 or more: each route, the largest, and
+                 what the others add (scripts/fund_holdings.py)
 Countries        one row per country: weight direct and via each fund, the
                  total, an Other countries row and a Total row
                  (scripts/fund_holdings.py)
@@ -475,21 +478,23 @@ Stocks           one row per individual stock in the set: next
 
 ### Which tables a question gets
 
-A short answer to a narrow question beats eleven tables nobody asked for.
+A short answer to a narrow question beats twelve tables nobody asked for.
 The question picks the tables; where it names several things, the sets
 join, in the order above.
 
 | The question is about | Tables |
 |---|---|
-| What I own, in general ("what do I own", "how's my portfolio") | Allocation, Look-through, Countries, Stocks |
+| What I own, in general ("what do I own", "how's my portfolio") | Allocation, Look-through, Hidden bets, Countries, Stocks |
 | Actual vs target weights | Allocation |
 | Overlap between my funds | Comparison, Structural, Holdings |
 | A single company across everything ("how much Apple do I own") | Allocation, Look-through |
+| What I own through more than one holding ("what am I really betting on", "hidden bets") | Allocation, Look-through, Hidden bets |
+| A portfolio card ("make a card", `SKILL.md` → Portfolio card) | Allocation, Holdings, Look-through, Hidden bets, Countries, Sectors |
 | Countries · sectors · currencies | Allocation, then Countries · Sectors · Currencies |
 | How it performed ("how's my portfolio done this week") | Performance |
 | What changed in my funds' holdings | Holdings changes |
 | My stocks' earnings dates or filings | Stocks |
-| "Full report", "everything", or the scheduled weekly brief | all eleven |
+| "Full report", "everything", or the scheduled weekly brief | all twelve |
 
 `METHOD`'s first line after `Build:` names them:
 `Tables: Allocation, Sectors (asked: sectors)`. A table left out is left out
@@ -676,8 +681,30 @@ companies the cells reach and what the printed rows sum to. When any fund
 with a weight has no file, or Allocation's weights are `Not available`, the
 whole look-through is `Not available` with that reason — never a partial set.
 
+**Hidden bets** comes from the same `report` run and is pasted unchanged:
+every company the portfolio reaches through two or more holdings — a direct
+stock and a fund, or two funds — whose Look-through Total is 1.00 or more,
+largest Total first. Columns:
+
+| Company | Through | Largest part | Total | Added by the others |
+
+`Through` lists each route with its Look-through cell (`Direct 7.35 · via
+SPYI 1.26 · via SPY5 0.94`) and sums to `Total`, which is the company's
+Look-through Total. `Largest part` is the largest single route — all that
+any one holding shows — and `Added by the others` is `Total − Largest part`.
+It is read from every company the cells reach, not only the rows Look-through
+prints, so `--top` changes nothing in it. No company qualifying prints one
+row, `none`. At factsheet top-10 depth (no full files for a fund) it is
+`Not available - needs every fund's full holdings file; a top 10 leaves out
+routes`, because a company outside one fund's top 10 would lose that route
+and its Total would read low; `METHOD`'s `Next:` line offers the GitHub
+option (`references/setup.md`). The name says what the table finds — exposure no single holding
+shows — and no word goes beside it: not "too much", "risky" or
+"concentrated"; what to do about it is the user's (rule 6).
+`contract.hidden_bets_problems` re-adds every row against Look-through.
+
 **Countries** comes from the same `report` run, on the same files and the
-same market weights, printed after Look-through and pasted unchanged. A via
+same market weights, printed after Hidden bets and pasted unchanged. A via
 cell is fund weight × the fund's % in that country ÷ 100, to 0.01 (half up,
 as Allocation rounds); Direct is each stock's weight under the country the
 fund files give that same company. Countries with a Total under 0.50
@@ -1208,7 +1235,7 @@ RULES.md Part IV checklist, plus:
 - [ ] Mode B tables the dated factsheet covers print from it; undated
       depth is its own table headed `(undated)`, and `METHOD` names which
       table came from which document
-- [ ] Mode C prints the asked-for tables (all eleven tables on a full report), a set of one included, names them on `METHOD`'s `Tables:` line, and its
+- [ ] Mode C prints the asked-for tables (all twelve tables on a full report), a set of one included, names them on `METHOD`'s `Tables:` line, and its
       Performance rows are the instruments in the set — never filtered by
       whether they are held
 - [ ] Stocks table: a stock's earnings date is company-announced and on or

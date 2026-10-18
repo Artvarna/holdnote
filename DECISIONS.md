@@ -1036,6 +1036,45 @@ plan's usage when the user only wants the scorecard.
   any commit on any branch or tag, no force pushes, and no pull requests left
   in the repo, so nothing remains to purge before it goes public.
 
+## Hidden bets and the portfolio card, 2026-10-18
+
+**DECIDED 2026-10-18.** Two features for the 1 November launch, chosen
+because they rest on what no other free tool has — every holding of every
+fund — and because a card people post is how others find the skill.
+
+- **Hidden bets is read from every company the cells reach**, not the rows
+  Look-through prints, so `--top` never changes it. A company counts when it
+  is reached through two or more holdings (a direct stock and a fund, or two
+  funds) and its Total is 1.00 or more. The columns are arithmetic only:
+  each route, the largest, the Total, and `Added by the others` = Total −
+  Largest part — the exposure a single holding's page never shows. The name
+  says what the table finds; no word of judgement goes beside it (rule 6).
+- **The demo reads it back from its snapshot's Look-through table** until
+  the next Demo data run prints the table itself. That is complete only when
+  1.00 is above the smallest fund-only Total printed there (0.57 in the
+  2026-10-15 snapshot), and `demo.py` prints `Not available` rather than a
+  partial list otherwise.
+- **The card draws a checked draft, nothing else.** `scripts/card.py` runs
+  the output contract first, then lays out cells of the draft's tables as a
+  1080×1350 image (LinkedIn, X and Instagram show that shape whole). One
+  layout is written two ways — SVG always, PNG through Pillow when installed —
+  so long names are cut identically in both.
+- **Percentages only.** No quantity, close, value or currency amount is
+  drawn, so a card can be posted without saying what anyone has; a test
+  checks every bare number on the demo card is a count or the date. A demo
+  card says `DEMO · SYNTHETIC PORTFOLIO`.
+- **The card's look is an annual letter** (revised the same day, at the
+  user's ask): cream paper, ink, hairline rules, Fraunces for the title and
+  the large figures, Inter for labels, one green and one ochre. The
+  signature is a split bar under the hero figure: in ink, what a single
+  holding shows; in ochre, what the others add. The two faces ship in
+  `assets/fonts/`, subset to Latin (about 140 KB, SIL OFL 1.1, licence
+  beside them), so the PNG and the SVG look the same wherever the skill
+  runs; the SVG carries them inline.
+- **The hero is the bet with the most `Added by the others`**, not the
+  largest Total: the largest Total is usually a stock bought on purpose,
+  while the most added is what the user did not see.
+
 ## Renamed from BuffettBot to Holdnote, 2026-10-18
 
 Before the public launch, the product name stopped borrowing a living
@@ -1048,7 +1087,7 @@ would read as exactly that.
   and `references/buffett.md` keep his name, the way the Graham, Lynch and
   Munger lenses keep theirs: it credits where the tests come from, and
   `DISCLAIMER.md` says the scorecard, not the product, is named after him.
-- **The repo is `Artvarna/Holdnote`.** The workflow guards in
+- **The repo is `Artvarna/holdnote`.** The workflow guards in
   `holdings.yml` and `demo-data.yml` check that name, so the repo rename and
   this commit go together. GitHub redirects the old URL.
 - **Holdnote** was chosen after conflict checks on about twenty names: notes

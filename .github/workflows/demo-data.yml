@@ -34,7 +34,7 @@ concurrency:
 
 jobs:
   refresh:
-    if: github.repository == 'Artvarna/Holdnote'
+    if: github.repository == 'Artvarna/holdnote'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

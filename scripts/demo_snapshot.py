@@ -13,7 +13,7 @@ What it writes, all for one session date (`as_of`):
 
     demo/data/prices.json       closes and ECB rates, in market_weights' format
     demo/data/fund_report.txt   fund_holdings' report on the demo portfolio:
-                                Holdings, Look-through, Countries, Sectors,
+                                Holdings, Look-through, Hidden bets, Countries, Sectors,
                                 Currencies, with its METHOD and PROOF lines
     demo/data/funds.json        each fund file's as-of, row counts and URL,
                                 and the inputs the report was computed from

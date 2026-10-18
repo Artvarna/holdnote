@@ -1,11 +1,11 @@
-as_of 2026-10-15 · run 2026-10-16 14:32 UTC
-LSE IMID: USD 13.17 on 2026-10-15
-LSE SPY5: USD 771.47 on 2026-10-15
-SPYI: USD 13.17 (London Stock Exchange, IMID last close); Yahoo has no close for 2026-10-15
-SPY5: USD 771.47 (London Stock Exchange, SPY5 last close); Yahoo has no close for 2026-10-15
-KO: USD 92.00 (Nasdaq historical quotes, KO close); Yahoo 92.0000, +0.000%
-AMZN: USD 254.76 (Nasdaq historical quotes, AMZN close); Yahoo 254.7600, +0.000%
+as_of 2026-10-16 · run 2026-10-18 15:26 UTC
+LSE IMID: USD 13.18 on 2026-10-16
+LSE SPY5: USD 770.415 on 2026-10-16
+SPYI: USD 13.18 (London Stock Exchange, IMID last close); Yahoo 13.1800, +0.000%
+SPY5: USD 770.415 (London Stock Exchange, SPY5 last close); Yahoo 770.4150, +0.000%
+KO: USD 93.90 (Nasdaq historical quotes, KO close); Yahoo 93.9000, +0.000%
+AMZN: USD 250.00 (Nasdaq historical quotes, AMZN close); Yahoo 250.0000, +0.000%
 SPYI: 6036 rows, 5981 equity, as of 2026-10-15
 SPY5: 510 rows, 504 equity, as of 2026-10-15
 KO: EDGAR COCA COLA CO, 40 filings; earnings 2026-10-27 (20261027-3rd-quarter-2026-earnings-call)
-AMZN: EDGAR AMAZON COM INC, 40 filings; earnings None (0 dated earnings events, none on or after 2026-10-15)
+AMZN: EDGAR AMAZON COM INC, 40 filings; earnings None (0 dated earnings events, none on or after 2026-10-16)

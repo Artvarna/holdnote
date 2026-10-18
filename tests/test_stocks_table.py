@@ -248,11 +248,12 @@ def _spec() -> str:
     return (REPO / "references" / "etf-brief.md").read_text(encoding="utf-8")
 
 
-def test_the_spec_counts_eleven_mode_c_tables_everywhere():
+def test_the_spec_counts_twelve_mode_c_tables_everywhere():
+    # Twelve since Hidden bets (2026-10-18)
     text = _spec()
-    assert not re.search(r"\b(?:five|six|seven|eight|nine|ten) (?:Mode C )?tables\b", text, re.IGNORECASE)
-    assert not re.search(r"all (?:five|six|seven|eight|nine|ten)\b", text, re.IGNORECASE)
-    assert len(re.findall(r"\beleven (?:Mode C )?tables\b", text)) == 4
+    assert not re.search(r"\b(?:five|six|seven|eight|nine|ten|eleven) (?:Mode C )?tables\b", text, re.IGNORECASE)
+    assert not re.search(r"all (?:five|six|seven|eight|nine|ten|eleven)\b", text, re.IGNORECASE)
+    assert len(re.findall(r"\btwelve (?:Mode C )?tables\b", text)) == 4
 
 
 def test_the_spec_names_every_column_the_check_requires():

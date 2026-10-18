@@ -364,6 +364,54 @@ def test_lookthrough_passes_the_contract(holdings_dir):
     assert contract.lookthrough_problems({"RESULT": result}) == []
 
 
+def test_hidden_bets_are_the_companies_reached_through_two_or_more_holdings(holdings_dir):
+    lines, stats = lookthrough(holdings_dir, top=1)
+    bets = fh.hidden_bets(stats["reached"])
+    # Read from every company the cells reach, not the printed rows (top=1)
+    table = fh.hidden_bets_table(bets)
+    assert table[0] == "| Company | Through | Largest part | Total | Added by the others |"
+    assert table[2:] == [
+        "| Apple Inc | Direct 13.00 · via SPPW 1.60 · via VUSA 0.56 | Direct 13.00 | 15.16 | 2.16 |",
+        "| NVIDIA Corp | Direct 8.00 · via SPPW 2.00 · via VUSA 0.64 | Direct 8.00 | 10.64 | 2.64 |",
+        "| Alphabet Inc | Direct 5.00 · via SPPW 1.12 · via VUSA 0.30 | Direct 5.00 | 6.42 | 1.42 |",
+    ]
+    # PKO is reached through MEUD and EIMI, but only 0.06 + 0.02: under 1.00
+    assert all("PKO" not in row for row in table)
+    assert fh.hidden_bets_method(bets).endswith("3 companies, 32.22 of the portfolio together")
+
+
+def test_hidden_bets_count_fund_only_companies_and_say_so_when_none(holdings_dir):
+    reached = [("Shell", [("Direct", None), ("via A", Decimal("0.70")), ("via B", Decimal("0.40"))],
+                Decimal("1.10")),
+               ("Tiny", [("Direct", None), ("via A", Decimal("0.50")), ("via B", Decimal("0.49"))],
+                Decimal("0.99"))]
+    assert fh.hidden_bets_table(fh.hidden_bets(reached))[2] == (
+        "| Shell | via A 0.70 · via B 0.40 | via A 0.70 | 1.10 | 0.40 |")
+    assert fh.hidden_bets_table([])[2] == (
+        "| none | no company reaches 1.00 through two or more holdings | - | 0 | 0 |")
+
+
+def test_hidden_bets_pass_the_contract_beside_lookthrough(holdings_dir):
+    lines, stats = lookthrough(holdings_dir)
+    result = ("Look-through (market weights, as of 2026-10-09)\n" + "\n".join(lines) + "\n\n"
+              "Hidden bets (market weights, as of 2026-10-09)\n"
+              + "\n".join(fh.hidden_bets_table(fh.hidden_bets(stats["reached"]))) + "\n")
+    assert contract.hidden_bets_problems({"RESULT": result}) == []
+    broken = result.replace("| Direct 13.00 | 15.16 | 2.16 |", "| Direct 13.00 | 15.16 | 2.00 |")
+    assert contract.hidden_bets_problems({"RESULT": broken}) == [
+        "Hidden bets Apple Inc: Added by the others 2.00 is not Total - Largest part (2.16)"]
+
+
+def test_parse_lookthrough_round_trips_and_gives_its_floor(holdings_dir):
+    lines, stats = lookthrough(holdings_dir)
+    rows, floor = fh.parse_lookthrough(lines)
+    assert [r[0] for r in rows] == [ln.split("|")[1].strip() for ln in lines[2:]]
+    assert floor == Decimal("1.75")  # the smallest fund-only Total printed (the SPPW fillers)
+    # Every bet over the floor comes out the same as from the full data
+    full = fh.hidden_bets(stats["reached"])
+    assert fh.hidden_bets(rows) == full
+
+
 def test_holdings_table_passes_the_contract(holdings_dir):
     funds = load_all(holdings_dir)
     exps = fh.exposures(list(funds.values()))
@@ -403,6 +451,9 @@ def test_report_with_weights(holdings_dir, capsys, monkeypatch):
     out = capsys.readouterr().out
     assert "| Company | Direct | via SPPW | via MEUD | via EIMI | via VUSA | Total |" in out
     assert "| Apple Inc | 13.00 | 1.60 | - | - | 0.56 | 15.16 |" in out
+    assert "Hidden bets (market weights, as of 2026-10-09)" in out
+    assert "| NVIDIA Corp | Direct 8.00 · via SPPW 2.00 · via VUSA 0.64 | Direct 8.00 | 10.64 | 2.64 |" in out
+    assert "Hidden bets: companies with a Look-through Total of 1.00 or more" in out
     assert "Fund weights consumed: SPPW 40.00, MEUD 15.00, EIMI 11.00, VUSA 8.00" in out
     assert "| United States | 26.00 | 40.00 | - | - | 8.00 | 74.00 |" in out
     assert "Countries direct stocks: the country the fund files give the same company" in out

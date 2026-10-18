@@ -976,6 +976,64 @@ def lookthrough_problems(sections: dict[str, str]) -> list[str]:
     return problems
 
 
+HIDDEN_BETS_HEADER = ["Company", "Through", "Largest part", "Total", "Added by the others"]
+_ROUTE = re.compile(r"^(?P<label>Direct|via \S+) (?P<value>\d+\.\d{2})$")
+
+
+def hidden_bets_problems(sections: dict[str, str]) -> list[str]:
+    """Hidden bets: every row reached through two or more holdings, its routes
+    summing to its Total, Largest part being the largest route, Added by the
+    others = Total - Largest part, the Total matching Look-through's for the
+    same company, and the rows in descending Total.
+    """
+    result = sections.get("RESULT", "")
+    table = _table(result, "Hidden bets")
+    if not table:
+        return []
+    header, rows = table
+    if header != HIDDEN_BETS_HEADER:
+        if header and header[-1] == "Total" and len(rows) == 1 and "Not available" in " ".join(rows[0]):
+            return []
+        return [f"Hidden bets header is {header}, not {HIDDEN_BETS_HEADER}"]
+    lookthrough: dict[str, str] = {}
+    lt = _table(result, "Look-through")
+    if lt and lt[0] and lt[0][-1] == "Total":
+        lookthrough = {r[0]: r[-1] for r in lt[1] if r}
+    problems, last = [], None
+    for row in rows:
+        if len(row) != len(header):
+            problems.append(f"Hidden bets row has {len(row)} cells: {row}")
+            continue
+        company, through, largest, total, added = row
+        if company == "none":
+            continue
+        routes = [_ROUTE.match(p.strip()) for p in through.split(" · ")]
+        if not all(routes) or len(routes) < 2:
+            problems.append(f"Hidden bets {company}: Through must be two or more 'Direct x' or "
+                            f"'via TICKER x' parts, not {through!r}")
+            continue
+        values = [Decimal(m["value"]) for m in routes]
+        if not _NUMBER.match(total) or not _NUMBER.match(added):
+            problems.append(f"Hidden bets {company}: Total and Added by the others must be numbers")
+            continue
+        if sum(values, Decimal(0)) != Decimal(total):
+            problems.append(f"Hidden bets {company}: Total {total} is not the sum of its routes "
+                            f"({sum(values, Decimal(0))})")
+        lm = _ROUTE.match(largest.strip())
+        if not lm or Decimal(lm["value"]) != max(values):
+            problems.append(f"Hidden bets {company}: Largest part {largest} is not its largest route")
+        elif Decimal(total) - Decimal(lm["value"]) != Decimal(added):
+            problems.append(f"Hidden bets {company}: Added by the others {added} is not "
+                            f"Total - Largest part ({Decimal(total) - Decimal(lm['value'])})")
+        if company in lookthrough and lookthrough[company] != total:
+            problems.append(f"Hidden bets {company}: Total {total} differs from Look-through's "
+                            f"{lookthrough[company]}")
+        if last is not None and Decimal(total) > last:
+            problems.append(f"Hidden bets {company}: rows are not in descending Total")
+        last = Decimal(total)
+    return problems
+
+
 def countries_problems(sections: dict[str, str]) -> list[str]:
     """Countries: each row's Total is the sum of its cells, the Total row is the
     column sums, and no country is more than the whole portfolio."""
@@ -1348,7 +1406,7 @@ def output_problems(text: str) -> list[str]:
     for check in (coverage_problems, variant_problems, conflict_problems,
                   period_cell_problems, stocks_table_problems,
                   structural_problems, holdings_problems, allocation_problems,
-                  lookthrough_problems, countries_problems,
+                  lookthrough_problems, hidden_bets_problems, countries_problems,
                   sectors_problems, currencies_problems,
                   brief_layout_problems, quick_brief_problems, sources_summary_problems,
                   lens_source_problems, buffett_notes_problems, checklist_problems):

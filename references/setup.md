@@ -65,7 +65,7 @@ and ask first.
   Claude desktop app on that computer, then send a message) and send the
   files with `SendUserFile` meanwhile.
 - **GitHub.** Give these steps and wait for the repo's `owner/name`:
-  1. Open https://github.com/Artvarna/Holdnote and click **Use this
+  1. Open https://github.com/Artvarna/holdnote and click **Use this
      template** → **Create a new repository**.
   2. Name it `holdnote`, choose **Private**, click **Create repository**.
   3. In the new repo, open **Actions** and enable workflows if GitHub asks.

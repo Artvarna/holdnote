@@ -36,7 +36,7 @@ concurrency:
 jobs:
   fetch:
     # The public template has no funds of its own; only users' copies fetch.
-    if: github.repository != 'Artvarna/Holdnote'
+    if: github.repository != 'Artvarna/holdnote'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
