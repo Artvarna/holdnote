@@ -948,19 +948,112 @@ def lookthrough_table(order: list[str], exps: dict[str, Exposure],
         "| Company | Direct | " + " | ".join(f"via {t}" for t in order) + " | Total |",
         "|---|---|" + "---|" * len(order) + "---|",
     ]
+    def name(k: str) -> str:
+        if k in direct and not any(k in exps[t].weights for t in order):
+            return direct_names.get(k) or name_for(k, exps, name_order)
+        return name_for(k, exps, name_order)
+
     for k in held + others:
         cells, total = rows[k]
-        name = direct_names.get(k) if k in direct and not any(
-            k in exps[t].weights for t in order) else name_for(k, exps, name_order)
         lines.append(
-            f"| {name} | " + " | ".join("-" if c is None else f"{c:.2f}" for c in cells)
+            f"| {name(k)} | " + " | ".join("-" if c is None else f"{c:.2f}" for c in cells)
             + f" | {total:.2f} |"
         )
     printed = sum((rows[k][1] for k in held + others), Decimal(0))
     everything = sum((r[1] for r in rows.values()), Decimal(0))
+    labels = ["Direct"] + [f"via {t}" for t in order]
+    # Every company the cells reach, printed or not, in Look-through's own
+    # labels and cells: what Hidden bets reads, so it never depends on --top.
+    reached = [(name(k), list(zip(labels, rows[k][0])), rows[k][1])
+               for k in rows if len([c for c in rows[k][0] if c]) >= 2]
     stats = {"companies": len(rows), "printed": printed, "everything": everything,
-             "shown": len(held) + len(others)}
+             "shown": len(held) + len(others), "reached": reached}
     return lines, stats
+
+
+# --- hidden bets -------------------------------------------------------------
+
+# A company counts when the portfolio reaches it through two or more holdings
+# and its Look-through Total is at least this, in % of the portfolio.
+HIDDEN_MIN = Decimal("1.00")
+HIDDEN_HEADER = ["Company", "Through", "Largest part", "Total", "Added by the others"]
+
+
+def hidden_bets(reached: list[tuple[str, list[tuple[str, Decimal | None]], Decimal]],
+                minimum: Decimal = HIDDEN_MIN) -> list[tuple[str, list[tuple[str, Decimal]], Decimal]]:
+    """Companies reached through 2+ holdings with a Total of `minimum` or more.
+
+    `reached` is Look-through's rows: (company, [(label, cell or None)], Total),
+    Total being the sum of the cells. Largest Total first.
+    """
+    out = []
+    for name, parts, total in reached:
+        through = [(label, c) for label, c in parts if c is not None and c > 0]
+        if len(through) >= 2 and total >= minimum:
+            out.append((name, through, total))
+    out.sort(key=lambda r: (-r[2], r[0]))
+    return out
+
+
+def hidden_bets_table(bets: list[tuple[str, list[tuple[str, Decimal]], Decimal]],
+                      minimum: Decimal = HIDDEN_MIN) -> list[str]:
+    """One row per company: each route with its cell, the largest one, the
+    Total, and what the other routes add to the largest. Total = the sum of the
+    routes, as in Look-through, so every row re-adds both ways."""
+    lines = ["| " + " | ".join(HIDDEN_HEADER) + " |", "|" + "---|" * len(HIDDEN_HEADER)]
+    if not bets:
+        lines.append(f"| none | no company reaches {minimum:.2f} through two or more holdings "
+                     "| - | 0 | 0 |")
+        return lines
+    for name, through, total in bets:
+        label, largest = max(through, key=lambda p: (p[1], p[0] == "Direct"))
+        lines.append(
+            f"| {name} | " + " · ".join(f"{lab} {c:.2f}" for lab, c in through)
+            + f" | {label} {largest:.2f} | {total:.2f} | {total - largest:.2f} |"
+        )
+    return lines
+
+
+def hidden_bets_method(bets: list, minimum: Decimal = HIDDEN_MIN) -> str:
+    together = sum((b[2] for b in bets), Decimal(0))
+    return (f"Hidden bets: companies with a Look-through Total of {minimum:.2f} or more reached "
+            "through two or more holdings (a direct stock or a fund); Largest part = the "
+            "largest single cell, which is all a single holding shows; Added by the others = "
+            f"Total - Largest part; {len(bets)} {'company' if len(bets) == 1 else 'companies'}, "
+            f"{together:.2f} of the "
+            "portfolio together")
+
+
+def parse_lookthrough(lines: list[str]) -> tuple[list[tuple[str, list[tuple[str, Decimal | None]], Decimal]], Decimal | None]:
+    """A printed Look-through table back into rows, and its completeness floor.
+
+    The table prints every direct stock, then the largest others by Total, so
+    any company it leaves out has a Total no larger than the smallest printed
+    fund-only row: that Total is returned as the floor (None when nothing
+    fund-only printed). Hidden bets read this way are complete only for a
+    minimum above the floor.
+    """
+    table = [ln for ln in lines if ln.startswith("|")]
+    if len(table) < 2:
+        return [], None
+    header = [c.strip() for c in table[0].strip("|").split("|")]
+    if header[0] != "Company" or header[-1] != "Total":
+        return [], None
+    rows, floor = [], None
+    for ln in table[2:]:
+        cells = [c.strip() for c in ln.strip("|").split("|")]
+        if len(cells) != len(header):
+            continue
+        try:
+            total = Decimal(cells[-1])
+            values = [None if c == "-" else Decimal(c) for c in cells[1:-1]]
+        except InvalidOperation:
+            continue
+        parts = list(zip(header[1:-1], values))
+        rows.append((cells[0], parts, total))
+        if dict(parts).get("Direct") is None:
+            floor = total if floor is None else min(floor, total)
+    return rows, floor
 
 
 # --- market weights ---------------------------------------------------------
@@ -1082,7 +1175,8 @@ def report_no_funds(note: str) -> int:
     print("| Pair | Shared names | Shared weight |\n|---|---|---|")
     print(f"| none | none - {why} | 0 |")
     print()
-    for title, column in (("Look-through", "Company"), ("Countries", "Country"),
+    for title, column in (("Look-through", "Company"), ("Hidden bets", "Company"),
+                          ("Countries", "Country"),
                           ("Sectors", "Sector"), ("Currencies", "Currency")):
         print(title)
         print(f"| {column} | Total |\n|---|---|")
@@ -1170,6 +1264,17 @@ def cmd_report(args: argparse.Namespace) -> int:
         print("\n".join(lines))
     print()
 
+    bets = None
+    if lt_reason:
+        print("Hidden bets")
+        print("| Company | Total |\n|---|---|")
+        print(f"| all | Not available - {lt_reason} |")
+    else:
+        bets = hidden_bets(stats["reached"])
+        print(f"Hidden bets (market weights, as of {as_of})")
+        print("\n".join(hidden_bets_table(bets)))
+    print()
+
     cstats = None
     direct_country: dict[str, str] = {}
     if lt_reason:
@@ -1254,6 +1359,8 @@ def cmd_report(args: argparse.Namespace) -> int:
               f"directly held companies and the {args.top} largest others by Total, of "
               f"{stats['companies']} companies; printed rows sum to {stats['printed']:.2f} "
               f"of the {stats['everything']:.2f} the cells reach")
+    if bets is not None:
+        print(hidden_bets_method(bets))
     print(countries_basis(order))
     if cstats:
         print("Countries direct stocks: the country the fund files give the same company - "

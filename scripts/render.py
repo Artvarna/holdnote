@@ -31,7 +31,7 @@ DISCLAIMER = ("Not financial advice. Research from public documents; check the o
 ICONS = {
     "Buffett scorecard": "🏰", "Key numbers": "📊", "What changed": "🔄", "Red flags": "🚩",
     "Buffett notes": "💡", "Four filters": "🧭", "Your position": "🧺",
-    "Allocation": "🎯", "Look-through": "🔍", "Countries": "🌍", "Sectors": "🏭",
+    "Allocation": "🎯", "Look-through": "🔍", "Hidden bets": "🕵️", "Countries": "🌍", "Sectors": "🏭",
     "Currencies": "💱", "Holdings changes": "📅", "Holdings": "🔗", "Comparison": "⚖️",
     "Structural": "🧱", "Performance": "📈", "Stocks": "🗓️",
 }

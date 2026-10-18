@@ -44,16 +44,18 @@ for folder in (HERE, ROOT / "tests"):
 sys.path.insert(0, str(HERE))
 
 import contract  # noqa: E402
+import fund_holdings as fh  # noqa: E402
 import import_holdings as ih  # noqa: E402
 import render  # noqa: E402
 
 DEMO = ROOT / "demo"
 DATA = DEMO / "data"
 # The order Mode C prints its tables in (etf-brief.md -> Mode C output).
-ORDER = ["Allocation", "Holdings", "Look-through", "Countries", "Sectors", "Currencies", "Stocks"]
+ORDER = ["Allocation", "Holdings", "Look-through", "Hidden bets", "Countries", "Sectors",
+         "Currencies", "Stocks"]
 # "Show me a demo": everything but Currencies, which Countries mostly repeats
 # for this portfolio and which a follow-up question can ask for.
-DEFAULT = ["Allocation", "Holdings", "Look-through", "Countries", "Sectors", "Stocks"]
+DEFAULT = ["Allocation", "Holdings", "Look-through", "Hidden bets", "Countries", "Sectors", "Stocks"]
 # Mode C tables the snapshot cannot fill, and why.
 NOT_IN_DEMO = ("Performance, Comparison, Structural and Holdings changes "
                "(they need live closes, factsheets or a week of history)")
@@ -107,6 +109,31 @@ def blocks(text: str) -> tuple[dict[str, list[str]], list[str], list[str]]:
                 method += current  # market_weights prints its METHOD lines bare
             current = []
     return tables, method, proof
+
+
+def hidden_bets_block(fund_tables: dict[str, list[str]], fund_method: list[str]) -> tuple[list[str], list[str]]:
+    """Hidden bets, as fund_holdings prints it.
+
+    A snapshot from before the table existed has none, so it is read back from
+    the snapshot's Look-through table -- complete only when HIDDEN_MIN is above
+    the smallest fund-only Total printed there, since every company the table
+    leaves out is no larger than that. Otherwise it is Not available, never a
+    partial list.
+    """
+    if "Hidden bets" in fund_tables:
+        return fund_tables["Hidden bets"], []
+    lt = fund_tables.get("Look-through", [])
+    heading = lt[0].replace("Look-through", "Hidden bets", 1) if lt else "Hidden bets"
+    rows, floor = fh.parse_lookthrough(lt)
+    if not rows or floor is None or floor >= fh.HIDDEN_MIN:
+        why = ("the snapshot's Look-through table does not print every company with a Total of "
+               f"{fh.HIDDEN_MIN:.2f} or more")
+        return ["Hidden bets", "| Company | Total |", "|---|---|", f"| all | Not available - {why} |"], []
+    bets = fh.hidden_bets(rows)
+    return ([heading, *fh.hidden_bets_table(bets)],
+            [fh.hidden_bets_method(bets),
+             f"Hidden bets source: read from the Look-through table above, which prints every "
+             f"company with a Total over {floor:.2f}, so none of {fh.HIDDEN_MIN:.2f} or more is left out"])
 
 
 def stocks_table(stocks: dict, holdings: list, as_of: date) -> tuple[list[str], list[str], list[str]]:
@@ -203,8 +230,9 @@ def build(tables_wanted: list[str], proof: bool) -> tuple[str, str]:
         raise Stale(f"demo/data/fund_report.txt was computed from a different {', '.join(stale)}; "
                     "run the Demo data workflow to rebuild it")
     fund_tables, fund_method, fund_proof = blocks((DATA / "fund_report.txt").read_text())
+    bets_rows, bets_method = hidden_bets_block(fund_tables, fund_method)
     stock_rows, missing, stock_proof = stocks_table(stocks, holdings, as_of)
-    printed = {**alloc_tables, **fund_tables, "Stocks": stock_rows}
+    printed = {**alloc_tables, **fund_tables, "Hidden bets": bets_rows, "Stocks": stock_rows}
 
     file_dates = ", ".join(f"{t} {m['as_of']}" for t, m in meta["funds"].items())
     tickers = {h.isin: h.ticker for h in holdings}
@@ -229,6 +257,7 @@ def build(tables_wanted: list[str], proof: bool) -> tuple[str, str]:
         *[ln.replace("the Performance closes of", "the snapshot's closes of")
           for ln in alloc_method if ln.startswith("Allocation")],
         *fund_method,
+        *bets_method,
         f"Stocks window:     8-Ks filed in the 30 days to {as_of}, by EDGAR filing date",
         "Earnings dates:    company-announced only, never estimated",
         f"Confirmation: {confirm}",

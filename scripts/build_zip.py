@@ -40,6 +40,7 @@ FILES = {
     "demo/holdings.csv": "demo/holdings.csv",
     "demo/funds.md": "demo/funds.md",
     "scripts/render.py": "scripts/render.py",
+    "scripts/card.py": "scripts/card.py",
     "tests/contract.py": "scripts/contract.py",
     "references/buffett.md": "references/buffett.md",
     "references/buffett-scorecard.md": "references/buffett-scorecard.md",
