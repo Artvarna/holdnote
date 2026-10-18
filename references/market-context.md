@@ -1,6 +1,6 @@
 # Market Context
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
 The narrowest module in the system, deliberately. Market-level commentary is
 where research tools generate the most confident-sounding nonsense, so this

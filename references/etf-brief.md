@@ -1,6 +1,6 @@
 # ETF & Index Brief
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
 ## Three modes
 
@@ -618,7 +618,7 @@ on GitHub's servers and force-pushes the raw files and its `fetch.log` to the
 
 1. **Claude's workspace** (`Bash`): attach the user's own repo for reading
    if it is not already (`add_repo` with its `owner/name`, `SKILL.md` →
-   Your files — never the public BuffettBot repo, whose Action fetches
+   Your files — never the public Holdnote repo, whose Action fetches
    nobody's funds), then
    `git clone --depth 1 -b holdings-data https://github.com/<owner>/<name> "$SCRATCH/holdings"`
    and read `fetch.log`. Its `utc:` line is when the files were fetched. A

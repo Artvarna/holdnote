@@ -1,6 +1,6 @@
 # Portfolio Sync
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
 Rewrites `portfolio.md` from a Trading 212 CSV export. The only module that
 writes to a file the user maintains by hand, so it is the one with the most

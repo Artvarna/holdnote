@@ -89,7 +89,7 @@ Currencies (market weights, as of 2026-10-16)
 | Total | 15.67 | 59.36 | 24.98 | 100.01 |
 
 METHOD
-Funds list: /home/runner/work/buffettbot/buffettbot/demo/funds.md, 2 funds
+Funds list: /home/runner/work/holdnote/holdnote/demo/funds.md, 2 funds
 Holdings file SPYI: SSGA daily holdings file (read by the snapshot job, not kept), ssga, as of 2026-10-15, 6036 rows, 5981 equity
 Holdings file SPY5: SSGA daily holdings file (read by the snapshot job, not kept), ssga, as of 2026-10-15, 510 rows, 504 equity
 Holdings matching: one company per issuer - US/CA ISINs by CUSIP issuer (first six characters, so share classes combine), other ISINs exactly; iShares files have no ISINs, their rows matched by ticker + exchange to Bloomberg tickers in Amundi's file

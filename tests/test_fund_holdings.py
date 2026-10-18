@@ -805,7 +805,7 @@ def test_a_missing_or_empty_funds_file_is_no_funds_not_the_catalog(tmp_path):
     empty.write_text((REPO / "templates" / "me" / "funds.md").read_text())
     try:
         note = fh.use_funds(tmp_path / "missing.md")
-        assert fh.SOURCES == {} and "set up BuffettBot" in note
+        assert fh.SOURCES == {} and "set up Holdnote" in note
         assert fh.use_funds(empty).endswith("lists no fund") and fh.SOURCES == {}
     finally:
         fh.use_funds(None)

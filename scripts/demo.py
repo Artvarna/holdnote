@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The BuffettBot demo: a full portfolio report with no setup and no fetch.
+"""The Holdnote demo: a full portfolio report with no setup and no fetch.
 
     python3 scripts/demo.py --draft <draft.md> [--tables Allocation,Stocks] [--proof]
 
@@ -263,7 +263,7 @@ def build(tables_wanted: list[str], proof: bool) -> tuple[str, str]:
         f"Confirmation: {confirm}",
         "Columns suppressed: none",
         "Next: attach your broker's export or a screenshot and ask \"what do I own?\" "
-        "for your own portfolio, or say \"set up BuffettBot\"; say \"make a card\" for "
+        "for your own portfolio, or say \"set up Holdnote\"; say \"make a card\" for "
         "an image of this one to share",
         "",
     ]

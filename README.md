@@ -1,11 +1,11 @@
-# BuffettBot
+# Holdnote
 
 A Claude skill that researches ETFs, stocks and your own portfolio, from
 **any broker**, using **primary sources**: SEC filings, issuer factsheets,
 KIDs and full fund holdings files. It reports what they say, with every
 number traceable.
 
-> BuffettBot is a research tool, not a financial adviser. It describes what
+> Holdnote is a research tool, not a financial adviser. It describes what
 > filings and fund documents say; it never says buy, sell or hold. It can be
 > wrong — check anything important in the original documents. It is not
 > affiliated with or endorsed by Warren Buffett or Berkshire Hathaway.
@@ -43,7 +43,7 @@ full evidence: every source, its date, and the arithmetic behind each figure.
 - **Fund holdings come from the issuers.** With the GitHub option, a daily
   Action in your copy downloads each fund's full holdings file (SSGA,
   iShares, Vanguard UK and Amundi are supported) and keeps a weekly history
-  so BuffettBot can say what changed. Without it, funds are looked through
+  so Holdnote can say what changed. Without it, funds are looked through
   from their factsheet top 10.
 - **Trading 212 history exports get a full sync**, including shared accounts
   (an ownership cutoff, FIFO across it) and the 2026 BGN → EUR switch.
@@ -52,14 +52,14 @@ full evidence: every source, its date, and the arithmetic behind each figure.
 
 ## Get started
 
-1. Get `buffettbot.zip` from the [latest release](../../releases/latest)
+1. Get `holdnote.zip` from the [latest release](../../releases/latest)
    and add it to Claude as a skill (needs a paid Claude plan, see below).
 2. Say **"show me a demo"** to see a full report on a sample portfolio.
    Then ask anything: **"Brief me on NVDA"** works straight away, with no
    setup.
    For your portfolio, attach your broker's export (or a screenshot) and ask
    **"What do I own?"**
-3. To keep your portfolio for next time, say **"set up BuffettBot"**: one
+3. To keep your portfolio for next time, say **"set up Holdnote"**: one
    screen of taps, and you choose where your files live.
 
 **Want full fund look-through?** Pick GitHub at setup. Setup walks you

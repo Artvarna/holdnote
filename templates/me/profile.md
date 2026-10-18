@@ -4,7 +4,7 @@ Last updated: YYYY-MM-DD
 
 # Profile
 
-Your preferences. BuffettBot reads this file at the start of every run and
+Your preferences. Holdnote reads this file at the start of every run and
 never changes it unless you ask. Every setting has a default; say "change my
 settings" to pick your own.
 
@@ -30,7 +30,7 @@ GICS sector names (Information Technology, Financials, Health Care, ...).
 
 -
 
-## Notes to BuffettBot
+## Notes to Holdnote
 
 Anything else it should know: your investing horizon, what you want
 explained, what to skip. Describes you; never a request for advice.

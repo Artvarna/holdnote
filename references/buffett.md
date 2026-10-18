@@ -1,11 +1,11 @@
 # Buffett
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
-What BuffettBot takes from Warren Buffett, where each idea comes from, and
+What Holdnote takes from Warren Buffett, where each idea comes from, and
 which feature uses it. Three things it never does with his name: speak as
 him ("Buffett would buy this"), say what he thinks of an instrument he has
-not written about, or quote him from memory. BuffettBot is not affiliated
+not written about, or quote him from memory. Holdnote is not affiliated
 with or endorsed by Warren Buffett or Berkshire Hathaway.
 
 ## Principles

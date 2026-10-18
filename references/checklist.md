@@ -1,6 +1,6 @@
 # Buffett Checklist
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
 Runs when someone is thinking about owning something: "should I buy X",
 "I'm thinking of adding X", "checklist for X". It answers with the evidence
@@ -21,7 +21,7 @@ print the answers verbatim:
 2. **Do you trust the people running it?** Yes · Not sure · No — for a fund:
    **Do you understand what the index holds?**
 
-The user's answers are theirs. BuffettBot never changes them, scores them,
+The user's answers are theirs. Holdnote never changes them, scores them,
 or suggests a better one.
 
 ## Then the brief
@@ -75,7 +75,7 @@ From the portfolio's Mode C look-through, on today's market weights:
 | Thesis on file | [file name and date, or `none`] |
 
 Without portfolio access (no vault, no computer for market weights), the
-table carries one row: `Not available — <reason>`. BuffettBot never
+table carries one row: `Not available — <reason>`. Holdnote never
 calculates a position size to buy, and never says how the weights *would*
 change by a stated amount: that is a proposal, and proposals are the user's.
 

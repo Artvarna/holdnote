@@ -171,7 +171,7 @@ POLICY_FENCE = "---"
 
 # What a halt says when the user's files are missing or still the blank
 # templates: the way forward, not only what is wrong.
-SETUP_HINT = 'say "set up BuffettBot" to fill it in (references/setup.md)'
+SETUP_HINT = 'say "set up Holdnote" to fill it in (references/setup.md)'
 PLACEHOLDER = "YYYY-MM-DD"
 
 

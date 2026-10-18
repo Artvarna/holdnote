@@ -39,7 +39,7 @@ import contract  # noqa: E402
 
 W, H = 1080, 1350
 PAD = 72
-REPO = "github.com/Artvarna/buffettbot"
+REPO = "github.com/Artvarna/holdnote"
 
 # Art direction: an annual letter. Cream paper, ink, hairline rules, a serif
 # display face for the title and the large figures, and one accent: the
@@ -323,7 +323,7 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
     right = W - PAD
 
     # Masthead
-    ops.append(Text(PAD, 78, "BUFFETTBOT", 18, "sans-bold", INK, spacing=4))
+    ops.append(Text(PAD, 78, "HOLDNOTE", 18, "sans-bold", INK, spacing=4))
     badge = ("DEMO · SYNTHETIC PORTFOLIO" if card.demo
              else "PARTIAL · TOP-10 DEPTH" if card.partial else "")
     if badge:
@@ -416,7 +416,7 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
 
     # Footer
     ops.append(Rect(PAD, H - 92, room, 1.5, INK))
-    ops.append(Text(PAD, H - 58, "Made with BuffettBot, free and open source", 18, "sans-bold", INK))
+    ops.append(Text(PAD, H - 58, "Made with Holdnote, free and open source", 18, "sans-bold", INK))
     ops.append(Text(right, H - 58, REPO, 18, "sans-bold", GREEN, "end"))
     ops.append(Text(PAD, H - 30, "Percentages of the portfolio's market value. Research, "
                     "not financial advice.", 15, "sans", MUTED))

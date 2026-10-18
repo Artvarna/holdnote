@@ -8,7 +8,7 @@ positions / portfolio export, or a transaction history of buys and sells --
 as CSV, TSV, TXT or Excel (.xlsx), and writes the one broker-neutral file the
 portfolio view reads:
 
-    # BuffettBot holdings. quantity is what you hold; target_pct is your
+    # Holdnote holdings. quantity is what you hold; target_pct is your
     # chosen % of the whole portfolio (optional).
     # as_of: 2026-10-13
     # source: Portfolio.csv (positions)
@@ -471,7 +471,7 @@ def _fmt(value: Decimal) -> str:
 def write_holdings(path: Path, holdings: list[Holding], as_of: date, source: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     buf = io.StringIO()
-    buf.write("# BuffettBot holdings. quantity is what you hold; target_pct is your\n"
+    buf.write("# Holdnote holdings. quantity is what you hold; target_pct is your\n"
               "# chosen % of the whole portfolio (optional). Edit freely.\n")
     buf.write(f"# as_of: {as_of.isoformat()}\n# source: {source}\n")
     w = csv.writer(buf, lineterminator="\n")

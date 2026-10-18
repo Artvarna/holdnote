@@ -7,7 +7,7 @@ Last updated: YYYY-MM-DD
 The block above is the only part of this file the importer reads as policy.
 
 Target weights are your chosen allocation, not measured values. They are the
-only numbers in BuffettBot allowed to be unsourced, because they are a
+only numbers in Holdnote allowed to be unsourced, because they are a
 decision rather than an observation. Pie membership is not in a Trading 212
 export, so this file is the mapping. `scripts/t212_holdings.py` halts if it
 finds a held ISIN listed nowhere below.

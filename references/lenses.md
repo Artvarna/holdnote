@@ -1,6 +1,6 @@
 # Investor Lenses
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
 Optional tables a stock or fund brief adds after the Buffett scorecard
 (`SKILL.md` → Report layout) when the request names them: "Buffett +

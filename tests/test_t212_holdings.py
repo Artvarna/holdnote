@@ -2491,15 +2491,15 @@ def test_blank_template_ownership_halts_with_the_way_forward(tmp_path):
     with pytest.raises(t.Halt) as info:
         t.load_ownership(path)
     assert info.value.status() == "HALTED - load_ownership, ownership.md, not set up"
-    assert "set up BuffettBot" in info.value.message
+    assert "set up Holdnote" in info.value.message
     assert t.load_ownership(path, cutoff_override=date(2026, 1, 5)).cutoff == date(2026, 1, 5)
 
 
 def test_missing_files_point_to_setup_not_to_anyones_cutoff(tmp_path):
     with pytest.raises(t.Halt) as info:
         t.load_ownership(tmp_path / "ownership.md")
-    assert "set up BuffettBot" in info.value.message and "2025-10-13" not in info.value.message
-    with pytest.raises(t.Halt, match="set up BuffettBot"):
+    assert "set up Holdnote" in info.value.message and "2025-10-13" not in info.value.message
+    with pytest.raises(t.Halt, match="set up Holdnote"):
         t.load_pies(tmp_path / "pies.md")
     with pytest.raises(t.Halt, match="History -> Export"):
         t.load_transactions(tmp_path / "data" / "t212")

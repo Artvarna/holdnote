@@ -1,8 +1,8 @@
 # Setup
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
-Runs on "set up BuffettBot", "get started", or "save my portfolio". The goal
+Runs on "set up Holdnote", "get started", or "save my portfolio". The goal
 is the user's first portfolio report in about two minutes: **one screen of
 taps, one file or screenshot, done.** Everything else has a default and is
 changed later only if they want to (Settings, later).
@@ -18,7 +18,7 @@ available, ask the same three in one plain message.
 
 1. **Disclaimer** — the question text is these four lines:
    ```
-   BuffettBot is a research tool, not a financial adviser.
+   Holdnote is a research tool, not a financial adviser.
    It describes what filings and fund documents say; it never says buy, sell or hold.
    It can be wrong. Check anything important in the original documents.
    It is not affiliated with or endorsed by Warren Buffett or Berkshire Hathaway.
@@ -59,22 +59,22 @@ them. Never overwrite a file that already has content: show the difference
 and ask first.
 
 - **On this computer.** Ask for a folder in one line (suggest
-  `Documents/BuffettBot`), request access to it
+  `Documents/Holdnote`), request access to it
   (`device_request_folder_access`), and write the files into its `me/`.
   If the computer is not linked, say how to link it (open this chat in the
   Claude desktop app on that computer, then send a message) and send the
   files with `SendUserFile` meanwhile.
 - **GitHub.** Give these steps and wait for the repo's `owner/name`:
-  1. Open https://github.com/Artvarna/buffettbot and click **Use this
+  1. Open https://github.com/Artvarna/holdnote and click **Use this
      template** → **Create a new repository**.
-  2. Name it `buffettbot`, choose **Private**, click **Create repository**.
+  2. Name it `holdnote`, choose **Private**, click **Create repository**.
   3. In the new repo, open **Actions** and enable workflows if GitHub asks.
 
   Attach it with push access (`add_repo`, `access: "push"`) and clone it;
   if attaching is refused, relay the tool's reason (most often: connect
   GitHub in Claude's settings) and fall back to `On this computer` or
   `Don't save`. Then fill `me/funds.md` (below), commit as
-  `Set up BuffettBot`, push, and — when `funds.md` got any rows — ask them to
+  `Set up Holdnote`, push, and — when `funds.md` got any rows — ask them to
   run the Action once: their repo → **Actions** → **Fund holdings** → **Run
   workflow**. Before the push it would find no funds and fetch nothing.
 - **Don't save.** Send `holdings.csv` with `SendUserFile`: attaching it next

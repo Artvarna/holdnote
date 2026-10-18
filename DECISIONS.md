@@ -749,7 +749,7 @@ table, with two contract slips that no check caught.
   to the PROOF check's name. The Stocks table section now prints both lines
   as `stocks_table_problems` reads them.
 
-## BuffettBot checks its own draft; overlap rules tightened
+## Holdnote checks its own draft; overlap rules tightened
 
 The second live Mode C run of 2026-10-03 passed STATUS and still broke the
 contract in four places, one of them a wrong fact.
@@ -945,7 +945,7 @@ market weights the figure can be measured.
 ## Any broker, and setup without GitHub, 2026-10-13
 
 Before launch, setup took six steps and a GitHub repo, and "my portfolio"
-worked only from Trading 212 exports. Most people who would try BuffettBot use
+worked only from Trading 212 exports. Most people who would try Holdnote use
 another app, and many have never made a repo.
 
 - **One broker-neutral file, `me/holdings.csv`.** ISIN, quantity, kind
@@ -1074,3 +1074,22 @@ fund — and because a card people post is how others find the skill.
 - **The hero is the bet with the most `Added by the others`**, not the
   largest Total: the largest Total is usually a stock bought on purpose,
   while the most added is what the user did not see.
+
+## Renamed from BuffettBot to Holdnote, 2026-10-18
+
+Before the public launch, the product name stopped borrowing a living
+person's name. Berkshire Hathaway has said publicly that Warren Buffett does
+not endorse investment products and has warned about tools and videos that
+use his name; a product called after him, with an ad built on his words,
+would read as exactly that.
+
+- **Only the product name changed.** The Buffett scorecard, Buffett notes
+  and `references/buffett.md` keep his name, the way the Graham, Lynch and
+  Munger lenses keep theirs: it credits where the tests come from, and
+  `DISCLAIMER.md` says the scorecard, not the product, is named after him.
+- **The repo is `Artvarna/holdnote`.** The workflow guards in
+  `holdings.yml` and `demo-data.yml` check that name, so the repo rename and
+  this commit go together. GitHub redirects the old URL.
+- **Holdnote** was chosen after conflict checks on about twenty names: notes
+  on what you hold, simple to spell, and no investing or developer product
+  using it as of this date.

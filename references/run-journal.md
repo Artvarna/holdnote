@@ -1,6 +1,6 @@
 # Run Journal
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
 The record of what this system actually printed. Rule 15 says a claim about
 a previous run requires that run's text and never a reconstruction; this

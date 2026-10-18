@@ -1,6 +1,6 @@
 # Thesis Journal
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
 The only module that improves decisions rather than describing instruments.
 Everything else answers "what is this". This one answers "what did I think,
@@ -26,7 +26,7 @@ letter). The last three make the thesis checkable.
    competitors (its moat), and what would wear that down.
 3. **Do I trust the people running it?** Why, or why not.
 4. **Is the price sensible?** What the user is paying against what they get.
-   BuffettBot adds, as a fact under the answer, the scorecard's Margin of
+   Holdnote adds, as a fact under the answer, the scorecard's Margin of
    safety row from a brief run that day: value, threshold, result, date.
 5. **What has to be true:** two or three specific, checkable conditions.
 6. **What would prove me wrong:** the falsifier, as something a filing or a
@@ -38,7 +38,7 @@ letter). The last three make the thesis checkable.
 ## Where theses are stored
 
 **In the user's vault, never in the skill.** The installed skill is
-read-only. Theses go to the user's private BuffettBot repo
+read-only. Theses go to the user's private Holdnote repo
 (`SKILL.md` → Your files):
 
 ```

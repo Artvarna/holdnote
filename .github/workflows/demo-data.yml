@@ -8,7 +8,7 @@
 # 2026-10-15.
 #
 # Runs monthly, by hand (Actions -> Demo data -> Run workflow), and when the
-# demo's own definition changes. Only in the public BuffettBot repo: users'
+# demo's own definition changes. Only in the public Holdnote repo: users'
 # copies made from the template never run it.
 
 name: Demo data
@@ -34,7 +34,7 @@ concurrency:
 
 jobs:
   refresh:
-    if: github.repository == 'Artvarna/buffettbot'
+    if: github.repository == 'Artvarna/holdnote'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

@@ -1,10 +1,10 @@
-"""Build dist/buffettbot.zip from the committed files (HEAD).
+"""Build dist/holdnote.zip from the committed files (HEAD).
 
     python3 scripts/build_zip.py
 
 The Claude app runs the zip, not the repo, so every change ships through
 here. Built from HEAD, not the working tree, so an uncommitted edit never
-ships. The previous zip is kept as dist/buffettbot-<old short hash>.zip only
+ships. The previous zip is kept as dist/holdnote-<old short hash>.zip only
 when you pass --keep.
 """
 
@@ -16,9 +16,9 @@ import zipfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-ZIP = REPO / "dist" / "buffettbot.zip"
+ZIP = REPO / "dist" / "holdnote.zip"
 
-# repo path -> path inside the zip's buffettbot/ folder
+# repo path -> path inside the zip's holdnote/ folder
 FILES = {
     "DECISIONS.md": "DECISIONS.md",
     "DISCLAIMER.md": "DISCLAIMER.md",
@@ -94,8 +94,8 @@ def build(target: Path = ZIP) -> Path:
     target.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as z:
         for src, dst in {**FILES, **demo_files()}.items():
-            z.writestr("buffettbot/" + dst, committed(src))
-        z.writestr("buffettbot/BUILD", build_stamp() + "\n")
+            z.writestr("holdnote/" + dst, committed(src))
+        z.writestr("holdnote/BUILD", build_stamp() + "\n")
     with zipfile.ZipFile(target) as z:
         bad = z.testzip()
         if bad:
@@ -107,5 +107,5 @@ if __name__ == "__main__":
     if "--keep" in sys.argv and ZIP.exists():
         head = subprocess.run(["git", "rev-parse", "--short", "HEAD~1"], cwd=REPO,
                               capture_output=True, text=True).stdout.strip()
-        ZIP.replace(ZIP.with_name(f"buffettbot-{head}.zip"))
+        ZIP.replace(ZIP.with_name(f"holdnote-{head}.zip"))
     print(f"built {build()} with {len(FILES) + len(demo_files())} files")
