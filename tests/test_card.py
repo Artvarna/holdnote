@@ -102,3 +102,16 @@ def test_without_pillow_the_svg_is_still_written(demo_draft, tmp_path, monkeypat
                                                               setattr(self, "cache", {}))[0])
     written = card.make(demo_draft, tmp_path)
     assert [p.name for p in written] == ["card.svg"]
+
+
+def test_a_partial_lookthrough_is_said_on_the_card(demo_draft, tmp_path):
+    draft = demo_draft.read_text(encoding="utf-8").replace(
+        "Look-through (market weights, as of", "Look-through (top-10 depth, partial; market weights, as of", 1)
+    assert card.read(draft).partial
+    path = tmp_path / "partial.md"
+    path.write_text(draft, encoding="utf-8")
+    text = svg_text(card.make(path, tmp_path)[0].read_text(encoding="utf-8"))
+    assert "PARTIAL · FACTSHEET TOP 10s" in text or "DEMO · SYNTHETIC PORTFOLIO" in text
+    c = card.read(draft)
+    c.demo = False
+    assert "PARTIAL · FACTSHEET TOP 10s" in svg_text(card.svg(card.layout(c, card.Fonts())))

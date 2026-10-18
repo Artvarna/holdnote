@@ -154,6 +154,35 @@ def test_lookthrough_counts_a_stock_held_directly_and_through_funds(run):
     assert Decimal(total) > Decimal(direct)
 
 
+def test_hidden_bets_show_what_no_single_holding_does(run):
+    _, out, draft = run()
+    assert "### 🕵️ Hidden bets" in out
+    tables = contract.result_tables(contract.split_sections(draft)["RESULT"])
+    rows = next(v for k, v in tables.items() if k.startswith("Hidden bets"))
+    amazon = next(r for r in rows if r[0].startswith("Amazon"))
+    assert amazon[1].startswith("Direct ") and amazon[2].startswith("Direct ")
+    lt = next(v for k, v in tables.items() if k.startswith("Look-through"))
+    assert amazon[3] == next(r for r in lt if r[0].startswith("Amazon"))[-1]
+    # A fund-only company: reached through both funds, no direct shares
+    assert any(r[1].startswith("via ") and " · via " in r[1] for r in rows)
+    method = contract.split_sections(draft)["METHOD"]
+    assert "Hidden bets: companies with a Look-through Total of 1.00 or more" in method
+
+
+def test_hidden_bets_from_a_short_lookthrough_are_not_available():
+    # The snapshot's Look-through must print every company of 1.00 or more;
+    # when the smallest fund-only row printed is 1.00 or more, some may be missing.
+    lt = ["Look-through (market weights, as of 2026-10-15)",
+          "| Company | Direct | via A | via B | Total |", "|---|---|---|---|---|",
+          "| X | - | 0.70 | 0.60 | 1.30 |", "| Y | - | 0.60 | 0.50 | 1.10 |"]
+    rows, method = demo.hidden_bets_block({"Look-through": lt}, [])
+    assert rows[-1].startswith("| all | Not available - the snapshot's Look-through table")
+    assert method == []
+    # A snapshot that already carries the table is used as printed
+    printed = ["Hidden bets (x)", "| Company | Through | Largest part | Total | Added by the others |"]
+    assert demo.hidden_bets_block({"Look-through": lt, "Hidden bets": printed}, [])[0] == printed
+
+
 def test_draft_keeps_full_sources_and_proof_while_report_shows_one_line(run):
     _, out, draft = run()
     sections = contract.split_sections(draft)

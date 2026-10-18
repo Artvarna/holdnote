@@ -49,17 +49,20 @@ It writes the full draft (RULES.md Part IV, with `PROOF` and every
 `scripts/check_output.py`, and prints the rendered report. **Print its
 output as it is** — that is the whole answer — then one line inviting the
 user to try their own:
-`Want to see yours? Attach your broker's export or a screenshot and ask "what do I own?"`
+`Want to see yours? Attach your broker's export or a screenshot and ask "what do I own?" — or say "make a card" for an image of this one.`
 
 Follow-up questions about the demo pick tables with `--tables`
-(comma-separated: `Allocation`, `Holdings`, `Look-through`, `Countries`,
-`Sectors`, `Currencies`, `Stocks`, or `all`), the same way Mode C's Which
+(comma-separated: `Allocation`, `Holdings`, `Look-through`, `Hidden bets`,
+`Countries`, `Sectors`, `Currencies`, `Stocks`, or `all`; quote the list, since
+`Hidden bets` has a space), the same way Mode C's Which
 tables a question gets picks them:
 
 | Asked about the demo | `--tables` |
 |---|---|
 | "how much do these ETFs overlap?" | `Holdings` |
-| "how much Amazon is in there really?" | `Allocation,Look-through` |
+| "how much Amazon is in there really?" | `Allocation,Look-through,Hidden bets` |
+| "what is this portfolio really betting on?" | `Allocation,Look-through,Hidden bets` |
+| "make a card" | `Allocation,Holdings,Look-through,Hidden bets,Countries,Sectors`, then `SKILL.md` → Portfolio card on the draft |
 | "currencies?" | `Allocation,Currencies` |
 | "everything" | `all` |
 | "show proof" | the same tables, plus `--proof` |

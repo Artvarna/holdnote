@@ -263,7 +263,8 @@ def build(tables_wanted: list[str], proof: bool) -> tuple[str, str]:
         f"Confirmation: {confirm}",
         "Columns suppressed: none",
         "Next: attach your broker's export or a screenshot and ask \"what do I own?\" "
-        "for your own portfolio, or say \"set up BuffettBot\"",
+        "for your own portfolio, or say \"set up BuffettBot\"; say \"make a card\" for "
+        "an image of this one to share",
         "",
     ]
     proof_block = ["PROOF", *fund_proof, *stock_proof,

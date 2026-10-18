@@ -111,6 +111,8 @@ that fails is said plainly, with the text printed so nothing is lost.
 | "Should I buy X", "thinking of adding X", "checklist for X" | `references/checklist.md`, with the stock or fund brief it runs |
 | "Quick brief on X", "quick look at X", "just the scorecard for X" — or any brief when the profile's `Report length` is `quick` and the request does not say "full" | The stock or fund brief, as a **quick brief** (Report layout → Quick brief) |
 | "Show me a demo", "try it", "example report", "what does BuffettBot do?" — with no holdings of the user's attached | `references/demo.md` |
+| "What am I really betting on?", "hidden bets", "which companies do I own through more than one holding?" | `references/etf-brief.md` → Mode C, tables Allocation, Look-through and Hidden bets |
+| "Make a card", "make my portfolio card", "something I can post", "share my portfolio" — of their portfolio or of the demo | Portfolio card, below |
 | What Buffett's ideas are, where a rule comes from, "why is it called BuffettBot" | `references/buffett.md`, answered from its Principles table; never what he would think of an instrument |
 | "Which build / version is this?" | Answer with the text of the `BUILD` file in this skill's folder and nothing else |
 
@@ -376,6 +378,32 @@ a next step — writing a file, logging the run — is a `METHOD` line,
 `Next: …`, and the output still ends on a `SOURCES` row. The checks behind `PROOF` run
 every time; with it hidden, any conflict, single-source figure or fallback
 is a `METHOD` line, so nothing withheld or unconfirmed goes unsaid.
+
+## Portfolio card
+
+One image of what a portfolio looks through to, made to be posted: the
+biggest hidden bet, the top 10 companies across every holding, countries,
+sectors and fund overlap, with the BuffettBot link at its foot.
+
+1. **Get a checked Mode C draft** with the tables Allocation, Holdings,
+   Look-through, Hidden bets, Countries and Sectors — the user's portfolio
+   (`references/etf-brief.md` → Mode C), or the demo with
+   `--tables "Allocation,Holdings,Look-through,Hidden bets,Countries,Sectors"`
+   (`references/demo.md`). A draft from earlier in the conversation is used
+   when it has them; never rebuild one from the rendered report.
+2. Run `python3 <skill>/scripts/card.py <draft> --out <scratch>/card`. It
+   checks the draft against the contract first and writes `card.svg`, plus
+   `card.png` when Pillow is installed.
+3. **Give the user the PNG as a file** (the SVG when no PNG was made), with
+   one line: what it shows and that it carries percentages only.
+
+**Percentages only.** The card draws cells of the draft's tables — shares of
+the portfolio's market value — and never a quantity, close, value or amount,
+so the user can post it without showing what they have. It says nothing the
+tables do not: no rating, no verdict. A demo card is labelled `DEMO ·
+SYNTHETIC PORTFOLIO`. Exit 1 means the draft cannot make a card (most often
+Look-through is `Not available`): say why in one line and offer what would
+fix it — attach an export, or run the demo card.
 
 ## Scope
 

@@ -24,7 +24,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -110,7 +110,7 @@ class Card:
     countries: list[tuple[str, Decimal]]
     sectors: list[tuple[str, Decimal]]
     overlap: tuple[str, str, Decimal] | None
-    notes: list[str] = field(default_factory=list)
+    partial: bool = False
 
 
 def _needed(t: dict[str, list[list[str]]], name: str) -> list[list[str]]:
@@ -211,9 +211,12 @@ def read(text: str) -> Card:
     for line in sections.get("CONTEXT", "").splitlines():
         if line.strip().startswith("Data as of:"):
             as_of = line.split(":", 1)[1].strip().split()[0].rstrip("·").strip()
+    # A look-through at factsheet top-10 depth says so in its heading; the
+    # card says so too, since its company weights are then floors.
+    partial = bool(re.search(r"^Look-through\b.*\bpartial\b", result, re.MULTILINE))
     return Card(as_of=as_of, demo="Demo" in mode, funds=funds, direct=direct,
                 companies=companies, top=top, hero=hero, countries=countries,
-                sectors=sectors, overlap=overlap)
+                sectors=sectors, overlap=overlap, partial=partial)
 
 
 # --- drawing ------------------------------------------------------------------
@@ -293,8 +296,9 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
     room = W - 2 * PAD
 
     ops.append(Text(PAD, 96, "BUFFETTBOT", 22, GOLD, True, spacing=4))
-    if card.demo:
-        badge = "DEMO · SYNTHETIC PORTFOLIO"
+    badge = ("DEMO · SYNTHETIC PORTFOLIO" if card.demo
+             else "PARTIAL · FACTSHEET TOP 10s" if card.partial else "")
+    if badge:
         bw = fonts.width(badge, 16, True, 1.5) + 32
         ops += [Rect(W - PAD - bw, 72, bw, 36, PANEL, 18),
                 Text(W - PAD - 16, 96, badge, 16, MUTED, True, "end", 1.5)]

@@ -22,6 +22,8 @@ number traceable.
 | `What do I own?` + your broker export or a screenshot | Market weights for every holding, from any app or website |
 | `What do I actually own by sector and currency?` | Look-through of every company in every fund you hold, not just the top 10 |
 | `How much do my ETFs overlap?` | Shared companies and shared weight for each pair of funds |
+| `What am I really betting on?` | **Hidden bets:** every company you own through two or more holdings, and how much more of it you own than any one of them shows |
+| `Make a card` | A shareable image of what your portfolio looks through to: biggest hidden bet, top 10 companies, countries, sectors. Percentages only, never amounts |
 | `Should I buy AAPL?` | Buffett's four filters, answered from the scorecard and two questions to you — never a recommendation |
 | `Write a thesis for GOOGL` | A dated thesis in your words, checked against later reports |
 
