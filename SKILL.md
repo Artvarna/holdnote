@@ -394,8 +394,10 @@ sectors and fund overlap, with the BuffettBot link at its foot.
 2. Run `python3 <skill>/scripts/card.py <draft> --out <scratch>/card`. It
    checks the draft against the contract first and writes `card.svg`, plus
    `card.png` when Pillow is installed.
-3. **Give the user the PNG as a file** (the SVG when no PNG was made), with
-   one line: what it shows and that it carries percentages only.
+3. **Give the user the PNG as a file** (the SVG when no PNG was made) —
+   saved where this environment hands files to the user
+   (`/mnt/user-data/outputs/` in Claude.ai) — with one line: what it shows
+   and that it carries percentages only.
 
 **Percentages only.** The card draws cells of the draft's tables — shares of
 the portfolio's market value — and never a quantity, close, value or amount,

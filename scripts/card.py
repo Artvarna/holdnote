@@ -326,11 +326,11 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
         avail = PAD + room - 36 - left
         ops.append(Text(left, y + 108, fonts.fit(name, 34, avail, True), 34, INK, True))
         if direct is not None:
-            line1 = f"{direct:.2f}% bought directly"
+            line1 = f"{direct:.2f}% owned directly"
             line2 = f"+ {added:.2f}% more through {_and(funds)}"
         else:
             line1 = f"all of it through {_and(funds)}"
-            line2 = "none of it bought directly"
+            line2 = "none of it owned directly"
         ops.append(Text(left, y + 146, fonts.fit(line1, 24, avail), 24, MUTED))
         ops.append(Text(left, y + 178, fonts.fit(line2, 24, avail), 24, MUTED))
     else:

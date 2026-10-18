@@ -40,7 +40,7 @@ def test_demo_card_draws_the_drafts_own_figures(demo_draft, tmp_path):
     assert "DEMO · SYNTHETIC PORTFOLIO" in text
     # The biggest hidden bet: the row with the most Added by the others
     assert "BIGGEST HIDDEN BET" in text and "9.55%" in text and "Amazon.com Inc." in text
-    assert "7.35% bought directly" in text and "+ 2.20% more through SPYI and SPY5" in text
+    assert "7.35% owned directly" in text and "+ 2.20% more through SPYI and SPY5" in text
     assert "United States 78.59%" in text
     assert "Fund overlap: SPYI and SPY5 share 497 companies · 56.91% shared weight" in text
     assert "not financial advice" in text
@@ -84,7 +84,7 @@ def test_card_refuses_a_draft_without_lookthrough(demo_draft, tmp_path, capsys):
     assert not (tmp_path / "out" / "card.svg").exists()
 
 
-def test_fund_only_hero_says_none_was_bought_directly():
+def test_fund_only_hero_says_none_is_owned_directly():
     c = card.Card(as_of="2026-10-15", demo=False, funds=["A", "B"], direct=0, companies=3000,
                   top=[("NVIDIA Corporation", card.Decimal("4.57"))],
                   hero=("NVIDIA Corporation", [("via A", card.Decimal("2.60")),
@@ -92,7 +92,7 @@ def test_fund_only_hero_says_none_was_bought_directly():
                         card.Decimal("4.57"), card.Decimal("1.97")),
                   countries=[], sectors=[], overlap=None)
     text = svg_text(card.svg(card.layout(c, card.Fonts())))
-    assert "all of it through A and B" in text and "none of it bought directly" in text
+    assert "all of it through A and B" in text and "none of it owned directly" in text
     assert "DEMO" not in text
     assert "3,000 companies inside 2 funds · as of 2026-10-15" in text
 
