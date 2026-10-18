@@ -174,7 +174,7 @@ def load_funds(path: Path) -> dict[str, Source]:
     return out
 
 
-SETUP_HINT = 'say "set up BuffettBot" to add your funds (references/setup.md)'
+SETUP_HINT = 'say "set up Holdnote" to add your funds (references/setup.md)'
 
 
 def plural(n: int, word: str) -> str:

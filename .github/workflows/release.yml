@@ -1,4 +1,4 @@
-# Builds buffettbot.zip and attaches it to a GitHub release, either when a
+# Builds holdnote.zip and attaches it to a GitHub release, either when a
 # version tag is pushed (git tag v1.0.0 && git push origin v1.0.0) or from
 # Actions -> Release -> Run workflow with a version. The README's "latest
 # release" link is where new users get the skill.
@@ -52,5 +52,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$VERSION" dist/buffettbot.zip \
-            --target "$GITHUB_SHA" --title "BuffettBot $VERSION" --generate-notes
+          gh release create "$VERSION" dist/holdnote.zip \
+            --target "$GITHUB_SHA" --title "Holdnote $VERSION" --generate-notes

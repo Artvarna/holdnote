@@ -1,4 +1,4 @@
-"""Check a composed BuffettBot output against the output contract.
+"""Check a composed Holdnote output against the output contract.
 
     python3 scripts/check_output.py draft.md
 

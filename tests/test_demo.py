@@ -132,7 +132,7 @@ def test_demo_prints_a_report_that_passes_the_contract(run):
         assert f" {table}\n" in out
     assert "Currencies" not in out
     assert "Not financial advice." in out
-    assert 'say "set up BuffettBot"' in out
+    assert 'say "set up Holdnote"' in out
 
 
 def test_mode_line_and_data_as_of_are_the_snapshots(run):
@@ -217,6 +217,6 @@ def test_zip_ships_the_demo(tmp_path):
     target = build_zip.build(tmp_path / "b.zip")
     with zipfile.ZipFile(target) as z:
         listed = set(z.namelist())
-    assert "buffettbot/demo/data/prices.json" in listed
-    assert "buffettbot/scripts/demo.py" in listed
+    assert "holdnote/demo/data/prices.json" in listed
+    assert "holdnote/scripts/demo.py" in listed
     assert not [n for n in listed if n.endswith((".xlsx", ".xls"))]

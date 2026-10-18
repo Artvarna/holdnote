@@ -1,8 +1,8 @@
 # Demo
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
-Shows what BuffettBot does before the user has set anything up: a full
+Shows what Holdnote does before the user has set anything up: a full
 portfolio report (Mode C, `references/etf-brief.md`) on a **synthetic**
 portfolio and a **frozen snapshot** of public data, both shipped inside the
 skill. Nothing is fetched, so it runs the same everywhere — web, phone or
@@ -11,7 +11,7 @@ user almost none of their plan's usage.
 
 ## When
 
-"Show me a demo", "try it", "example report", "what does BuffettBot do?",
+"Show me a demo", "try it", "example report", "what does Holdnote do?",
 "what would my report look like?" — when the user has attached no holdings
 of their own. With an export or screenshot attached, the user's own
 portfolio runs instead (`references/any-broker.md`); the demo is never
@@ -29,7 +29,7 @@ summing to 100:
 | KO | The Coca-Cola Company | stock | 8% |
 | AMZN | Amazon.com Inc. | stock | 7% |
 
-It is built to show the features that set BuffettBot apart: two funds that
+It is built to show the features that set Holdnote apart: two funds that
 overlap heavily, and two stocks the funds also hold, so Look-through shows a
 company owned three ways. It is nobody's real account and never a
 suggestion of what to hold — say so if asked.

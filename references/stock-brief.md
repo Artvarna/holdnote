@@ -1,6 +1,6 @@
 # Stock Brief
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
 Covers individual companies. Same discipline as the ETF brief: fetched
 figures only, conflicts surfaced, no verdict at the end.

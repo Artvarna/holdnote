@@ -15,7 +15,7 @@ Four issuers are supported. `Holdings file` is what each one needs:
 | `amundi` | nothing: the ISIN is enough |
 
 The setup conversation finds these for you. Funds from another issuer:
-leave them out here; BuffettBot still briefs them from their factsheets.
+leave them out here; Holdnote still briefs them from their factsheets.
 
 ## Funds
 

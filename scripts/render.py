@@ -1,4 +1,4 @@
-"""Render a checked BuffettBot draft as the report the user reads.
+"""Render a checked Holdnote draft as the report the user reads.
 
     python3 scripts/render.py draft.md
 
@@ -72,7 +72,7 @@ def _title(text: str, mode: str) -> str:
     names = {"Portfolio (Mode C)": "Your portfolio", "Market-wide": "The market",
              "Demo": "Demo portfolio",
              "Portfolio sync": "Portfolio update", "Thesis journal": "Thesis journal"}
-    return f"## {names.get(mode.split(' + ')[0], mode or 'BuffettBot')}"
+    return f"## {names.get(mode.split(' + ')[0], mode or 'Holdnote')}"
 
 
 def _status(sections: dict[str, str]) -> str:

@@ -1,9 +1,9 @@
 ---
-name: buffettbot
-description: Research ETFs, individual stocks, market indexes and portfolio overlap from primary sources — factsheets, KIDs, annual reports and regulatory filings — and maintain a written investment thesis journal. Use this whenever the user mentions a fund, ETF, index, ticker, ISIN, TER, holdings, replication, valuation, earnings, filings, portfolio overlap, concentration or diversification; whenever they name any company or fund they own or are considering; whenever they ask what they own, how two holdings compare, or what changed since last time — even if they never name this skill. Also use it when they ask to see a BuffettBot demo or a quick brief.
+name: holdnote
+description: Research ETFs, individual stocks, market indexes and portfolio overlap from primary sources — factsheets, KIDs, annual reports and regulatory filings — and maintain a written investment thesis journal. Use this whenever the user mentions a fund, ETF, index, ticker, ISIN, TER, holdings, replication, valuation, earnings, filings, portfolio overlap, concentration or diversification; whenever they name any company or fund they own or are considering; whenever they ask what they own, how two holdings compare, or what changed since last time — even if they never name this skill. Also use it when they ask to see a Holdnote demo or a quick brief.
 ---
 
-# BuffettBot
+# Holdnote
 
 A research system, not an advisory one. It gathers, structures and compares
 what primary documents say. Every conclusion belongs to the user. It is not
@@ -17,7 +17,7 @@ Trading 212 exports, `scripts/market_weights.py`, which the Allocation
 table runs, and `scripts/fund_holdings.py`, which reads each fund's full
 holdings file for the Holdings and Look-through tables. The user's own files
 live in their private repo (Your files, below). A session that cannot reach the computer
-still runs BuffettBot — it never answers outside the skill "because the
+still runs Holdnote — it never answers outside the skill "because the
 computer link is down" — and follows `references/etf-brief.md` → Without
 the built-in browser for the rows it cannot fill.
 
@@ -52,7 +52,7 @@ installed skill, which is read-only and the same for everyone. The folder is
 in one of three places, whichever they chose at setup:
 
 - **a folder on their computer**, reached through the Claude desktop app;
-- **their own private GitHub repo**, copied from the BuffettBot template,
+- **their own private GitHub repo**, copied from the Holdnote template,
   which adds a daily Action fetching every fund's full holdings;
 - **nowhere**: they attach their export or `holdings.csv` when they ask.
 
@@ -81,8 +81,8 @@ workspace and the skill's own `scripts/` run there
 **No files yet.** Nothing is a gate. Briefs run; an attached export or
 screenshot gives the portfolio view in the same reply
 (`references/any-broker.md`). Without either, the portfolio view, thesis
-checks and What changed print `Not available — no BuffettBot files (attach
-your broker export, or say "set up BuffettBot")`, and `METHOD` offers setup
+checks and What changed print `Not available — no Holdnote files (attach
+your broker export, or say "set up Holdnote")`, and `METHOD` offers setup
 on its `Next:` line. Setup is `references/setup.md`. Someone who wants to
 see what it does first gets the demo (`references/demo.md`): a full
 portfolio report on a synthetic portfolio, with nothing to set up.
@@ -107,11 +107,11 @@ that fails is said plainly, with the text printed so nothing is lost.
 | Holdings from **any other broker or app** — an export (CSV, Excel), a screenshot of a holdings screen, or a typed list — attached or pasted, **whatever the question**; "update my holdings" for a user with `me/holdings.csv` | `references/any-broker.md`, then the route the question needs (attached + "what do I own?" is Any broker + Mode C) |
 | "Update my portfolio", "here's my T212 export", or a Trading 212 CSV path is supplied — **or a Trading 212 export is attached, whatever the question** | `references/portfolio-sync.md` — market weights are Mode M (opt-in), Step 4b. An attached export is read even when the question also routes elsewhere ("what do I own?" with an export is Portfolio sync + Mode C), because a question asked beside the user's own data is about that data |
 | Logging a completed run, or "what did the last run print / show / say" | `references/run-journal.md` |
-| "Set up BuffettBot", "get started", "save my portfolio", "change my settings" | `references/setup.md` |
+| "Set up Holdnote", "get started", "save my portfolio", "change my settings" | `references/setup.md` |
 | "Should I buy X", "thinking of adding X", "checklist for X" | `references/checklist.md`, with the stock or fund brief it runs |
 | "Quick brief on X", "quick look at X", "just the scorecard for X" — or any brief when the profile's `Report length` is `quick` and the request does not say "full" | The stock or fund brief, as a **quick brief** (Report layout → Quick brief) |
-| "Show me a demo", "try it", "example report", "what does BuffettBot do?" — with no holdings of the user's attached | `references/demo.md` |
-| What Buffett's ideas are, where a rule comes from, "why is it called BuffettBot" | `references/buffett.md`, answered from its Principles table; never what he would think of an instrument |
+| "Show me a demo", "try it", "example report", "what does Holdnote do?" — with no holdings of the user's attached | `references/demo.md` |
+| What Buffett's ideas are, where a rule comes from, "why is it called the Buffett scorecard" | `references/buffett.md`, answered from its Principles table; never what he would think of an instrument |
 | "Which build / version is this?" | Answer with the text of the `BUILD` file in this skill's folder and nothing else |
 
 Load only what the request needs. Several may apply — "compare VWCE to what I
@@ -324,7 +324,7 @@ ranked:
 A filing with nothing added or removed gets one `Filing risk` row with
 status `None`; an instrument with no thesis on file gets one `Thesis` row
 with status `None on file`, so an empty side is a statement, not a gap.
-BuffettBot never writes failure scenarios of its own: a red flag is
+Holdnote never writes failure scenarios of its own: a red flag is
 something a filing states or a criterion the user wrote.
 
 **Detail tables.** The module's other tables — for a stock, Business,

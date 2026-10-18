@@ -1,6 +1,6 @@
 # Buffett Scorecard
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
 The first table of every stock and fund brief (`SKILL.md` → Report layout).
 It is never dropped, and a request for other lenses adds to it.

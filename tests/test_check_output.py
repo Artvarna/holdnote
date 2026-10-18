@@ -1,4 +1,4 @@
-"""The draft check BuffettBot runs before printing, and the two overlap rules.
+"""The draft check Holdnote runs before printing, and the two overlap rules.
 
 SYNTHETIC. Tickers are invented (AAA..DDD) and index names use real
 providers only so the provider rule has something to read; no figure is a
@@ -208,7 +208,7 @@ def test_the_zip_ships_the_checker_with_its_contract(tmp_path):
 
 
 def test_the_checker_finds_contract_next_to_it_as_in_the_zip(tmp_path):
-    scripts = tmp_path / "buffettbot" / "scripts"
+    scripts = tmp_path / "holdnote" / "scripts"
     scripts.mkdir(parents=True)
     (scripts / "check_output.py").write_bytes((REPO / "scripts" / "check_output.py").read_bytes())
     (scripts / "contract.py").write_bytes((REPO / "tests" / "contract.py").read_bytes())
@@ -235,7 +235,7 @@ def test_the_zip_carries_a_build_stamp(tmp_path):
     sys.path.insert(0, str(REPO / "scripts"))
     import build_zip
     target = build_zip.build(tmp_path / "b.zip")
-    stamp = zipfile.ZipFile(target).read("buffettbot/BUILD").decode().strip()
+    stamp = zipfile.ZipFile(target).read("holdnote/BUILD").decode().strip()
     assert stamp == build_zip.build_stamp() and len(stamp.split()) == 2
 
 

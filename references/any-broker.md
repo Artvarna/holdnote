@@ -1,6 +1,6 @@
 # Any broker
 
-Reference for BuffettBot (`buffettbot`). Follow `RULES.md`.
+Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
 Turns what the user owns, from **any** investment app or website, into
 `holdings.csv`: the one broker-neutral file the Allocation, Look-through and

@@ -36,7 +36,7 @@ concurrency:
 jobs:
   fetch:
     # The public template has no funds of its own; only users' copies fetch.
-    if: github.repository != 'Artvarna/buffettbot'
+    if: github.repository != 'Artvarna/Holdnote'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -50,7 +50,7 @@ jobs:
           if [ -f me/funds.md ] && grep -qE '^\| *[A-Z0-9]+ *\| *[A-Z]{2}[A-Z0-9]{9}[0-9] *\|' me/funds.md; then
             echo "any=true" >> "$GITHUB_OUTPUT"
           else
-            echo "No fund in me/funds.md yet - say \"set up BuffettBot\" in Claude to add yours."
+            echo "No fund in me/funds.md yet - say \"set up Holdnote\" in Claude to add yours."
           fi
 
       - name: Fetch each fund's issuer file

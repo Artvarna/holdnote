@@ -166,7 +166,7 @@ def test_scorecard_result_must_be_arithmetic_not_a_verdict():
 
 def test_red_flag_rows_are_filing_risks_or_thesis_criteria_only():
     invented = RED_FLAGS[:3] + [
-        "| Scenario | Competitor could undercut prices | BuffettBot | Possible |",
+        "| Scenario | Competitor could undercut prices | Holdnote | Possible |",
         "",
     ]
     problems = layout(brief(SCORECARD + KEY_NUMBERS + WHAT_CHANGED + invented))
