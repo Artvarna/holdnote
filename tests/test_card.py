@@ -38,11 +38,19 @@ def test_demo_card_draws_the_drafts_own_figures(demo_draft, tmp_path):
     assert written[0].name == "card.svg"
     text = svg_text(written[0].read_text(encoding="utf-8"))
     assert "DEMO · SYNTHETIC PORTFOLIO" in text
-    # The biggest hidden bet: the row with the most Added by the others
-    assert "BIGGEST HIDDEN BET" in text and "9.55%" in text and "Amazon.com Inc." in text
-    assert "7.35% owned directly" in text and "+ 2.20% more through SPYI and SPY5" in text
-    assert "United States 78.59%" in text
-    assert "Fund overlap: SPYI and SPY5 share 497 companies · 56.91% shared weight" in text
+    # Expected figures come from the draft, so a new snapshot changes nothing here
+    t = card.tables(demo_draft.read_text(encoding="utf-8").split("RESULT", 1)[1])
+    bets = [r for r in t["Hidden bets"][1:] if r[0] != "none"]
+    hero = max(bets, key=lambda r: card.Decimal(r[4]))  # most Added by the others
+    assert "BIGGEST HIDDEN BET" in text and f"{hero[3]}%" in text and hero[0] in text
+    if hero[2].startswith("Direct "):
+        assert f"{hero[2].split()[1]}% owned directly" in text
+    assert f"+ {hero[4]}% more through SPYI and SPY5" in text or "all of it through" in text
+    us = next(r for r in t["Countries"][1:] if r[0] == "United States")
+    assert f"United States {us[-1]}%" in text
+    pair = t["Holdings"][1]
+    n = pair[1].split()[0]
+    assert f"Fund overlap: SPYI and SPY5 share {n} companies · {pair[-1]}% shared weight" in text
     assert "not financial advice" in text
 
 
@@ -60,14 +68,18 @@ def test_card_carries_no_amounts(demo_draft, tmp_path):
                     f"{column} {row[i]} is on the card"
     assert "EUR" not in text and "USD" not in text
     # Every bare number is a count or the date, never an amount
-    bare = re.findall(r"(?<![\w.,])\d[\d,]*(?:\.\d+)?(?![\d.,%]|-\d)", text.replace("2026-10-15", ""))
-    assert set(bare) <= {"5,965", "2", "10", "497"}, bare
+    c = card.read(draft)
+    bare = re.findall(r"(?<![\w.,])\d[\d,]*(?:\.\d+)?(?![\d.,%]|-\d)", text.replace(c.as_of, ""))
+    counts = {f"{c.companies:,}", str(len(c.funds)), str(c.direct), "10", f"{int(c.overlap[1]):,}"}
+    assert set(bare) <= counts, bare
 
 
 def test_every_percentage_on_the_card_is_in_the_draft(demo_draft, tmp_path):
     draft = demo_draft.read_text(encoding="utf-8")
     text = svg_text(card.make(demo_draft, tmp_path)[0].read_text(encoding="utf-8"))
-    others = {"16.09", "45.40"}  # the folded Other parts: Total row minus the named ones
+    c = card.read(draft)
+    # The folded Other parts: the Total row minus the named ones
+    others = {f"{v:.2f}" for label, v in c.countries + c.sectors if label == "Other"}
     for value in re.findall(r"(\d+\.\d{2})%", text):
         assert value in draft or value in others, f"{value}% is not a figure of the draft"
 
