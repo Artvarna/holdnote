@@ -1032,6 +1032,6 @@ plan's usage when the user only wants the scorecard.
   factsheet publishes — plus each file's as-of and row counts. `demo.py`
   pastes that report and refuses it if `demo/holdings.csv` or `prices.json`
   changed since it was computed. Tests fail if an `.xlsx` is tracked under
-  `demo/` or reaches the zip. The two files committed earlier remain in git
-  history and in pull request #2, which matters only once the repo is
-  public.
+  `demo/` or reaches the zip. A check on 2026-10-18 found no issuer file in
+  any commit on any branch or tag, no force pushes, and no pull requests left
+  in the repo, so nothing remains to purge before it goes public.
