@@ -51,6 +51,9 @@ them by ISIN.
      shows more than one, ask the user which exchange or currency theirs
      trades in. Pass `--isin TICKER=ISIN`. The script rejects an ISIN whose
      check digit is wrong.
+   - `not a valid ISIN (check digit)`: the export itself has a typo. Show
+     the user the code it printed and ask for the right one (or find it as
+     above); never correct a digit by guessing.
    - `no quantity column`: the message lists the headers. Pick the one that
      counts shares or units, or ask the user when two could; pass
      `--map quantity="<header>"`.
@@ -59,8 +62,11 @@ them by ISIN.
    positions export instead, as the message says.
 5. **Exit 0 — confirm.** Show the script's table as it printed it, then one
    `AskUserQuestion`: `Looks right` · `Fix something`. Every `(guessed)` kind
-   and any `Check:` line is named in the question. A fix goes back through
-   the script (`--kind TICKER=fund|stock`, `--isin`, `--map`), never by hand.
+   and any `Check:` line is named in the question. A `Check:` line about a
+   quantity like `1.250` means the export does not say whether that is one
+   and a quarter or twelve hundred and fifty: ask which, in those words. A
+   fix goes back through the script (`--kind TICKER=fund|stock`, `--isin`,
+   `--map`, `--decimal comma|dot`), never by hand.
 6. **Targets, only if they want them.** Ask once whether they want target
    weights next to the market weights. If yes, they give a % per holding (or
    per group); write them into `target_pct` (and `group`). Targets are

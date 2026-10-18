@@ -129,6 +129,12 @@ def _needed(t: dict[str, list[list[str]]], name: str) -> list[list[str]]:
     return rows
 
 
+HUNDRED = Decimal(100)
+# How far a whole-portfolio table's Total row may sit from 100 through
+# rounding each cell to 0.01: half a hundredth per cell, for ~20 cells.
+WHOLE_DRIFT = Decimal("0.10")
+
+
 def _buckets(rows: list[list[str]], keep: int) -> list[tuple[str, Decimal]]:
     """Top `keep` named buckets by Total, then everything else as Other, so
     the parts add up to the table's Total row."""
@@ -150,6 +156,11 @@ def _buckets(rows: list[list[str]], keep: int) -> list[tuple[str, Decimal]]:
     named.sort(key=lambda kv: (-kv[1], kv[0]))
     rest += sum((v for _, v in named[keep:]), Decimal(0))
     out = named[:keep]
+    # A table of the whole portfolio sums to 100 before its cells are rounded
+    # one by one; its Total row can then read 100.04. Other is what the named
+    # parts leave of 100, so the card adds up and Other carries no drift.
+    if total_row is not None and abs(total_row - HUNDRED) <= WHOLE_DRIFT:
+        rest, total_row = HUNDRED - sum((v for _, v in out), Decimal(0)), HUNDRED
     if rest > 0:
         out.append(("Other", rest))
     if total_row is not None:
@@ -352,8 +363,9 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
     if card.hero:
         name, routes, total, added = card.hero
         top_label, largest = max(routes, key=lambda r: (r[1], r[0] == "Direct"))
-        others = [("your own shares" if lab == "Direct" else lab.removeprefix("via "))
-                  for lab, _ in routes if lab != top_label]
+        own = any(lab == "Direct" for lab, _ in routes if lab != top_label)
+        funds = [lab.removeprefix("via ") for lab, _ in routes
+                 if lab != top_label and lab != "Direct"]
         ops.append(_label(PAD, y + 42, "The biggest hidden bet", OCHRE))
         big = pct(total)
         ops.append(Text(PAD - 4, y + 168, big, 132, "serif", INK))
@@ -363,7 +375,9 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
         seen = (f"{largest:.2f}% owned directly" if top_label == "Direct"
                 else f"{largest:.2f}% through {top_label.removeprefix('via ')}")
         ops.append(Text(left, y + 134, fonts.fit(seen, 22, avail), 22, "sans", INK))
-        ops.append(Text(left, y + 166, fonts.fit(f"+ {added:.2f}% more inside {_and(others)}",
+        where = " and ".join(([f"inside {_and(funds)}"] if funds else [])
+                             + (["in your own shares"] if own else []))
+        ops.append(Text(left, y + 166, fonts.fit(f"+ {added:.2f}% more {where}",
                                                  22, avail), 22, "sans-bold", OCHRE))
         # The signature: one bar, the part a single holding shows in ink and
         # the part the others add in ochre

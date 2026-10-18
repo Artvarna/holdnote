@@ -60,6 +60,9 @@ FILES = {
     "references/setup.md": "references/setup.md",
     "references/stock-brief.md": "references/stock-brief.md",
     "references/thesis-journal.md": "references/thesis-journal.md",
+    # Named by portfolio-sync.md, ownership.md and t212_holdings.py's messages
+    "docs/t212-csv-schema.md": "docs/t212-csv-schema.md",
+    "docs/fifo-attribution.md": "docs/fifo-attribution.md",
 }
 
 

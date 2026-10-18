@@ -171,17 +171,43 @@ def _clean_number(raw: str) -> str:
     return s
 
 
-def decimal_comma(values: list[str], delimiter: str) -> bool:
-    """Whether a column writes 12,5 for twelve and a half."""
+# One separator followed by exactly three digits, as in 1,250 or 12.500: a
+# thousands separator or a decimal one, and nothing in the value says which.
+AMBIGUOUS_NUMBER = re.compile(r"[-+]?[1-9]\d{0,2}[,.]\d{3}")
+
+
+def decimal_mode(values: list[str], delimiter: str) -> tuple[bool, list[str]]:
+    """Whether a column writes 12,5 for twelve and a half, and the values whose
+    reading rests only on the file's delimiter (the caller asks about those).
+
+    Evidence, in order: a value with both separators; a value starting 0, or
+    0. (never a thousands separator); a separator followed by one, two, or four
+    or more digits; one separator repeated (1.250.000). Only when none is
+    present does the delimiter decide (semicolon files write decimal commas),
+    and then every value like 1,250 is returned as a guess.
+    """
     cleaned = [_clean_number(v) for v in values if _clean_number(v)]
     for s in cleaned:
         if "," in s and "." in s:
-            return s.rfind(",") > s.rfind(".")
+            return s.rfind(",") > s.rfind("."), []
+    for s in cleaned:
+        m = re.fullmatch(r"[-+]?0([,.])\d+", s)
+        if m:
+            return m.group(1) == ",", []
     if any(re.fullmatch(r"[-+]?\d+,(\d{1,2}|\d{4,})", s) for s in cleaned):
-        return True
+        return True, []
     if any(re.fullmatch(r"[-+]?\d+\.(\d{1,2}|\d{4,})", s) for s in cleaned):
-        return False
-    return delimiter == ";"
+        return False, []
+    if any(re.fullmatch(r"[-+]?\d{1,3}(\.\d{3}){2,}", s) for s in cleaned):
+        return True, []
+    if any(re.fullmatch(r"[-+]?\d{1,3}(,\d{3}){2,}", s) for s in cleaned):
+        return False, []
+    return delimiter == ";", [s for s in cleaned if AMBIGUOUS_NUMBER.fullmatch(s)]
+
+
+def decimal_comma(values: list[str], delimiter: str) -> bool:
+    """Whether a column writes 12,5 for twelve and a half (decimal_mode's guess)."""
+    return decimal_mode(values, delimiter)[0]
 
 
 def parse_number(raw: str, comma: bool) -> Decimal | None:
@@ -306,9 +332,11 @@ class Parsed:
     ticker: str
     name: str
     quantity: Decimal
+    bad_isin: str = ""  # an ISIN-shaped cell that failed the check digit
 
 
-def parse_export(path: Path, overrides: dict[str, str]) -> tuple[list[Parsed], dict]:
+def parse_export(path: Path, overrides: dict[str, str],
+                 decimal: str | None = None) -> tuple[list[Parsed], dict]:
     tables = read_tables(path)
     label, header, body, delim, header_line = pick_table(tables, overrides)
     normed = {norm_header(h) for h in header}
@@ -326,7 +354,11 @@ def parse_export(path: Path, overrides: dict[str, str]) -> tuple[list[Parsed], d
         i = cols.get(field)
         return row[i].strip() if i is not None and i < len(row) else ""
 
-    comma = decimal_comma([get(r, "quantity") for r in body], delim)
+    quantities = [get(r, "quantity") for r in body]
+    if decimal:
+        comma, unsure = decimal == "comma", []
+    else:
+        comma, unsure = decimal_mode(quantities, delim)
     history = False
     if "type" in cols:
         kinds = [get(r, "type") for r in body]
@@ -334,6 +366,15 @@ def parse_export(path: Path, overrides: dict[str, str]) -> tuple[list[Parsed], d
     info = {"label": label, "header_line": header_line, "came_from": came_from,
             "mode": "history" if history else "positions", "skipped": 0, "ignored_types": {},
             "dates": [], "warnings": []}
+    if unsure:
+        raw = unsure[0]
+        now, alt = parse_number(raw, comma), parse_number(raw, not comma)
+        info["warnings"].append(
+            f"{len(unsure)} quantit{'y' if len(unsure) == 1 else 'ies'} like {raw} read as "
+            f"{_fmt(now)}, not {_fmt(alt)}: the file does not say which separator is the "
+            f"decimal one. Confirm, or pass --decimal {'dot' if comma else 'comma'} to read "
+            f"{raw} as {_fmt(alt)}")
+    bad_isins: list[str] = []
     if came_from.get("quantity") and norm_header(came_from["quantity"]) == "amount":
         info["warnings"].append(f'quantity read from the "{came_from["quantity"]}" column: '
                                 "confirm these are share counts, not money")
@@ -347,6 +388,10 @@ def parse_export(path: Path, overrides: dict[str, str]) -> tuple[list[Parsed], d
         isin = isin if isin_valid(isin) else find_isin(get(row, "isin"))
         if not isin:
             isin = next((find_isin(c) for c in row if find_isin(c)), "")
+        bad = ""
+        if not isin:
+            bad = next((m.group(1) for c in (get(row, "isin"), get(row, "ticker"))
+                        for m in ISIN_RE.finditer(c.upper())), "")
         ticker = get(row, "ticker")
         if find_isin(ticker) == ticker.upper() and ticker:
             ticker = ""  # a "Symbol/ISIN" cell holding the ISIN is not a ticker
@@ -354,6 +399,8 @@ def parse_export(path: Path, overrides: dict[str, str]) -> tuple[list[Parsed], d
         qty = parse_number(get(row, "quantity"), comma)
         label_text = name or ticker
         if not (isin or ticker or name) or (not isin and NOT_A_HOLDING.match(label_text)):
+            if bad:
+                bad_isins.append(bad)
             info["skipped"] += 1
             continue
         if history:
@@ -379,11 +426,15 @@ def parse_export(path: Path, overrides: dict[str, str]) -> tuple[list[Parsed], d
         key = isin or (ticker.upper() if ticker else name.lower())
         p = out.get(key)
         if p is None:
-            out[key] = Parsed(key, isin, ticker, name, qty)
+            out[key] = Parsed(key, isin, ticker, name, qty, bad)
         else:
             p.quantity += qty
             p.ticker = p.ticker or ticker
             p.name = p.name or name
+    if bad_isins:
+        raise NeedsInput(f"{label}: not a valid ISIN (check digit): " + ", ".join(bad_isins)
+                         + ". Check the export for a typo, or pass the right one with "
+                           "--isin NAME_OR_TICKER=ISIN")
     if moves:
         raise Refused(f"{label}: {len(moves)} rows move holdings without a buy or sell ("
                       + "; ".join(moves[:5]) + (" ..." if len(moves) > 5 else "")
@@ -512,9 +563,13 @@ def build(parsed: list[Parsed], existing: HoldingsFile | None, isins: dict[str, 
         else:
             need.append(p.ticker or p.name)
     if need:
-        raise NeedsInput("no ISIN for " + ", ".join(need) + ". Find each one in a primary "
-                         "source (issuer page, exchange listing, the broker's instrument page) "
-                         "and pass it: " + " ".join(f"--isin {n}=..." for n in need[:3]))
+        typos = [f"{p.ticker or p.name} ({p.bad_isin})" for p in parsed if not p.isin and p.bad_isin]
+        raise NeedsInput("no ISIN for " + ", ".join(need) + ". "
+                         + ("Not a valid ISIN (check digit), likely a typo in the export: "
+                            + ", ".join(typos) + ". " if typos else "")
+                         + "Find each one in a primary source (issuer page, exchange listing, "
+                           "the broker's instrument page) and pass it: "
+                         + " ".join(f'--isin "{n}=..."' for n in need[:3]))
     merged: dict[str, Parsed] = {}
     for p in parsed:
         if p.isin in merged:
@@ -570,6 +625,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--kind", action="append", default=[], metavar="ISIN_OR_TICKER=fund|stock")
     ap.add_argument("--as-of", type=date.fromisoformat, default=None,
                     help="date the positions are from (default: last trade, else today)")
+    ap.add_argument("--decimal", choices=("comma", "dot"), default=None,
+                    help="which separator is the decimal one in quantities, when the "
+                         "export leaves it open (1,250 or 1.250)")
     ap.add_argument("--dry-run", action="store_true", help="print, do not write")
     args = ap.parse_args(argv)
 
@@ -582,7 +640,7 @@ def main(argv: list[str] | None = None) -> int:
         parsed: list[Parsed] = []
         infos = []
         for f in args.files:
-            rows, info = parse_export(f, overrides)
+            rows, info = parse_export(f, overrides, args.decimal)
             parsed.extend(rows)
             infos.append(info)
         existing = load_holdings(args.out) if args.out.exists() else None

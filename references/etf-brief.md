@@ -822,7 +822,7 @@ Stocks
 | BBB | Company B | Not available — not announced | 10-K, period 2026-01-25 | 2026-02-26 | 0 |
 ```
 
-Cell formats, each checked by `tests/contract.py` → `stocks_table_problems`:
+Cell formats, each checked by `contract.py` → `stocks_table_problems`:
 
 - **Next earnings** — an ISO date on or after `Data as of`, or `Not available —`
   and the reason. A date before `Data as of` is the last report, not the next,
@@ -899,9 +899,11 @@ terms as `references/market-context.md` → Where the closes come from: a
 record of reachability, and *browser* means the built-in browser on the
 user's computer, which works only while it is on with the Claude app open.
 
-**The listing is the one Trading 212 trades, read from the export.** A UCITS
+**The listing is the one the user's broker trades.** From any other broker,
+it is the listing `references/any-broker.md` settled with the user (the
+exchange or currency asked about when a ticker had several). A UCITS
 ETF is listed on several exchanges in several currencies, and each listing
-is its own instrument (market-context → Closes). The export's
+is its own instrument (market-context → Closes). A Trading 212 export's
 `Currency (Price / share)` column states which: never resolve it from the
 ticker alone. The first Mode C run of 2026-09-28 put MEUD on Euronext
 Paris; the export prices it in GBX, which is London.

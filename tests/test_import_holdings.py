@@ -322,3 +322,51 @@ def test_holdings_csv_is_committed_but_raw_exports_are_not():
 
     assert not ignored("me/holdings.csv")  # setup commits it to the user's private copy
     assert ignored("Portfolio.csv") and ignored("data/export.csv") and ignored("me/export.csv")
+
+
+# --- separators a quantity leaves open (2026-10-18) ---------------------------
+
+@pytest.mark.parametrize("values,delim,comma", [
+    (["0,500"], ",", True),          # 0,500 is never five hundred
+    (["0.500"], ";", False),         # nor is 0.500
+    (["1.250.000"], ";", True),      # a repeated dot is a thousands separator
+    (["1,250,000"], ",", False),
+    (["1,250", "10.5"], ",", False),  # another value settles it
+])
+def test_decimal_mode_reads_evidence_before_the_delimiter(values, delim, comma):
+    assert ih.decimal_mode(values, delim) == (comma, [])
+
+
+def test_decimal_mode_returns_the_values_it_only_guessed():
+    assert ih.decimal_mode(["1.250", "3"], ";") == (True, ["1.250"])
+    assert ih.decimal_mode(["1,250"], ",") == (False, ["1,250"])
+
+
+def test_leading_zero_quantity_is_a_fraction(tmp_path):
+    f = tmp_path / "x.csv"
+    f.write_text(f'ISIN,Name,Quantity\n{APPLE},Apple,"0,500"\n', encoding="utf-8")
+    rows, info = ih.parse_export(f, {})
+    assert rows[0].quantity == Decimal("0.5")
+    assert not info["warnings"]
+
+
+def test_an_open_separator_is_flagged_and_can_be_overridden(tmp_path):
+    f = tmp_path / "x.csv"
+    f.write_text(f"ISIN;Name;Quantity\n{APPLE};Apple;1.250\n", encoding="utf-8")
+    rows, info = ih.parse_export(f, {})
+    assert rows[0].quantity == Decimal("1250")
+    assert any("--decimal dot" in w and "1.25" in w for w in info["warnings"])
+    rows, info = ih.parse_export(f, {}, "dot")
+    assert rows[0].quantity == Decimal("1.25") and not info["warnings"]
+
+
+def test_a_mistyped_isin_is_named(tmp_path, capsys):
+    f = tmp_path / "x.csv"
+    f.write_text("ISIN,Quantity\nUS0378331006,5\n", encoding="utf-8")
+    assert ih.main([str(f), "--dry-run", "-o", str(tmp_path / "h.csv")]) == 2
+    assert "US0378331006" in capsys.readouterr().out
+    g = tmp_path / "y.csv"
+    g.write_text("ISIN,Name,Quantity\nUS0378331006,Apple,5\n", encoding="utf-8")
+    assert ih.main([str(g), "--dry-run", "-o", str(tmp_path / "h.csv")]) == 2
+    out = capsys.readouterr().out
+    assert "US0378331006" in out and "typo" in out

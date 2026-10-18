@@ -1,6 +1,6 @@
 ---
 name: holdnote
-description: Research ETFs, individual stocks, market indexes and portfolio overlap from primary sources — factsheets, KIDs, annual reports and regulatory filings — and maintain a written investment thesis journal. Use this whenever the user mentions a fund, ETF, index, ticker, ISIN, TER, holdings, replication, valuation, earnings, filings, portfolio overlap, concentration or diversification; whenever they name any company or fund they own or are considering; whenever they ask what they own, how two holdings compare, or what changed since last time — even if they never name this skill. Also use it when they ask to see a Holdnote demo or a quick brief.
+description: Research ETFs, individual stocks, market indexes and portfolio overlap from primary sources — factsheets, KIDs, annual reports and regulatory filings — and keep a written investment thesis journal. Use it when the user wants research on a specific fund, ETF, index, stock, ticker or ISIN (a brief, its costs, holdings, valuation, filings or earnings); asks what their portfolio holds, how their holdings overlap or compare, or what changed since last time; attaches a broker export or a screenshot of their holdings; or asks for a Holdnote demo, quick brief or portfolio card. Not for general money questions or explaining an investing term when no instrument or portfolio is named.
 ---
 
 # Holdnote
@@ -16,7 +16,7 @@ the built-in browser (the only route to most fund closes), the repo — its
 Trading 212 exports, `scripts/market_weights.py`, which the Allocation
 table runs, and `scripts/fund_holdings.py`, which reads each fund's full
 holdings file for the Holdings and Look-through tables. The user's own files
-live in their private repo (Your files, below). A session that cannot reach the computer
+live wherever they chose at setup (Your files, below). A session that cannot reach the computer
 still runs Holdnote — it never answers outside the skill "because the
 computer link is down" — and follows `references/etf-brief.md` → Without
 the built-in browser for the rows it cannot fill.
@@ -114,6 +114,7 @@ that fails is said plainly, with the text printed so nothing is lost.
 | "What am I really betting on?", "hidden bets", "which companies do I own through more than one holding?" | `references/etf-brief.md` → Mode C, tables Allocation, Look-through and Hidden bets |
 | "Make a card", "make my portfolio card", "something I can post", "share my portfolio" — of their portfolio or of the demo | Portfolio card, below |
 | What Buffett's ideas are, where a rule comes from, "why is it called the Buffett scorecard" | `references/buffett.md`, answered from its Principles table; never what he would think of an instrument |
+| A general question with no instrument or portfolio in it — what a TER is, how ETFs or index funds work, what diversification means | Answer in plain prose, without the output contract, fetches or the scorecard; a figure that is given still names its source (rule 1). Offer a brief in one line when an instrument comes up |
 | "Which build / version is this?" | Answer with the text of the `BUILD` file in this skill's folder and nothing else |
 
 Load only what the request needs. Several may apply — "compare VWCE to what I
@@ -212,16 +213,16 @@ of the skill produced the output, so a run can be traced to its rules.
 It runs the contract checks the repo's tests hold saved runs to — STATUS,
 section order, the Allocation, Stocks and overlap tables, sources, banned
 language — and prints `ok` or one problem per line. Fix every problem and
-run it again until it prints `ok`. Then collapse `SOURCES` to its summary
+run it again until it prints `ok`. If no shell can run the checker, print
+anyway and add `Self-check: not run — <reason>` to `METHOD`. Then collapse `SOURCES` to its summary
 line (unless `PROOF` prints), run `python3 scripts/render.py <file>`, and
 print **its** output, not the draft: that is the report design every user
 sees, the same every time, with the disclaimer at its foot. Keep the draft:
 it is what a later "show proof" quotes (its `METHOD`, `PROOF` and full
 `SOURCES`, verbatim) and what the run journal stores. With no shell to run
 the renderer, print the draft and add `Render: not run — <reason>` to
-`METHOD`. Report length `full` in the profile prints the detail tables too. If no shell can run
-it, print anyway and add `Self-check: not run — <reason>` to `METHOD`. The
-checker is a floor, not the spec: an output can pass it and still be wrong.
+`METHOD`. The checker is a floor, not the spec: an output can pass it and
+still be wrong.
 
 Read Part IV before shaping any output. It carries the field placement
 rule that decides where a module's own fields go, the column-suppression
@@ -334,8 +335,8 @@ Segments, Geography, Financials, Balance sheet, Valuation, Peers, Capital
 return and Risks stated; for a fund, Top 10, Sectors and Countries — are
 still built on every run, because the scorecard and Key numbers draw on
 them. They print after `Red flags` only when asked for: "full detail",
-"show everything", or a question about one of them ("what are Apple's
-segments?" prints Segments). `METHOD` names the ones held back on a
+"show everything", a question about one of them ("what are Apple's
+segments?" prints Segments), or the profile's `Report length` set to `full`. `METHOD` names the ones held back on a
 `Detail tables:` line.
 
 `scripts/check_output.py` holds a brief to this order.
@@ -394,10 +395,11 @@ sectors and fund overlap, with the Holdnote link at its foot.
 2. Run `python3 <skill>/scripts/card.py <draft> --out <scratch>/card`. It
    checks the draft against the contract first and writes `card.svg`, plus
    `card.png` when Pillow is installed.
-3. **Give the user the PNG as a file** (the SVG when no PNG was made) —
-   saved where this environment hands files to the user
-   (`/mnt/user-data/outputs/` in Claude.ai) — with one line: what it shows
-   and that it carries percentages only.
+3. **Give the user the PNG as a file** (the SVG when no PNG was made), the
+   way this environment hands files to the user: its file-sending tool when
+   it has one, else its outputs folder (`/mnt/user-data/outputs/` where that
+   exists). Never a bare path or a description of the image instead. Add one
+   line: what it shows and that it carries percentages only.
 
 **Percentages only.** The card draws cells of the draft's tables — shares of
 the portfolio's market value — and never a quantity, close, value or amount,
