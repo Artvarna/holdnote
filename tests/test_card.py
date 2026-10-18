@@ -132,3 +132,34 @@ def test_a_partial_lookthrough_is_said_on_the_card(demo_draft, tmp_path):
     c = card.read(draft)
     c.demo = False
     assert "PARTIAL · TOP-10 DEPTH" in svg_text(card.svg(card.layout(c, card.Fonts())))
+
+
+def test_whole_portfolio_parts_add_to_100_on_the_card():
+    # Cells rounded one by one can leave a Total row at 100.04 (the demo's
+    # Sectors on 2026-10-16); the card's Other is what the named parts leave.
+    rows = [["Sector", "Direct", "via A", "Total"],
+            ["Tech", "-", "27.41", "27.41"], ["Discretionary", "7.21", "7.33", "14.54"],
+            ["Staples", "8.46", "4.07", "12.53"], ["Financials", "-", "12.51", "12.51"],
+            ["Industrials", "-", "11.00", "11.00"], ["Health Care", "-", "11.00", "11.00"],
+            ["Energy", "-", "11.05", "11.05"], ["Total", "15.67", "84.37", "100.04"]]
+    parts = card._buckets(rows, 3)
+    assert parts[-1] == ("Other", card.Decimal("45.52"))
+    assert sum(v for _, v in parts) == 100
+
+
+def test_a_partial_table_keeps_its_own_total():
+    rows = [["Sector", "via A", "Total"], ["Tech", "30.00", "30.00"], ["Rest", "20.00", "20.00"],
+            ["Total", "50.00", "50.00"]]
+    assert card._buckets(rows, 1) == [("Tech", card.Decimal("30.00")), ("Other", card.Decimal("20.00"))]
+
+
+def test_own_shares_read_as_shares_not_a_place():
+    c = card.Card(as_of="2026-10-15", demo=False, funds=["A"], direct=1, companies=3000,
+                  top=[("NVIDIA Corporation", card.Decimal("5.00"))],
+                  hero=("NVIDIA Corporation", [("Direct", card.Decimal("1.00")),
+                                               ("via A", card.Decimal("4.00"))],
+                        card.Decimal("5.00"), card.Decimal("1.00")),
+                  countries=[], sectors=[], overlap=None)
+    text = svg_text(card.svg(card.layout(c, card.Fonts())))
+    assert "+ 1.00% more in your own shares" in text
+    assert "inside your own shares" not in text

@@ -9,7 +9,6 @@ data with their sources, read here only to check their shape.
 from __future__ import annotations
 
 import csv
-import io
 import json
 import re
 import subprocess

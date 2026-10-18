@@ -126,7 +126,8 @@ def make_source(ticker: str, isin: str, issuer: str, holdings: str = "") -> Sour
     raise Refused(f"{ticker}: issuer {issuer!r} is not one of {', '.join(ISSUERS)}")
 
 
-# The funds this project was built on; also what runs when no funds file exists.
+# The funds this project was built on: the tests' fixtures, and the holdings
+# links a funds.md row may leave blank. A missing funds file means no funds.
 CATALOG = (
     make_source("SPPW", "IE00BFY0GT14", "ssga",
                 "https://www.ssga.com/ie/en_gb/intermediary/library-content/products/"

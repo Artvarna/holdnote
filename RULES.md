@@ -286,7 +286,7 @@ those already has a place a reader looks — unconfirmed rows on `METHOD`'s
 `Confirmation:` line, gaps in `CONTEXT`'s `Not available` and `Coverage` —
 and a status that repeats them is a second, shorter copy that can disagree
 with the first. `STATUS` answers one question, did the run finish, and
-`tests/contract.py` → `status_problems` holds it to that.
+`contract.py` → `status_problems` holds it to that (`tests/` in the repo, `scripts/` in the skill).
 
 **The separator is an ASCII hyphen-minus between single spaces**, never an
 en or em dash. This one line is machine-read: a run is recorded by it, and a
@@ -618,7 +618,7 @@ If any box fails, fix it before output rather than shipping with a caveat.
   by carrying no figure the tables do not. Brief tables follow a fixed
   order — Buffett scorecard, any extra lenses, Key numbers, What changed,
   Red flags, then detail tables on request — set in `SKILL.md` → Report
-  layout and checked by `tests/contract.py`. Red flags are filing risks
+  layout and checked by `contract.py`. Red flags are filing risks
   and the user's own thesis criteria only, which rule 6 already allows.
   Part IV is unnumbered; rules 1–15 are untouched.
 - **v9 (2026-09-28)** — `PROOF` prints on request and on every halt, not
