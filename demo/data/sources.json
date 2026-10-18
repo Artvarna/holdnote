@@ -3,90 +3,90 @@
     "document": "ECB euro foreign exchange reference rates (90 days)",
     "url": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml",
     "published": "2026-10-16",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "London Stock Exchange instrument data, IMID",
     "url": "https://api.londonstockexchange.com/api/gw/lse/instruments/alldata/IMID",
     "published": "2026-10-16",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "Yahoo Finance chart, IMID.L",
     "url": "https://query1.finance.yahoo.com/v8/finance/chart/IMID.L?range=1mo&interval=1d",
     "published": "2026-10-16",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "London Stock Exchange instrument data, SPY5",
     "url": "https://api.londonstockexchange.com/api/gw/lse/instruments/alldata/SPY5",
     "published": "2026-10-16",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "Yahoo Finance chart, SPY5.L",
     "url": "https://query1.finance.yahoo.com/v8/finance/chart/SPY5.L?range=1mo&interval=1d",
     "published": "2026-10-16",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "Nasdaq historical quotes, KO",
     "url": "https://api.nasdaq.com/api/quote/KO/historical?assetclass=stocks&fromdate=2026-10-06&limit=30&todate=2026-10-16",
     "published": "2026-10-16",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "Yahoo Finance chart, KO",
     "url": "https://query1.finance.yahoo.com/v8/finance/chart/KO?range=1mo&interval=1d",
     "published": "2026-10-16",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "Nasdaq historical quotes, AMZN",
     "url": "https://api.nasdaq.com/api/quote/AMZN/historical?assetclass=stocks&fromdate=2026-10-06&limit=30&todate=2026-10-16",
     "published": "2026-10-16",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "Yahoo Finance chart, AMZN",
     "url": "https://query1.finance.yahoo.com/v8/finance/chart/AMZN?range=1mo&interval=1d",
     "published": "2026-10-16",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "SSGA daily holdings file, SPYI",
     "url": "https://www.ssga.com/ie/en_gb/intermediary/library-content/products/fund-data/etfs/emea/holdings-daily-emea-en-spyi-gy.xlsx",
     "published": "2026-10-15",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "SSGA daily holdings file, SPY5",
     "url": "https://www.ssga.com/ie/en_gb/intermediary/library-content/products/fund-data/etfs/emea/holdings-daily-emea-en-spy5-gy.xlsx",
     "published": "2026-10-15",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "SEC EDGAR submissions, COCA COLA CO",
     "url": "https://data.sec.gov/submissions/CIK0000021344.json",
     "published": "2026-07-29",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "COCA COLA CO investor relations events page",
     "url": "https://investors.coca-colacompany.com/news-events/events",
     "published": "n/a — web page",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "SEC EDGAR submissions, AMAZON COM INC",
     "url": "https://data.sec.gov/submissions/CIK0001018724.json",
     "published": "2026-09-14",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   },
   {
     "document": "AMAZON COM INC investor relations events page",
     "url": "https://ir.aboutamazon.com/events/default.aspx",
     "published": "n/a — web page",
-    "retrieved": "2026-10-18 09:52 UTC"
+    "retrieved": "2026-10-18 15:26 UTC"
   }
 ]
