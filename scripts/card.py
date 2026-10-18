@@ -41,27 +41,31 @@ W, H = 1080, 1350
 PAD = 72
 REPO = "github.com/Artvarna/buffettbot"
 
-BG = "#0E1A2B"
-PANEL = "#16263D"
-INK = "#F4F1EA"
-MUTED = "#9AA8BA"
-GOLD = "#E8B04B"
-TRACK = "#22344F"
-REST = "#3A5072"  # the folded "Other" part of a stacked bar
-# Stacked-bar segments: largest first, then the folded rest in TRACK.
-SEGMENTS = ["#E8B04B", "#5FA8D3", "#8CC084", "#C77DBA"]
+# Art direction: an annual letter. Cream paper, ink, hairline rules, a serif
+# display face for the title and the large figures, and one accent: the
+# hidden part of the biggest bet, drawn in ochre beside the part a single
+# holding shows.
+PAPER = "#F4EFE4"
+INK = "#1B1A17"
+MUTED = "#6E6A60"
+RULE = "#D6CDBA"
+TRACK = "#E6DECD"
+GREEN = "#1F5B43"
+OCHRE = "#B07A1F"
+# Stacked-bar parts, largest first; the folded Other is REST
+SEGMENTS = ["#1F5B43", "#B07A1F", "#7A8F6A", "#8C5A4B"]
+REST = "#CFC5B0"
 
-FONT_STACK = "Inter, 'Helvetica Neue', Arial, sans-serif"
-FONT_FILES = {
-    False: ["/usr/share/fonts/opentype/inter/Inter-Regular.otf",
-            "/usr/share/fonts/truetype/inter/Inter-Regular.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            "/Library/Fonts/Arial.ttf", "C:/Windows/Fonts/arial.ttf"],
-    True: ["/usr/share/fonts/opentype/inter/Inter-Bold.otf",
-           "/usr/share/fonts/truetype/inter/Inter-Bold.ttf",
-           "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-           "/Library/Fonts/Arial Bold.ttf", "C:/Windows/Fonts/arialbd.ttf"],
+FONTS = HERE.parent / "assets" / "fonts"
+# key -> (file, SVG family, weight, style)
+FACES = {
+    "serif": ("Fraunces_600SemiBold.ttf", "BB Serif", 600, "normal"),
+    "serif-italic": ("Fraunces_600SemiBold_Italic.ttf", "BB Serif", 600, "italic"),
+    "sans": ("Inter_400Regular.ttf", "BB Sans", 400, "normal"),
+    "sans-bold": ("Inter_600SemiBold.ttf", "BB Sans", 600, "normal"),
 }
+FALLBACK = {"BB Serif": "Georgia, 'Times New Roman', serif",
+            "BB Sans": "'Helvetica Neue', Arial, sans-serif"}
 
 
 class Missing(Exception):
@@ -224,11 +228,11 @@ def read(text: str) -> Card:
 @dataclass
 class Text:
     x: float
-    y: float
+    y: float  # baseline
     s: str
     size: int
+    face: str = "sans"
     color: str = INK
-    bold: bool = False
     anchor: str = "start"  # start | end
     spacing: float = 0
 
@@ -244,166 +248,209 @@ class Rect:
 
 
 class Fonts:
-    """Pillow fonts when available: used to draw the PNG and to measure text,
-    so long names are cut to fit in both files the same way."""
+    """The bundled faces through Pillow: they draw the PNG and measure text, so
+    long names are cut to fit in both files the same way. Without Pillow,
+    widths are estimated and only the SVG is written."""
 
     def __init__(self) -> None:
         self.ok = False
-        self.cache: dict[tuple[int, bool], object] = {}
+        self.cache: dict[tuple[str, int], object] = {}
         try:
             from PIL import ImageFont  # noqa: F401
-            self.ok = True
+            self.ok = all((FONTS / f[0]).exists() for f in FACES.values())
         except ImportError:
             pass
 
-    def get(self, size: int, bold: bool):
+    def get(self, face: str, size: int):
         from PIL import ImageFont
-        key = (size, bold)
+        key = (face, size)
         if key not in self.cache:
-            font = None
-            for path in FONT_FILES[bold]:
-                if Path(path).exists():
-                    font = ImageFont.truetype(path, size)
-                    break
-            self.cache[key] = font or ImageFont.load_default(size)
+            self.cache[key] = ImageFont.truetype(str(FONTS / FACES[face][0]), size)
         return self.cache[key]
 
-    def width(self, s: str, size: int, bold: bool = False, spacing: float = 0) -> float:
+    def width(self, s: str, size: int, face: str = "sans", spacing: float = 0) -> float:
+        extra = spacing * max(len(s) - 1, 0)
         if self.ok:
-            return self.get(size, bold).getlength(s) + spacing * max(len(s) - 1, 0)
-        return len(s) * size * (0.6 if bold else 0.55) + spacing * max(len(s) - 1, 0)
+            return self.get(face, size).getlength(s) + extra
+        return len(s) * size * (0.56 if face.startswith("serif") else 0.54) + extra
 
-    def fit(self, s: str, size: int, room: float, bold: bool = False) -> str:
-        if self.width(s, size, bold) <= room:
+    def fit(self, s: str, size: int, room: float, face: str = "sans") -> str:
+        if self.width(s, size, face) <= room:
             return s
-        while s and self.width(s + "…", size, bold) > room:
+        while s and self.width(s + "…", size, face) > room:
             s = s[:-1]
-        return s.rstrip() + "…"
-
-
-def _routes(routes: list[tuple[str, Decimal]]) -> tuple[Decimal | None, list[str]]:
-    direct = next((v for lab, v in routes if lab == "Direct"), None)
-    funds = [lab.removeprefix("via ") for lab, _ in routes if lab != "Direct"]
-    return direct, funds
+        return s.rstrip(" ,.") + "…"
 
 
 def _and(items: list[str]) -> str:
     return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
-def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
-    ops: list[Text | Rect] = [Rect(0, 0, W, H, BG)]
-    room = W - 2 * PAD
+def _label(x: float, y: float, s: str, color: str = MUTED, anchor: str = "start") -> Text:
+    """Small tracked capitals: section labels."""
+    return Text(x, y, s.upper(), 15, "sans-bold", color, anchor, 2.2)
 
-    ops.append(Text(PAD, 96, "BUFFETTBOT", 22, GOLD, True, spacing=4))
+
+def _date(iso: str) -> str:
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", iso or "")
+    return f"{int(m[3])} {months[int(m[2]) - 1]} {m[1]}" if m else iso
+
+
+def _bucket_column(ops: list, x: float, y: float, w: float, title: str,
+                   buckets: list[tuple[str, Decimal]], fonts: Fonts) -> None:
+    ops.append(_label(x, y, title))
+    total = sum((v for _, v in buckets), Decimal(0)) or Decimal(1)
+    bx = x
+    for i, (label, value) in enumerate(buckets):
+        seg = float(value / total) * w
+        color = REST if label == "Other" else SEGMENTS[i % len(SEGMENTS)]
+        ops.append(Rect(bx, y + 16, max(seg - 2, 1), 10, color))
+        bx += seg
+    for i, (label, value) in enumerate(buckets):
+        ry = y + 58 + i * 30
+        color = REST if label == "Other" else SEGMENTS[i % len(SEGMENTS)]
+        ops.append(Rect(x, ry - 11, 10, 10, color, 5))
+        value_s = pct(value)
+        room = w - 22 - fonts.width(value_s, 20, "sans-bold") - 16
+        ops.append(Text(x + 20, ry, fonts.fit(label, 20, room), 20, "sans", INK))
+        ops.append(Text(x + w, ry, value_s, 20, "sans-bold", INK, "end"))
+
+
+def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
+    ops: list[Text | Rect] = [Rect(0, 0, W, H, PAPER)]
+    room = W - 2 * PAD
+    right = W - PAD
+
+    # Masthead
+    ops.append(Text(PAD, 78, "BUFFETTBOT", 18, "sans-bold", INK, spacing=4))
     badge = ("DEMO · SYNTHETIC PORTFOLIO" if card.demo
-             else "PARTIAL · FACTSHEET TOP 10s" if card.partial else "")
+             else "PARTIAL · TOP-10 DEPTH" if card.partial else "")
     if badge:
-        bw = fonts.width(badge, 16, True, 1.5) + 32
-        ops += [Rect(W - PAD - bw, 72, bw, 36, PANEL, 18),
-                Text(W - PAD - 16, 96, badge, 16, MUTED, True, "end", 1.5)]
-    ops.append(Text(PAD, 172, "What this portfolio actually owns", 50, INK, True))
+        ops.append(_label(right, 78, badge, OCHRE, "end"))
+    elif card.as_of:
+        ops.append(_label(right, 78, f"As of {_date(card.as_of)}", MUTED, "end"))
+    ops.append(Rect(PAD, 102, room, 1.5, INK))
+
+    # Title, the second line in italic: the editorial turn
+    ops.append(Text(PAD, 186, "What this portfolio", 64, "serif", INK))
+    ops.append(Text(PAD, 256, "actually owns.", 64, "serif-italic", GREEN))
     parts = []
     if card.companies:
         parts.append(f"{card.companies:,} companies")
     holds = [f"{len(card.funds)} fund{'s' if len(card.funds) != 1 else ''}"]
     if card.direct:
         holds.append(f"{card.direct} stock{'s' if card.direct != 1 else ''}")
-    parts.append("inside " + " and ".join(holds))
-    sub = " ".join(parts) + (f" · as of {card.as_of}" if card.as_of else "")
-    ops.append(Text(PAD, 218, fonts.fit(sub, 24, room), 24, MUTED))
+    deck = " ".join(parts + ["inside " + " and ".join(holds)])
+    if (badge or not card.as_of) and card.as_of:
+        deck += f" · as of {_date(card.as_of)}"
+    ops.append(Text(PAD, 304, fonts.fit(deck, 24, room), 24, "sans", MUTED))
 
-    # Hero: the biggest hidden bet
-    y = 252
-    ops.append(Rect(PAD, y, room, 196, PANEL, 20))
+    # Hero: the biggest hidden bet, and the bar that splits it
+    y = 340
+    ops.append(Rect(PAD, y, room, 1, RULE))
     if card.hero:
         name, routes, total, added = card.hero
-        direct, funds = _routes(routes)
-        ops.append(Text(PAD + 36, y + 50, "BIGGEST HIDDEN BET", 17, GOLD, True, spacing=2))
+        top_label, largest = max(routes, key=lambda r: (r[1], r[0] == "Direct"))
+        others = [("your own shares" if lab == "Direct" else lab.removeprefix("via "))
+                  for lab, _ in routes if lab != top_label]
+        ops.append(_label(PAD, y + 42, "The biggest hidden bet", OCHRE))
         big = pct(total)
-        ops.append(Text(PAD + 36, y + 150, big, 84, GOLD, True))
-        left = PAD + 36 + fonts.width(big, 84, True) + 40
-        avail = PAD + room - 36 - left
-        ops.append(Text(left, y + 108, fonts.fit(name, 34, avail, True), 34, INK, True))
-        if direct is not None:
-            line1 = f"{direct:.2f}% owned directly"
-            line2 = f"+ {added:.2f}% more through {_and(funds)}"
-        else:
-            line1 = f"all of it through {_and(funds)}"
-            line2 = "none of it owned directly"
-        ops.append(Text(left, y + 146, fonts.fit(line1, 24, avail), 24, MUTED))
-        ops.append(Text(left, y + 178, fonts.fit(line2, 24, avail), 24, MUTED))
+        ops.append(Text(PAD - 4, y + 168, big, 132, "serif", INK))
+        left = PAD + fonts.width(big, 132, "serif") + 36
+        avail = right - left
+        ops.append(Text(left, y + 98, fonts.fit(name, 34, avail, "serif"), 34, "serif", INK))
+        seen = (f"{largest:.2f}% owned directly" if top_label == "Direct"
+                else f"{largest:.2f}% through {top_label.removeprefix('via ')}")
+        ops.append(Text(left, y + 134, fonts.fit(seen, 22, avail), 22, "sans", INK))
+        ops.append(Text(left, y + 166, fonts.fit(f"+ {added:.2f}% more inside {_and(others)}",
+                                                 22, avail), 22, "sans-bold", OCHRE))
+        # The signature: one bar, the part a single holding shows in ink and
+        # the part the others add in ochre
+        by = y + 200
+        split = float(largest / total) * room
+        ops.append(Rect(PAD, by, split - 2, 14, INK))
+        ops.append(Rect(PAD + split, by, room - split, 14, OCHRE))
+        ops.append(Text(PAD, by + 40, "what one holding shows", 17, "sans", MUTED))
+        ops.append(Text(right, by + 40, "what the others add", 17, "sans", OCHRE, "end"))
     else:
         name, total = card.top[0]
-        ops.append(Text(PAD + 36, y + 50, "LARGEST COMPANY", 17, GOLD, True, spacing=2))
-        ops.append(Text(PAD + 36, y + 150, pct(total), 84, GOLD, True))
-        left = PAD + 36 + fonts.width(pct(total), 84, True) + 40
-        ops.append(Text(left, y + 120, fonts.fit(name, 34, PAD + room - 36 - left, True), 34, INK, True))
+        ops.append(_label(PAD, y + 42, "The largest company, all holdings combined", GREEN))
+        ops.append(Text(PAD - 4, y + 168, pct(total), 132, "serif", INK))
+        left = PAD + fonts.width(pct(total), 132, "serif") + 36
+        ops.append(Text(left, y + 120, fonts.fit(name, 34, right - left, "serif"), 34, "serif", INK))
+    y = 604
+    ops.append(Rect(PAD, y, room, 1, RULE))
 
-    # Top 10 companies
-    y = 500
-    ops.append(Text(PAD, y, "TOP 10 COMPANIES, ALL HOLDINGS COMBINED", 17, MUTED, True, spacing=2))
+    # Top 10: a ledger -- rank, name, a hairline bar, the figure
+    ops.append(_label(PAD, y + 44, "Top 10 companies, all holdings combined"))
     biggest = max((v for _, v in card.top), default=Decimal(1)) or Decimal(1)
-    name_w, val_w = 380, 96
-    bar_x, bar_w = PAD + name_w, room - name_w - val_w
+    rank_w, name_w, val_w = 44, 400, 92
+    bar_x = PAD + rank_w + name_w
+    bar_w = room - rank_w - name_w - val_w
     for i, (name, value) in enumerate(card.top):
-        ry = y + 20 + i * 36
-        ops.append(Text(PAD, ry + 23, fonts.fit(name, 22, name_w - 20), 22, INK))
-        ops.append(Rect(bar_x, ry + 6, bar_w, 22, TRACK, 11))
-        ops.append(Rect(bar_x, ry + 6, max(float(value / biggest) * bar_w, 22), 22, GOLD, 11))
-        ops.append(Text(W - PAD, ry + 23, pct(value), 22, INK, True, "end"))
+        ry = y + 86 + i * 30
+        ops.append(Text(PAD, ry, f"{i + 1}", 20, "serif-italic", MUTED))
+        ops.append(Text(PAD + rank_w, ry, fonts.fit(name, 21, name_w - 24), 21, "sans", INK))
+        ops.append(Rect(bar_x, ry - 9, bar_w, 4, TRACK, 2))
+        ops.append(Rect(bar_x, ry - 9, max(float(value / biggest) * bar_w, 4), 4, GREEN, 2))
+        ops.append(Text(right, ry, pct(value), 21, "sans-bold", INK, "end"))
+    y = y + 86 + 30 * (len(card.top) - 1) + 28
+    ops.append(Rect(PAD, y, room, 1, RULE))
 
-    # Countries and sectors: one stacked bar each, legend under it
-    y = 500 + 20 + 36 * len(card.top) + 50
-    for title, buckets in (("COUNTRIES", card.countries), ("SECTORS", card.sectors)):
-        if not buckets:
-            continue
-        ops.append(Text(PAD, y, title, 17, MUTED, True, spacing=2))
-        total = sum((v for _, v in buckets), Decimal(0)) or Decimal(1)
-        x = float(PAD)
-        legend = []
-        for i, (label, value) in enumerate(buckets):
-            w = float(value / total) * room
-            color = REST if label == "Other" else SEGMENTS[i % len(SEGMENTS)]
-            ops.append(Rect(x, y + 16, max(w, 2), 26, color))
-            x += w
-            legend.append((label, value, color))
-        lx, ly = float(PAD), y + 74
-        for label, value, color in legend:
-            item = f"{label} {pct(value)}"
-            iw = fonts.width(item, 20) + 22
-            if lx + iw > W - PAD:
-                lx, ly = float(PAD), ly + 30
-            ops.append(Rect(lx, ly - 13, 12, 12, color, 6))
-            ops.append(Text(lx + 20, ly, item, 20, INK))
-            lx += iw + 22
-        y = ly + 52
+    # Countries and sectors side by side
+    columns = [(t, b) for t, b in (("Countries", card.countries), ("Sectors", card.sectors)) if b]
+    gap = 48
+    col_w = (room - gap) / 2
+    for i, (title, buckets) in enumerate(columns):
+        _bucket_column(ops, PAD + i * (col_w + gap), y + 44, col_w, title, buckets, fonts)
+    if columns:
+        y += 44 + 58 + 30 * (max(len(b) for _, b in columns) - 1) + 8
 
-    # The overlap line only where it clears the footer
-    if card.overlap and y <= H - 122:
+    # Overlap, in the serif's italic, where it clears the footer
+    if card.overlap and y + 44 <= H - 104:
         pair, n, shared = card.overlap
-        text = f"Fund overlap: {pair} share {int(n):,} companies · {pct(shared)} shared weight"
-        ops.append(Text(PAD, y, fonts.fit(text, 22, room), 22, INK))
+        text = f"{pair} share {int(n):,} companies, {pct(shared)} shared weight."
+        ops.append(Text(PAD, y + 44, fonts.fit(text, 24, room, "serif-italic"), 24,
+                        "serif-italic", INK))
 
-    ops.append(Rect(PAD, H - 96, room, 1, TRACK))
-    ops.append(Text(PAD, H - 58, f"Made with BuffettBot · free and open source · {REPO}", 20, INK))
-    ops.append(Text(PAD, H - 28, "Percentages of the portfolio's market value · research, "
-                    "not financial advice", 16, MUTED))
+    # Footer
+    ops.append(Rect(PAD, H - 92, room, 1.5, INK))
+    ops.append(Text(PAD, H - 58, "Made with BuffettBot, free and open source", 18, "sans-bold", INK))
+    ops.append(Text(right, H - 58, REPO, 18, "sans-bold", GREEN, "end"))
+    ops.append(Text(PAD, H - 30, "Percentages of the portfolio's market value. Research, "
+                    "not financial advice.", 15, "sans", MUTED))
     return ops
+
+
+def _font_faces() -> str:
+    """@font-face rules with the bundled faces inline, so the SVG looks the
+    same in any browser; a viewer that ignores them falls back to FALLBACK."""
+    import base64
+    rules = []
+    for file, family, weight, style in FACES.values():
+        path = FONTS / file
+        if path.exists():
+            data = base64.b64encode(path.read_bytes()).decode("ascii")
+            rules.append(f"@font-face{{font-family:'{family}';font-weight:{weight};"
+                         f"font-style:{style};src:url(data:font/ttf;base64,{data}) format('truetype')}}")
+    return "".join(rules)
 
 
 def svg(ops: list[Text | Rect]) -> str:
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
-           f'viewBox="0 0 {W} {H}">']
+           f'viewBox="0 0 {W} {H}">', f"<style>{_font_faces()}</style>"]
     for op in ops:
         if isinstance(op, Rect):
             out.append(f'<rect x="{op.x:.1f}" y="{op.y:.1f}" width="{op.w:.1f}" height="{op.h:.1f}" '
                        f'rx="{op.r:g}" fill="{op.color}"/>')
         else:
+            _, family, weight, style = FACES[op.face]
             extra = f' letter-spacing="{op.spacing:g}"' if op.spacing else ""
-            out.append(f'<text x="{op.x:.1f}" y="{op.y:.1f}" font-family="{FONT_STACK}" '
-                       f'font-size="{op.size}" font-weight="{700 if op.bold else 400}" '
-                       f'fill="{op.color}" text-anchor="{op.anchor}"{extra}>{escape(op.s)}</text>')
+            out.append(f'<text x="{op.x:.1f}" y="{op.y:.1f}" font-family="\'{family}\', '
+                       f'{FALLBACK[family]}" font-size="{op.size}" font-weight="{weight}" '
+                       f'font-style="{style}" fill="{op.color}" text-anchor="{op.anchor}"{extra}>'
+                       f'{escape(op.s)}</text>')
     out.append("</svg>")
     return "\n".join(out) + "\n"
 
@@ -411,7 +458,7 @@ def svg(ops: list[Text | Rect]) -> str:
 def png(ops: list[Text | Rect], fonts: Fonts, path: Path) -> None:
     from PIL import Image, ImageDraw
     scale = 2  # draw at 2x and downsample, for smooth edges
-    img = Image.new("RGB", (W * scale, H * scale), BG)
+    img = Image.new("RGB", (W * scale, H * scale), PAPER)
     d = ImageDraw.Draw(img)
     for op in ops:
         if isinstance(op, Rect):
@@ -420,19 +467,18 @@ def png(ops: list[Text | Rect], fonts: Fonts, path: Path) -> None:
                 d.rounded_rectangle(box, radius=min(op.r, op.h / 2, op.w / 2) * scale, fill=op.color)
             else:
                 d.rectangle(box, fill=op.color)
+            continue
+        font = fonts.get(op.face, op.size * scale)
+        x = op.x * scale
+        if op.spacing:
+            if op.anchor == "end":
+                x -= fonts.width(op.s, op.size, op.face, op.spacing) * scale
+            for ch in op.s:
+                d.text((x, op.y * scale), ch, font=font, fill=op.color, anchor="ls")
+                x += font.getlength(ch) + op.spacing * scale
         else:
-            font = fonts.get(op.size * scale, op.bold)
-            x = op.x * scale
-            if op.spacing:
-                width = fonts.width(op.s, op.size, op.bold, op.spacing) * scale
-                if op.anchor == "end":
-                    x -= width
-                for ch in op.s:
-                    d.text((x, op.y * scale), ch, font=font, fill=op.color, anchor="ls")
-                    x += font.getlength(ch) + op.spacing * scale
-            else:
-                d.text((x, op.y * scale), op.s, font=font, fill=op.color,
-                       anchor="rs" if op.anchor == "end" else "ls")
+            d.text((x, op.y * scale), op.s, font=font, fill=op.color,
+                   anchor="rs" if op.anchor == "end" else "ls")
     img.resize((W, H), Image.LANCZOS).save(path, optimize=True)
 
 

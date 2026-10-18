@@ -1063,6 +1063,14 @@ fund — and because a card people post is how others find the skill.
   drawn, so a card can be posted without saying what anyone has; a test
   checks every bare number on the demo card is a count or the date. A demo
   card says `DEMO · SYNTHETIC PORTFOLIO`.
+- **The card's look is an annual letter** (revised the same day, at the
+  user's ask): cream paper, ink, hairline rules, Fraunces for the title and
+  the large figures, Inter for labels, one green and one ochre. The
+  signature is a split bar under the hero figure: in ink, what a single
+  holding shows; in ochre, what the others add. The two faces ship in
+  `assets/fonts/`, subset to Latin (about 140 KB, SIL OFL 1.1, licence
+  beside them), so the PNG and the SVG look the same wherever the skill
+  runs; the SVG carries them inline.
 - **The hero is the bet with the most `Added by the others`**, not the
   largest Total: the largest Total is usually a stock bought on purpose,
   while the most added is what the user did not see.
