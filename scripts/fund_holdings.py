@@ -591,7 +591,35 @@ def latest_file(holdings_dir: Path, ticker: str) -> Path | None:
 
 # --- fetching ---------------------------------------------------------------
 
+VANGUARD_MAX_PAGES = 20
+
+
 def fetch(source: Source, timeout: float = 60) -> bytes:
+    """The issuer's file. Vanguard's API pages a large fund (All-World: ~3,700
+    rows) at 1,500 rows: every page is fetched and the items joined into one
+    response, saved as such, whose totalHoldings parse_vanguard still checks."""
+    if source.issuer != "vanguard" or not source.body:
+        return fetch_once(source, timeout)
+    items: list = []
+    key = None
+    for _page in range(VANGUARD_MAX_PAGES):
+        body = json.loads(json.dumps(source.body))
+        body["variables"]["lastItemKey"] = key
+        data = fetch_once(replace(source, body=body), timeout)
+        try:
+            payload = json.loads(data)
+            block = payload["data"]["borHoldings"][0]["holdings"]
+        except (ValueError, KeyError, IndexError, TypeError):
+            return data  # parse_vanguard says what is wrong with it
+        items.extend(block.get("items") or [])
+        key = block.get("lastItemKey")
+        if not key:
+            block["items"] = items
+            return json.dumps(payload).encode()
+    raise Refused(f"more than {VANGUARD_MAX_PAGES} pages of holdings")
+
+
+def fetch_once(source: Source, timeout: float = 60) -> bytes:
     body = json.dumps(source.body).encode() if source.body is not None else None
     headers = {"User-Agent": UA, "Accept": "*/*", **dict(source.headers)}
     if body is not None:

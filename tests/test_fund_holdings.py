@@ -925,3 +925,27 @@ def test_the_users_funds_file_parses():
     if path.is_file():
         assert {s.ticker for s in fh.load_funds(path).values()} == {"SPPW", "MEUD", "EIMI", "VUSA"}
     assert fh.load_funds(REPO / "templates" / "me" / "funds.md") == {}
+
+
+def test_vanguard_pages_are_joined(monkeypatch):
+    def item(n):
+        return {"issuerName": f"Co {n}", "securityLongDescription": f"Co {n}",
+                "marketValuePercentage": 0.5, "isin": "US0378331005", "ticker": "X",
+                "securityType": "EQ.STOCK", "effectiveDate": "2026-09-30",
+                "bloombergIsoCountry": "US"}
+    pages = {None: ([item(i) for i in range(150)], "k1"), "k1": ([item(i) for i in range(50)], None)}
+    seen = []
+
+    def once(source, timeout=60):
+        key = source.body["variables"]["lastItemKey"]
+        seen.append(key)
+        items, nxt = pages[key]
+        return json.dumps({"data": {"borHoldings": [{"holdings": {
+            "items": items, "totalHoldings": 200, "lastItemKey": nxt}}]}}).encode()
+    monkeypatch.setattr(fh, "fetch_once", once)
+    src = fh.make_source("VWCE", "IE00BK5BQT80", "vanguard", "9679")
+    data = fh.fetch(src)
+    assert seen == [None, "k1"]
+    as_of, rows = fh.parse_vanguard(data, src)
+    assert len(rows) == 200 and as_of == date(2026, 9, 30)
+    assert src.body["variables"]["lastItemKey"] is None  # the catalogue's source is untouched
