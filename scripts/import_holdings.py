@@ -67,8 +67,9 @@ ISIN_RE = re.compile(r"\b([A-Z]{2}[A-Z0-9]{9}[0-9])\b")
 # same field. "amount" is last for quantity: some apps mean shares by it,
 # others money, so a quantity read from it is flagged.
 SYNONYMS: dict[str, list[str]] = {
-    "isin": ["isin", "isin code", "symbol isin", "isin symbol", "product isin",
-             "security isin", "instrument isin", "isin wkn", "wkn isin", "isin number"],
+    "isin": ["isin", "isin code", "code isin", "symbol isin", "symbool isin", "isin symbol",
+             "product isin", "security isin", "instrument isin", "isin wkn", "wkn isin",
+             "isin number", "codice isin", "codigo isin", "kod isin"],
     "ticker": ["ticker", "symbol", "ticker symbol", "instrument symbol", "trading symbol",
                "code", "instrument code", "epic", "kurzel", "kuerzel", "simbolo",
                "symbole", "тикер", "символ"],
@@ -76,13 +77,19 @@ SYNONYMS: dict[str, list[str]] = {
              "instrument", "security description", "description", "asset", "asset name",
              "company", "company name", "fund", "fund name", "holding", "bezeichnung",
              "wertpapier", "titel", "nom", "nombre", "nome", "titolo", "naam", "nazwa",
-             "наименование", "название", "име", "инструмент"],
+             "наименование", "название", "име", "инструмент", "stock", "stock name",
+             "libelle", "libelle valeur", "designation", "titre", "nom du titre",
+             "denominazione", "descrizione", "nombre del valor", "valor", "investment",
+             "investment name", "holding name", "security name description"],
     "quantity": ["quantity", "qty", "shares", "no of shares", "number of shares",
                  "share quantity", "units", "no of units", "number of units", "position",
                  "open quantity", "volume", "anzahl", "stuck", "stueck", "stuckzahl",
                  "menge", "bestand", "nominal", "quantite", "nombre de parts", "cantidad",
                  "titulos", "quantita", "aantal", "ilosc", "liczba", "количество",
-                 "брой", "количество акции", "amount"],
+                 "брой", "количество акции", "units held", "shares held", "quantity held",
+                 "holding units", "stuck nominale", "stueck nominale", "stuck nominal",
+                 "nominale", "aantal stuks", "nombre de titres", "numero de titulos",
+                 "n titulos", "participaciones", "quote", "amount"],
     "currency": ["currency", "ccy", "currency code", "wahrung", "waehrung", "devise",
                  "moneda", "divisa", "valuta", "waluta", "валюта", "валута"],
     "type": ["type", "action", "side", "transaction type", "trade type", "buy sell",
@@ -100,6 +107,13 @@ VALUE_WORDS = (r"(market |current |position |total |portfolio )?(value|valuation
                r"valor|valor de mercado|valor actual|valore|controvalore|valore di mercato|"
                r"wartosc|wartosc rynkowa|стоимость|рыночная стоимость|стойност|пазарна стойност)")
 VALUE_HEADER = re.compile(r"^" + VALUE_WORDS + r"( in| en| w| в)?( (?P<ccy>[a-z]{3}))?$")
+# Headers that only contain a value phrase: "Mkt Val (Market Value)".
+VALUE_INSIDE = re.compile(r"\b(market value|mkt val|current value|position value|value in|"
+                          r"marktwert|kurswert|valeur de marche|valor de mercado|"
+                          r"valore di mercato|wartosc rynkowa|пазарна стойност)\b")
+NOT_A_VALUE = re.compile(r"\b(change|chng|gain|loss|cost|price|kurs|cours|precio|prezzo|"
+                         r"day|today|daily|unrealized|unrealised|p l|pnl|percent|pct|yield|"
+                         r"dividend|interest|fee|tax|basis|average|avg|buy|purchase|book)\b")
 LOCAL_VALUE = re.compile(r"\blocal\b|\blokal|\blocale?\b|\bnative\b")
 
 BUY = re.compile(r"\b(buy|bought|purchase|kauf|achat|compra|acquisto|koop|kupno|"
@@ -226,7 +240,19 @@ def decimal_comma(values: list[str], delimiter: str) -> bool:
     return decimal_mode(values, delimiter)[0]
 
 
+_CCY_TEXT = re.compile(r"\b(" + "|".join(sorted({
+    "EUR", "USD", "GBP", "GBX", "CHF", "PLN", "SEK", "NOK", "DKK", "BGN", "CZK", "HUF", "RON",
+    "JPY", "CAD", "AUD", "NZD", "HKD", "SGD", "ZAR", "TRY", "ILS", "CNY", "GBp", "PENCE",
+    "LV", "ZL", "KC"})) + r")\b", re.I)
+
+
 def parse_number(raw: str, comma: bool) -> Decimal | None:
+    """A number as an export writes it, or None. A cell with letters besides a
+    currency (an ISIN, a name) is not a number, however many digits it has."""
+    text = _CCY_TEXT.sub("", str(raw or ""))
+    text = re.sub(r"[€$£¥₽₴]|лв\.?|zł|kč", "", text, flags=re.I)
+    if re.search(r"[^\W\d_]", text):
+        return None
     s = _clean_number(raw)
     if not s or s in "-+":
         return None
@@ -309,12 +335,33 @@ def map_columns(header: list[str], overrides: dict[str, str]) -> tuple[dict[str,
             if name in normed and normed.index(name) not in cols.values():
                 cols[field] = normed.index(name)
                 break
+    if "quantity" not in cols:
+        # "Qty (Quantity)", "Number of units held": a header that names a count
+        # and nothing about money.
+        for i, n in enumerate(normed):
+            words = set(n.split())
+            if (i not in cols.values() and words & QTY_WORDS and not NOT_A_VALUE.search(n)
+                    and not VALUE_INSIDE.search(n) and "value" not in words):
+                cols["quantity"] = i
+                break
     return cols, {f: header[i] for f, i in cols.items()}
+
+
+QTY_WORDS = {"qty", "quantity", "shares", "units", "stuck", "stueck", "aantal", "quantite",
+             "cantidad", "quantita", "liczba", "ilosc", "количество", "брой"}
 
 
 def _header_score(row: list[str]) -> int:
     known = {n for names in SYNONYMS.values() for n in names}
-    return sum(1 for c in row if norm_header(c) in known)
+    score = 0
+    for c in row:
+        n = norm_header(c)
+        if n in known:
+            score += 1
+        elif n and (VALUE_HEADER.match(n) or VALUE_INSIDE.search(n)
+                    or set(n.split()) & QTY_WORDS) and not NOT_A_VALUE.search(n):
+            score += 1
+    return score
 
 
 def pick_table(tables, overrides):
@@ -351,6 +398,57 @@ class Parsed:
     bad_isin: str = ""  # an ISIN-shaped cell that failed the check digit
     value: Decimal | None = None  # positions exports: the value column, as stated
     value_ccy: str = ""
+    isin_from: str = ""  # "" when the row stated it; else where it was filled in from
+
+
+CATALOG = Path(__file__).resolve().parent.parent / "templates" / "fund-catalog.md"
+TICKER_CELL = re.compile(r"^[A-Z][A-Z0-9.]{0,9}$")
+
+
+def catalog_tickers(path: Path = CATALOG) -> dict[str, str]:
+    """Exchange ticker -> ISIN from the fund catalogue's Tickers column
+    (`VWCE, VWRA = IE00BK5BQT80; VWRL = IE00B3RBWM25`)."""
+    out: dict[str, str] = {}
+    if not path.is_file():
+        return out
+    col = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if "Tickers" in cells:
+            col = cells.index("Tickers")
+            continue
+        if col is None or col >= len(cells) or set(cells[col]) <= set("-: "):
+            continue
+        for group in cells[col].split(";"):
+            if "=" not in group:
+                continue
+            tickers, isin = group.rsplit("=", 1)
+            isin = isin.strip().upper()
+            if not isin_valid(isin):
+                continue
+            for t in tickers.split(","):
+                if t.strip():
+                    out[t.strip().upper()] = isin
+    return out
+
+
+def file_isins(rows: list[list[str]]) -> dict[str, str]:
+    """Symbol -> ISIN from rows elsewhere in the same export that carry both,
+    such as Interactive Brokers' "Financial Instrument Information" section.
+    A symbol seen with two ISINs maps to neither."""
+    seen: dict[str, set[str]] = {}
+    for row in rows:
+        codes = {find_isin(c) for c in row} - {""}
+        if len(codes) != 1:
+            continue
+        isin = codes.pop()
+        for c in row:
+            c = c.strip().upper()
+            if c and c != isin and TICKER_CELL.match(c) and not c.isdigit():
+                seen.setdefault(c, set()).add(isin)
+    return {t: next(iter(v)) for t, v in seen.items() if len(v) == 1}
 
 
 def value_column(header: list[str], taken: set[int]) -> tuple[int, str] | None:
@@ -359,12 +457,17 @@ def value_column(header: list[str], taken: set[int]) -> tuple[int, str] | None:
     found = []
     for i, h in enumerate(header):
         n = norm_header(h)
-        if i in taken or not n:
+        if i in taken or not n or NOT_A_VALUE.search(n):
             continue
         m = VALUE_HEADER.match(n)
-        if not m:
+        if not m and not VALUE_INSIDE.search(n):
             continue
-        ccy = (m.group("ccy") or "").upper()
+        ccy = ((m.group("ccy") if m else "") or "").upper()
+        if not ccy:
+            ccy = next((c for c in re.findall(r"\b([a-z]{3})\b", n) if c.upper() in CCY_CODES),
+                       "").upper()
+        if not ccy:  # "Value (£)": the sign is stripped from the normalised header
+            ccy = next((c for sign, c in CCY_SIGNS.items() if sign in str(h).lower()), "")
         if ccy and ccy not in CCY_CODES:
             continue
         local = bool(LOCAL_VALUE.search(n))
@@ -394,6 +497,15 @@ def parse_export(path: Path, overrides: dict[str, str],
         raise Refused(f"{path.name} is a Trading 212 history export. Portfolio sync reads it "
                       "directly (t212_holdings.py, references/portfolio-sync.md), keeping "
                       "the ownership cutoff and FIFO.")
+    if len(header) > 2 and norm_header(header[1]) == "header":
+        # A multi-section statement (Interactive Brokers): every line starts
+        # with its section's name. Only this section's Data lines are rows;
+        # the others still name ISINs (file_isins below reads all of them).
+        whole = body
+        body = [r for r in body if len(r) > 1 and r[0] == header[0]
+                and norm_header(r[1]) == "data"]
+    else:
+        whole = body
     cols, came_from = map_columns(header, overrides)
     if "quantity" not in cols:
         raise NeedsInput(f"{label}: no quantity column. Columns: "
@@ -405,11 +517,20 @@ def parse_export(path: Path, overrides: dict[str, str],
         return row[i].strip() if i is not None and i < len(row) else ""
 
     quantities = [get(r, "quantity") for r in body]
+    vcol = None if "value" in overrides else value_column(header, set(cols.values()))
     if decimal:
         comma, unsure = decimal == "comma", []
     else:
         comma, unsure = decimal_mode(quantities, delim)
-    vcol = None if "value" in overrides else value_column(header, set(cols.values()))
+        if unsure and vcol is not None:
+            # A value like 15.955,20 settles which separator the file uses.
+            values = [r[vcol[0]] for r in body if vcol[0] < len(r)]
+            v_mode, v_unsure = decimal_mode(values, delim)
+            if not v_unsure and any(_clean_number(v).count(".") + _clean_number(v).count(",") > 1
+                                    or ("," in _clean_number(v) and "." in _clean_number(v))
+                                    for v in values):
+                comma, unsure = v_mode, []
+    by_symbol = file_isins(whole)
     if "value" in cols:
         vcol = (cols["value"], "")
     v_ccy_header = ""
@@ -454,6 +575,9 @@ def parse_export(path: Path, overrides: dict[str, str],
         ticker = get(row, "ticker")
         if find_isin(ticker) == ticker.upper() and ticker:
             ticker = ""  # a "Symbol/ISIN" cell holding the ISIN is not a ticker
+        isin_from = ""
+        if not isin and ticker.upper() in by_symbol:
+            isin, isin_from = by_symbol[ticker.upper()], "this export's instrument list"
         name = get(row, "name")
         qty = parse_number(get(row, "quantity"), comma)
         label_text = name or ticker
@@ -490,7 +614,7 @@ def parse_export(path: Path, overrides: dict[str, str],
         key = isin or (ticker.upper() if ticker else name.lower())
         p = out.get(key)
         if p is None:
-            out[key] = Parsed(key, isin, ticker, name, qty, bad, value, v_ccy)
+            out[key] = Parsed(key, isin, ticker, name, qty, bad, value, v_ccy, isin_from)
         else:
             p.quantity += qty
             p.ticker = p.ticker or ticker
@@ -616,7 +740,9 @@ def write_holdings(path: Path, holdings: list[Holding], as_of: date, source: str
     path.write_text(buf.getvalue(), encoding="utf-8")
 
 
-def guess_kind(name: str, ticker: str) -> str:
+def guess_kind(name: str, ticker: str, isin: str = "") -> str:
+    if isin and isin in set(catalog_tickers().values()):
+        return "fund"  # a fund in Holdnote's catalogue
     return "fund" if FUND_WORDS.search(f"{name} {ticker}") else "stock"
 
 
@@ -634,6 +760,7 @@ def build(parsed: list[Parsed], existing: HoldingsFile | None, isins: dict[str, 
           kinds: dict[str, str]) -> tuple[list[Holding], list[str], list[str]]:
     """Holdings to write, the ISINs whose kind was guessed, and dropped names."""
     lookup = {k.upper(): v.strip().upper() for k, v in isins.items()}
+    known = catalog_tickers()
     need = []
     for p in parsed:
         if p.isin:
@@ -643,6 +770,8 @@ def build(parsed: list[Parsed], existing: HoldingsFile | None, isins: dict[str, 
             if not isin_valid(code):
                 raise Refused(f"--isin {p.ticker or p.name}={code}: not a valid ISIN (check digit)")
             p.isin = code
+        elif p.ticker.upper() in known:
+            p.isin, p.isin_from = known[p.ticker.upper()], "Holdnote's fund catalogue"
         else:
             need.append(p.ticker or p.name)
     if need:
@@ -673,7 +802,7 @@ def build(parsed: list[Parsed], existing: HoldingsFile | None, isins: dict[str, 
         if kind and kind not in KINDS:
             raise Refused(f"--kind {p.ticker or p.isin}={kind}: must be fund or stock")
         if not kind:
-            kind = prev.kind if prev else guess_kind(p.name, p.ticker)
+            kind = prev.kind if prev else guess_kind(p.name, p.ticker, p.isin)
             if not prev:
                 guessed.append(p.isin)
         out.append(Holding(p.isin, p.ticker or (prev.ticker if prev else ""),
@@ -682,7 +811,8 @@ def build(parsed: list[Parsed], existing: HoldingsFile | None, isins: dict[str, 
                            p.value, p.value_ccy if p.value is not None else ""))
     dropped = [h.ticker or h.name or h.isin for i, h in old.items() if i not in merged]
     out.sort(key=lambda h: (h.group, 0 if h.kind == "fund" else 1, h.ticker or h.name))
-    return out, guessed, dropped
+    filled = [f"{p.ticker} {p.isin} ({p.isin_from})" for p in merged.values() if p.isin_from]
+    return out, guessed, dropped, filled
 
 
 def _last_date(values: list[str]) -> date | None:
@@ -736,8 +866,8 @@ def main(argv: list[str] | None = None) -> int:
             parsed.extend(rows)
             infos.append(info)
         existing = load_holdings(args.out) if args.out.exists() else None
-        holdings, guessed, dropped = build(parsed, existing, _pairs(args.isin, "--isin"),
-                                           _pairs(args.kind, "--kind"))
+        holdings, guessed, dropped, filled = build(parsed, existing, _pairs(args.isin, "--isin"),
+                                                   _pairs(args.kind, "--kind"))
         if args.value_currency:
             ccy = args.value_currency.strip().upper()
             if ccy not in CCY_CODES:
@@ -790,6 +920,9 @@ def main(argv: list[str] | None = None) -> int:
                             "values in more than one currency (" + ", ".join(
                                 sorted(c or "not stated" for c in ccys)) + ")")
               + " - weights need closes and exchange rates instead")
+    if filled:
+        print("ISIN filled in, not stated in the export - confirm with the user: "
+              + "; ".join(filled))
     if dropped:
         print("No longer in the export, removed: " + ", ".join(dropped))
     if guessed:
