@@ -35,9 +35,10 @@ full evidence: every source, its date, and the arithmetic behind each figure.
 - **Any broker.** Give it your app's export (CSV or Excel, positions or a
   buy/sell history), a screenshot of your holdings, or just type them. It
   finds the columns in most languages, checks every ISIN, and asks rather
-  than guesses when something is missing. Tested on exports from Degiro,
-  Interactive Brokers, Trading 212, Revolut, Scalable Capital, Comdirect,
-  Hargreaves Lansdown, XTB, Schwab and Fidelity, among others.
+  than guesses when something is missing. Its tests cover exports in the
+  formats of Degiro, Interactive Brokers, Trading 212, Revolut, Scalable
+  Capital, Comdirect, Hargreaves Lansdown, XTB, Schwab and Fidelity, among
+  others.
 - **Your data stays yours.** Your holdings, targets and theses live in a
   `me/` folder **you** choose: a folder on your computer, your own private
   GitHub repo, or nowhere (attach your file when you ask). The skill itself
