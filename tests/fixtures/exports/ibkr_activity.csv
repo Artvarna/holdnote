@@ -1,0 +1,14 @@
+Statement,Header,Field Name,Field Value
+Statement,Data,BrokerName,Interactive Brokers Ireland Limited
+Statement,Data,Period,"October 16, 2026"
+Account Information,Header,Field Name,Field Value
+Account Information,Data,Base Currency,EUR
+Open Positions,Header,DataDiscriminator,Asset Category,Currency,Symbol,Quantity,Mult,Cost Price,Cost Basis,Close Price,Value,Unrealized P/L,Code
+Open Positions,Data,Summary,Stocks,EUR,CSPX,12,1,520.10,6241.2,610.55,7326.6,1085.4,
+Open Positions,Data,Summary,Stocks,EUR,VWCE,50,1,110.2,5510,132.96,6648,1138,
+Open Positions,Data,Summary,Stocks,USD,MSFT,10,1,350,3500,512.4,5124,1624,
+Open Positions,Total,,Stocks,EUR,,,,,,,13974.6,,
+Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Listing Exch,Multiplier,Type,Code
+Financial Instrument Information,Data,Stocks,CSPX,ISHARES CORE S&P 500,75776072,IE00B5BMR087,AEB,1,ETF,
+Financial Instrument Information,Data,Stocks,MSFT,MICROSOFT CORP,272093,US5949181045,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,VWCE,VANGUARD FTSE ALL-WORLD,382960474,IE00BK5BQT80,IBIS2,1,ETF,
