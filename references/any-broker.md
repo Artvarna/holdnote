@@ -32,8 +32,10 @@ them by ISIN.
 
 1. **Into a file.** An attached export is used as it is. A screenshot or a
    typed list is written by the run into `holdings-input.csv` with the header
-   `ticker,name,isin,quantity`, one row per line the user showed, copying
-   exactly what is there and leaving a cell empty when it is not shown. A
+   `ticker,name,isin,quantity,value`, one row per line the user showed,
+   copying exactly what is there — a value with its currency sign or code as
+   shown (`€1,234.56`) — and leaving a cell empty when it is not shown. The
+   values let the portfolio view weigh holdings with no prices to fetch. A
    screenshot that shows values but no quantities: ask for the quantities.
    **A quantity is never derived from value ÷ price.**
 2. **Import.**
@@ -104,6 +106,11 @@ IE00BK5BQT80,VWCE,Vanguard FTSE All-World UCITS ETF,fund,12,Portfolio,
   ```
   python3 <skill>/scripts/market_weights.py --prices prices.json --holdings <holdings.csv>
   ```
+  **No browser** (Claude on the web or a phone): leave out `--prices`. The
+  holdings are then weighed by the values the export stated, when it stated
+  one for every holding in one currency — the export's weights on its date,
+  with nothing fetched. The same holds for `fund_holdings.py report` below:
+  without `--prices` it takes these weights for the look-through.
 - **Look-through** with a GitHub copy: clone its `holdings-data` branch in the
   workspace (etf-brief → Holdings and Look-through tables, step 1) and run
   `report` there on the same files, with no copying to the computer:
@@ -111,6 +118,11 @@ IE00BK5BQT80,VWCE,Vanguard FTSE All-World UCITS ETF,fund,12,Portfolio,
   python3 <skill>/scripts/fund_holdings.py report --funds <me/funds.md> \
       --holdings-dir "$SCRATCH/holdings" --prices prices.json --holdings <holdings.csv>
   ```
+  A fund with no file there (not in `me/funds.md`, or its fetch failed) is
+  left out of the look-through, which says what share of the portfolio it
+  covers; the tables print a `Not looked through` row for it.
   Without GitHub, each fund falls back to its factsheet top 10, labelled
-  partial, as that section says.
+  partial, as that section says, and the last line of the report offers the
+  full view in one line: `Full look-through of every company: say "set up
+  Holdnote" and pick GitHub (free).`
 - **Stocks**: the `stock` rows, in the file's order.

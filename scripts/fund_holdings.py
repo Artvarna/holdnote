@@ -55,7 +55,7 @@ import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 import zipfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from pathlib import Path
@@ -82,6 +82,7 @@ class Source:
     method: str = "GET"
     body: dict | None = None
     headers: tuple[tuple[str, str], ...] = ()
+    alts: tuple[str, ...] = ()  # other URLs for the same file, tried in order when url fails
 
 
 _VANGUARD_QUERY = (
@@ -96,17 +97,36 @@ VANGUARD_URL = "https://www.vanguard.co.uk/gpx/graphql"
 ISSUERS = ("ssga", "ishares", "vanguard", "amundi")
 
 
+ISHARES_PRODUCT = "https://www.ishares.com/uk/individual/en/products/{id}/fund/"
+
+
+def ishares_urls(product_id: str, ticker: str) -> tuple[str, tuple[str, ...]]:
+    """The holdings CSV of an iShares UK product page, from its product ID.
+
+    iShares serves the same CSV at two addresses; the page's own "download
+    holdings" link is the .ajax one. Both are tried, in this order.
+    """
+    base = ISHARES_PRODUCT.format(id=product_id)
+    return (base + f"1506575576011.ajax?fileType=csv&fileName={ticker}_holdings&dataType=fund",
+            (base + "latest-holdings.csv",))
+
+
 def make_source(ticker: str, isin: str, issuer: str, holdings: str = "") -> Source:
     """A fund's holdings source from its issuer and the one thing that issuer needs.
 
-    ssga and ishares: the holdings file's URL. vanguard: the fund's port ID.
+    ssga: the holdings file's URL. ishares: the file's URL or the product ID
+    (the number in its iShares UK page address). vanguard: the fund's port ID.
     amundi: nothing beyond the ISIN.
     """
     issuer = issuer.strip().lower()
     holdings = holdings.strip()
+    if issuer == "ishares" and holdings.isdigit():
+        url, alts = ishares_urls(holdings, ticker)
+        return Source(ticker, isin, issuer, url, "csv", alts=alts)
     if issuer in ("ssga", "ishares"):
         if not holdings.startswith("https://"):
-            raise Refused(f"{ticker}: {issuer} needs the holdings file's https:// link")
+            raise Refused(f"{ticker}: {issuer} needs the holdings file's https:// link"
+                          + (" or its product ID" if issuer == "ishares" else ""))
         return Source(ticker, isin, issuer, holdings, "xlsx" if issuer == "ssga" else "csv")
     if issuer == "vanguard":
         if not holdings.isdigit():
@@ -143,14 +163,19 @@ ISIN_OF = {s.ticker: s.isin for s in SOURCES.values()}
 DEFAULT_FUNDS = Path("me/funds.md")
 
 
-def load_funds(path: Path) -> dict[str, Source]:
-    """The `## Funds` table of a funds file: Ticker | ISIN | Issuer | Holdings file.
+# The fund catalogue shipped with the skill: popular ETFs whose holdings
+# source is known, so a funds.md row needs only ticker and ISIN.
+CATALOG_FILE = Path(__file__).resolve().parent.parent / "templates" / "fund-catalog.md"
 
-    Rows print in the file's order. A row whose ISIN is in CATALOG and whose
-    holdings cell is blank takes the catalog's source under the row's ticker.
+
+def funds_table(path: Path) -> list[tuple[str, str, str, str, list[str]]]:
+    """Rows of a `## Funds` table: (ticker, ISIN, issuer, holdings, also ISINs).
+
+    Columns: Ticker | ISIN | Issuer | Holdings file [| Also [| anything]].
+    `Also` lists other share classes of the same fund, comma-separated: same
+    portfolio, another dividend policy or listing.
     """
-    out: dict[str, Source] = {}
-    known = {s.isin: s for s in CATALOG}
+    rows = []
     in_table = False
     for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
@@ -162,14 +187,48 @@ def load_funds(path: Path) -> dict[str, Source]:
         cells = [c.strip() for c in line.strip("|").split("|")]
         if len(cells) < 3 or cells[0].lower() == "ticker" or set("".join(cells)) <= set("-: "):
             continue
-        ticker, isin, issuer = cells[0].upper(), cells[1].upper(), cells[2]
+        ticker, isin = cells[0].upper(), cells[1].upper()
+        issuer = cells[2] if len(cells) > 2 else ""
         holdings = cells[3] if len(cells) > 3 else ""
         if not (ticker and ISIN.match(isin)):
             raise Refused(f"{path.name}: row {line!r} needs a ticker and a valid ISIN")
-        if not holdings and isin in known and known[isin].issuer == issuer.strip().lower():
-            base = known[isin]
-            out[isin] = Source(ticker, isin, base.issuer, base.url, base.ext, base.method,
-                               base.body, base.headers)
+        also = []
+        for a in (cells[4] if len(cells) > 4 else "").replace(" ", "").split(","):
+            if a and not ISIN.match(a.upper()):
+                raise Refused(f"{path.name}: {ticker}'s Also cell has {a!r}, not an ISIN")
+            if a:
+                also.append(a.upper())
+        rows.append((ticker, isin, issuer.strip().lower(), holdings, also))
+    return rows
+
+
+def catalog() -> dict[str, Source]:
+    """ISIN -> source for every fund the catalogue (and CATALOG) knows,
+    including each `Also` share class, which takes its fund's source."""
+    known = {s.isin: s for s in CATALOG}
+    if CATALOG_FILE.is_file():
+        for ticker, isin, issuer, holdings, also in funds_table(CATALOG_FILE):
+            src = make_source(ticker, isin, issuer, holdings)
+            known.setdefault(isin, src)
+            for a in also:
+                known.setdefault(a, src)
+    return known
+
+
+def load_funds(path: Path) -> dict[str, Source]:
+    """The `## Funds` table of a funds file: Ticker | ISIN | Issuer | Holdings file.
+
+    Rows print in the file's order. A row whose ISIN is in the catalogue
+    (`catalog()`: the fund's own ISIN or another share class of it) and whose
+    holdings cell is blank takes the catalogue's source under the row's own
+    ticker and ISIN; its issuer cell may then be blank too.
+    """
+    out: dict[str, Source] = {}
+    known = catalog()
+    for ticker, isin, issuer, holdings, _also in funds_table(path):
+        base = known.get(isin)
+        if not holdings and base is not None and issuer in ("", base.issuer):
+            out[isin] = replace(base, ticker=ticker, isin=isin)
         else:
             out[isin] = make_source(ticker, isin, issuer, holdings)
     return out
@@ -532,7 +591,35 @@ def latest_file(holdings_dir: Path, ticker: str) -> Path | None:
 
 # --- fetching ---------------------------------------------------------------
 
+VANGUARD_MAX_PAGES = 20
+
+
 def fetch(source: Source, timeout: float = 60) -> bytes:
+    """The issuer's file. Vanguard's API pages a large fund (All-World: ~3,700
+    rows) at 1,500 rows: every page is fetched and the items joined into one
+    response, saved as such, whose totalHoldings parse_vanguard still checks."""
+    if source.issuer != "vanguard" or not source.body:
+        return fetch_once(source, timeout)
+    items: list = []
+    key = None
+    for _page in range(VANGUARD_MAX_PAGES):
+        body = json.loads(json.dumps(source.body))
+        body["variables"]["lastItemKey"] = key
+        data = fetch_once(replace(source, body=body), timeout)
+        try:
+            payload = json.loads(data)
+            block = payload["data"]["borHoldings"][0]["holdings"]
+        except (ValueError, KeyError, IndexError, TypeError):
+            return data  # parse_vanguard says what is wrong with it
+        items.extend(block.get("items") or [])
+        key = block.get("lastItemKey")
+        if not key:
+            block["items"] = items
+            return json.dumps(payload).encode()
+    raise Refused(f"more than {VANGUARD_MAX_PAGES} pages of holdings")
+
+
+def fetch_once(source: Source, timeout: float = 60) -> bytes:
     body = json.dumps(source.body).encode() if source.body is not None else None
     headers = {"User-Agent": UA, "Accept": "*/*", **dict(source.headers)}
     if body is not None:
@@ -557,13 +644,19 @@ def cmd_fetch(holdings_dir: Path, today: date, only: set[str] | None = None) -> 
         if only and source.ticker not in only:
             continue
         path = holdings_dir / f"{source.ticker}-{today.isoformat()}.{source.ext}"
-        try:
-            data = fetch(source)
-            path.write_bytes(data)
-            fund = load_fund(source, path)
-        except Refused as exc:
+        fund, errors = None, []
+        for url in (source.url, *source.alts):
+            try:
+                data = fetch(replace(source, url=url))
+                path.write_bytes(data)
+                fund = load_fund(source, path)
+                break
+            except Refused as exc:
+                errors.append(str(exc))
+        if fund is None:
             failed += 1
-            print(f"{source.ticker}: Not available - {exc}")
+            path.unlink(missing_ok=True)
+            print(f"{source.ticker}: Not available - {'; then '.join(errors)}")
             continue
         equity = sum(1 for r in fund.rows if r.equity)
         print(f"{source.ticker}: {path.as_posix()} - {len(fund.rows)} rows, "
@@ -608,6 +701,7 @@ def canonical_country(raw: object) -> str:
 
 NOT_STATED = "Country not stated"
 CASH = "Cash and other"
+NOT_LOOKED = "Not looked through"  # a fund with no holdings file in this run (fund pack)
 
 
 # --- sectors and currencies -------------------------------------------------
@@ -697,7 +791,7 @@ def bucket_table(column: str, other: str, not_stated: str, order: list[str],
     def total(row):
         return sum((x for x in row if x is not None), Decimal(0))
 
-    tail = {CASH, not_stated}
+    tail = {CASH, not_stated, NOT_LOOKED}
     ranked = sorted((c for c in cells if c not in tail), key=lambda c: (-total(cells[c]), c))
     shown = [c for c in ranked if total(cells[c]) >= min_total]
     folded = [c for c in ranked if c not in shown]
@@ -710,7 +804,7 @@ def bucket_table(column: str, other: str, not_stated: str, order: list[str],
                 if x is not None:
                     rest[i] = (rest[i] or Decimal(0)) + x
         printed.append((f"{other} ({len(folded)})", rest))
-    for c in (not_stated, CASH):
+    for c in (not_stated, CASH, NOT_LOOKED):
         if c in cells and total(cells[c]) != 0:
             printed.append((c, cells[c]))
     cols = len(order) + 1
@@ -783,10 +877,23 @@ def fund_split(fund: Fund, attr: str, peers: dict[str, tuple[str, str]],
 
 def countries_table(order: list[str], funds: dict[str, Fund],
                     fund_weights: dict[str, Decimal], direct: dict[str, Decimal],
-                    min_total: Decimal) -> tuple[list[str], dict]:
+                    min_total: Decimal, uncovered: dict[str, Decimal] | None = None,
+                    ) -> tuple[list[str], dict]:
     split = {t: fund_countries(funds[t]) for t in order}
+    order, split, fund_weights = with_uncovered(order, split, fund_weights, uncovered)
     return bucket_table("Country", "Other countries", NOT_STATED, order, split,
                         fund_weights, direct, min_total)
+
+
+def with_uncovered(order: list[str], split: dict[str, dict[str, Decimal]],
+                   fund_weights: dict[str, Decimal], uncovered: dict[str, Decimal] | None,
+                   ) -> tuple[list[str], dict[str, dict[str, Decimal]], dict[str, Decimal]]:
+    """Add each fund with no holdings file as a column whose whole weight is
+    NOT_LOOKED, so a bucket table still sums to the portfolio."""
+    if not uncovered:
+        return order, split, fund_weights
+    split = {**split, **{t: {NOT_LOOKED: HUNDRED} for t in uncovered}}
+    return order + list(uncovered), split, {**fund_weights, **uncovered}
 
 
 # --- matching ---------------------------------------------------------------
@@ -1072,6 +1179,22 @@ def market_weights(prices_path: Path, data_dir: Path, pies_path: Path,
     import market_weights as mw
     import t212_holdings as t
 
+    if prices_path is None:
+        # No closes to hand: holdings.csv's own export values, when complete.
+        if holdings_path is None or not holdings_path.exists():
+            raise Refused("no --prices file, so no market weights")
+        try:
+            rows, _targets, snapshot, _source = mw.csv_rows(holdings_path)
+            priced, _ccy = mw.value_rows(rows)
+        except mw.Refused as exc:
+            raise Refused(f"no --prices file, and {exc}")
+        total = sum((p.value for p in priced), Decimal(0))
+        if total == 0:
+            raise Refused("portfolio value is zero")
+        return ({p.row.isin: mw._q(p.value / total * 100) for p in priced},
+                {p.row.isin: p.row.ticker for p in priced},
+                {p.row.isin: "stock" if p.row.is_stock else "fund" for p in priced},
+                snapshot or date.today())
     try:
         spec = json.loads(prices_path.read_text(encoding="utf-8"))
         as_of = date.fromisoformat(spec["as_of"])
@@ -1169,6 +1292,14 @@ def currencies_basis(order: list[str]) -> str:
     return ("Currencies basis: " + "; ".join(parts)
             + ". A trading currency, not where a company earns its revenue")
 
+def uncovered_why(uncovered: dict[str, Decimal], refused: dict[str, str]) -> list[str]:
+    """`TICKER 12.34% of the portfolio (why)` for each fund not looked through."""
+    return [f"{t} {w:.2f}% of the portfolio ("
+            + (refused[t] if t in refused else "no holdings source for it in the funds list - "
+               "templates/fund-catalog.md lists the funds Holdnote can fetch") + ")"
+            for t, w in uncovered.items()]
+
+
 def report_no_funds(note: str) -> int:
     """A stocks-only or not-yet-set-up user: nothing to look through, not an error."""
     why = no_funds_reason(note)
@@ -1213,7 +1344,7 @@ def cmd_report(args: argparse.Namespace) -> int:
     pies: dict[str, str] = {}
     lt_reason = ""
     as_of = None
-    if args.prices is None:
+    if args.prices is None and not (getattr(args, "holdings", None) and args.holdings.exists()):
         lt_reason = "no --prices file, so no market weights"
     else:
         try:
@@ -1237,10 +1368,28 @@ def cmd_report(args: argparse.Namespace) -> int:
     print()
 
     stats = None
+    uncovered: dict[str, Decimal] = {}  # fund pack: ticker -> weight not looked through
+    cover_note = ""
     if not lt_reason:
         unpriced = [isin for isin, kind in pies.items()
                     if isin not in SOURCES and kind.lower() != "stock" and weights.get(isin)]
         missing = [t for t in order if t not in funds and weights.get(ISIN_OF[t], Decimal(0)) > 0]
+        if unpriced or missing:
+            # A fund with no holdings file in this run (no source for it, or
+            # its file missing or refused) is reported as not looked through;
+            # the funds that have a file are still looked through.
+            uncovered = {tickers[i]: weights[i] for i in unpriced}
+            uncovered.update({t: weights[ISIN_OF[t]] for t in missing})
+            order = [t for t in order if t in funds]
+            unpriced, missing = [], []
+            if not order:
+                lt_reason = ("no holdings file for any fund ("
+                             + "; ".join(uncovered_why(uncovered, refused)) + ")")
+            else:
+                covered = sum((weights[ISIN_OF[t]] for t in order), Decimal(0))
+                cover_note = (f"covers the funds worth {covered:.2f}% of the portfolio; "
+                             "not looked through: " + ", ".join(
+                                 f"{t} {w:.2f}" for t, w in uncovered.items()))
         if unpriced:
             lt_reason = "no holdings source for " + ", ".join(tickers[i] for i in unpriced)
         elif missing:
@@ -1261,7 +1410,8 @@ def cmd_report(args: argparse.Namespace) -> int:
                 direct_names[k] = tickers[isin]
         lines, stats = lookthrough_table(order, exps, fund_weights, direct, direct_names,
                                          args.top, name_order_)
-        print(f"Look-through (market weights, as of {as_of})")
+        print(f"Look-through (market weights, as of {as_of}"
+              + (f"; {cover_note}" if cover_note else "") + ")")
         print("\n".join(lines))
     print()
 
@@ -1290,7 +1440,8 @@ def cmd_report(args: argparse.Namespace) -> int:
             direct_country[direct_names[k]] = f"{c or NOT_STATED}" + (f" (from {src})" if src else "")
             c = c or NOT_STATED
             by_country[c] = by_country.get(c, Decimal(0)) + w
-        clines, cstats = countries_table(order, funds, fund_weights, by_country, args.min_country)
+        clines, cstats = countries_table(order, funds, fund_weights, by_country, args.min_country,
+                                         uncovered)
         print(f"Countries (market weights, as of {as_of})")
         print("\n".join(clines))
     print()
@@ -1317,7 +1468,8 @@ def cmd_report(args: argparse.Namespace) -> int:
             value, src = peers.get(k, ("", ""))
             direct_src[direct_names[k]] = (value or missing) + (f" (from {src})" if src else "")
             direct_b[value or missing] = direct_b.get(value or missing, Decimal(0)) + w
-        blines, bst = bucket_table(column, other, missing, order, split, fund_weights,
+        b_order, b_split, b_weights = with_uncovered(order, split, fund_weights, uncovered)
+        blines, bst = bucket_table(column, other, missing, b_order, b_split, b_weights,
                                    direct_b, minimum)
         bstats[title] = (bst, {"basis": basis, "direct": direct_src})
         print(f"{title} (market weights, as of {as_of})")
@@ -1327,6 +1479,10 @@ def cmd_report(args: argparse.Namespace) -> int:
     print("METHOD")
     if getattr(args, "funds_note", ""):
         print(f"Funds list: {args.funds_note}")
+    if uncovered:
+        print("Not looked through: " + "; ".join(uncovered_why(uncovered, refused))
+              + f" - each sits in the Countries, Sectors and Currencies tables as "
+              f"{NOT_LOOKED}, and its fund brief has its factsheet top 10")
     for t in order:
         if t in funds:
             f = funds[t]

@@ -115,6 +115,7 @@ class Card:
     sectors: list[tuple[str, Decimal]]
     overlap: tuple[str, str, Decimal] | None
     partial: bool = False
+    partial_label: str = "PARTIAL · TOP-10 DEPTH"
 
 
 def _needed(t: dict[str, list[list[str]]], name: str) -> list[list[str]]:
@@ -149,7 +150,8 @@ def _buckets(rows: list[list[str]], keep: int) -> list[tuple[str, Decimal]]:
         if r[0] == "Total":
             total_row = v
             continue
-        if r[0].startswith("Other ") or r[0].startswith("Cash and other") or "not stated" in r[0]:
+        if (r[0].startswith("Other ") or r[0].startswith("Cash and other") or "not stated" in r[0]
+                or r[0] == "Not looked through"):
             rest += v
         else:
             named.append((r[0], v))
@@ -228,10 +230,16 @@ def read(text: str) -> Card:
             as_of = line.split(":", 1)[1].strip().split()[0].rstrip("·").strip()
     # A look-through at factsheet top-10 depth says so in its heading; the
     # card says so too, since its company weights are then floors.
-    partial = bool(re.search(r"^Look-through\b.*\bpartial\b", result, re.MULTILINE))
+    # So is one that leaves a fund out (no holdings file for it): the weights
+    # are then floors too.
+    partial = bool(re.search(r"^Look-through\b.*\b(partial|not looked through)\b", result,
+                             re.MULTILINE))
+    label = ("PARTIAL · SOME FUNDS NOT LOOKED THROUGH"
+             if re.search(r"^Look-through\b.*\bnot looked through\b", result, re.MULTILINE)
+             else "PARTIAL · TOP-10 DEPTH")
     return Card(as_of=as_of, demo="Demo" in mode, funds=funds, direct=direct,
                 companies=companies, top=top, hero=hero, countries=countries,
-                sectors=sectors, overlap=overlap, partial=partial)
+                sectors=sectors, overlap=overlap, partial=partial, partial_label=label)
 
 
 # --- drawing ------------------------------------------------------------------
@@ -336,7 +344,7 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
     # Masthead
     ops.append(Text(PAD, 78, "HOLDNOTE", 18, "sans-bold", INK, spacing=4))
     badge = ("DEMO · SYNTHETIC PORTFOLIO" if card.demo
-             else "PARTIAL · TOP-10 DEPTH" if card.partial else "")
+             else card.partial_label if card.partial else "")
     if badge:
         ops.append(_label(right, 78, badge, OCHRE, "end"))
     elif card.as_of:

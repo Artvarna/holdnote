@@ -598,8 +598,19 @@ decimals. No word goes on it or near it — not "overweight", "drifted",
 user's decision. `contract.allocation_problems` checks the column and that
 the holding weights sum to 100.
 
-Without the computer (no device shell, or no browser for the ECB rates) the
-table is one line: `Not available (browser route down)` or `Not available
+**Without the computer** (no device shell, or no browser for the closes and
+ECB rates — Claude on the web or a phone) and with `holdings.csv`: run
+`market_weights.py --holdings <holdings.csv>` with **no `--prices`**. When
+the export stated every holding's value in one currency (`import_holdings`
+says so: `Values: every holding's value is in the export`), the table weighs
+each holding by that value, titled `Allocation (weights from the export's
+values, <CCY>, as of <export date>)`, and its `METHOD` lines say no closes were
+read. These are the export's weights on its date, not today's: `CONTEXT` →
+`Latest period` names that date. When the values are incomplete, in two
+currencies, or of unstated currency, the script prints its one-line refusal,
+which is the table; ask for the currency when that is the only gap
+(`--value-currency`), never assume it. With a Trading 212 sync, or no values,
+the table is one line: `Not available (browser route down)` or `Not available
 (computer not linked)`.
 
 ### Holdings and Look-through tables

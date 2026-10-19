@@ -82,11 +82,18 @@ and ask first.
 
 ### Their funds (GitHub only)
 
-For each `fund` row, find its issuer from its ISIN. For SSGA, iShares,
-Vanguard UK or Amundi, find the one thing `me/funds.md` needs (the holdings
-file link, the port ID, or nothing) from the issuer's own fund page in the
-browser, and write the row. A fund from any other issuer gets no row and is
-briefed from its factsheet; say so in one line.
+For each `fund` row, look its ISIN up in the skill's
+`templates/fund-catalog.md`, in the ISIN column or an `Also` cell (another
+share class of the same fund). **Found:** write `| TICKER | ISIN | | |` with
+the user's own ticker and ISIN — `fund_holdings.py` takes the issuer and the
+link from the catalogue, so no lookup is needed, from any device. **Not
+found:** find its issuer from its ISIN; for SSGA, iShares, Vanguard UK or
+Amundi, find the one thing `me/funds.md` needs (the holdings file link, the
+iShares product ID, the Vanguard port ID, or nothing) from the issuer's own
+fund page in the browser, and write the row. With no browser, or a fund from
+any other issuer, it gets no row and is briefed from its factsheet; say so in
+one line. The look-through then covers the other funds and names the share
+it could not look through.
 
 ## 4. The first report
 

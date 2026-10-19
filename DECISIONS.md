@@ -1093,3 +1093,40 @@ would read as exactly that.
 - **Holdnote** was chosen after conflict checks on about twenty names: notes
   on what you hold, simple to spell, and no investing or developer product
   using it as of this date.
+
+## Public launch: web and phone users, fund catalogue, 2026-10-19
+
+A stranger on claude.ai has no desktop browser (so no closes) and no GitHub
+copy (so no full holdings files). Before this, "what do I own?" printed no
+weights for them, and the look-through went blank.
+
+- **No public holdings pack.** Publishing the issuers' full holdings files
+  from the public repo daily (or shipping them in the zip) would give every
+  user full look-through with no setup, but it is the redistribution SSGA's
+  files forbid (2026-10-15), and the other issuers' site terms are no
+  looser. Each user's own copy still fetches their own funds' files for
+  their own use, as before. Daily closes from exchanges or Yahoo are not
+  republished either, for the same reason.
+- **Weights from the export's own values.** Most positions exports state
+  each holding's value. `import_holdings` keeps it with its currency (from
+  the header, the cells, or a per-row currency column; an account-currency
+  column wins over a local one), and `market_weights` without `--prices`
+  weighs holdings by it when every holding has one in one currency. These are
+  the export's weights on its date and say so; nothing is fetched. A value of
+  unstated currency is asked for, never assumed.
+- **A fund catalogue** (`templates/fund-catalog.md`): 23 popular physical
+  ETFs with their holdings source and other share classes. A `funds.md` row
+  for one needs only ticker and ISIN, so GitHub setup needs no browser. Its
+  `Tickers` column fills the ISIN of a ticker-only export row, listed for the
+  user to confirm; tickers that are also US listings of something else are
+  left out. Swap-based funds are not listed: their file is a substitute
+  basket, not the exposure.
+- **Look-through leaves out what it cannot read, and says so.** A fund with
+  no file no longer blanks the whole table: the title gives the share
+  covered, and the bucket tables carry a `Not looked through` row so they
+  still sum to the portfolio. The card calls it partial.
+- **The stranger test.** Twelve exports in brokers' own formats are now
+  fixtures. They found a dangerous bug: a multi-section IBKR statement's ISIN
+  cells were read as quantities (5,949,181,045 shares). A cell with letters
+  besides a currency is no longer a number.
+
