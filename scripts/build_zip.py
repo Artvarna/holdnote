@@ -34,6 +34,7 @@ FILES = {
     "templates/me/pies.md": "templates/me/pies.md",
     "templates/me/ownership.md": "templates/me/ownership.md",
     "templates/me/funds.md": "templates/me/funds.md",
+    "templates/fund-catalog.md": "templates/fund-catalog.md",
     "templates/me/theses/README.md": "templates/me/theses/README.md",
     "scripts/check_output.py": "scripts/check_output.py",
     "scripts/demo.py": "scripts/demo.py",

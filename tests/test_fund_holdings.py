@@ -459,7 +459,7 @@ def test_report_with_weights(holdings_dir, capsys, monkeypatch):
     assert "Countries direct stocks: the country the fund files give the same company" in out
 
 
-def test_report_withholds_lookthrough_when_a_held_fund_has_no_file(holdings_dir, capsys, monkeypatch):
+def test_report_looks_through_the_rest_when_a_held_fund_has_no_file(holdings_dir, capsys, monkeypatch):
     (holdings_dir / "EIMI-2026-10-09.csv").unlink()
     weights = {SPPW.isin: Decimal("60"), MEUD.isin: Decimal("20"),
                EIMI.isin: Decimal("10"), VUSA.isin: Decimal("10")}
@@ -468,8 +468,70 @@ def test_report_withholds_lookthrough_when_a_held_fund_has_no_file(holdings_dir,
                         lambda *a: (weights, tickers, {i: "ETF" for i in weights}, date(2026, 10, 9)))
     fh.cmd_report(report_args(holdings_dir, prices=Path("p.json")))
     out = capsys.readouterr().out
-    assert "| all | Not available - holdings Not available for EIMI (no file in" in out
     assert "| SPPW - MEUD | 1 (largest: ASML Holding NV) | 0.50 |" in out
+    assert ("Look-through (market weights, as of 2026-10-09; covers the funds worth 90.00% of "
+            "the portfolio; not looked through: EIMI 10.00)") in out
+    assert "via EIMI" not in out.split("Look-through (")[1].split("Hidden bets")[0]
+    # The bucket tables still add up to the whole portfolio.
+    countries = out.split("Countries (")[1].split("\n\n")[0]
+    assert "| Not looked through | - | - | - | - | 10.00 | 10.00 |" in countries
+    assert "Not looked through: EIMI 10.00% of the portfolio (EIMI-" not in out
+    assert "Not looked through: EIMI 10.00% of the portfolio (no file in" in out
+
+
+def test_report_withholds_lookthrough_when_no_fund_has_a_file(holdings_dir, capsys, monkeypatch):
+    for f in holdings_dir.iterdir():
+        f.unlink()
+    weights = {SPPW.isin: Decimal("60"), MEUD.isin: Decimal("40")}
+    tickers = {i: fh.SOURCES[i].ticker for i in weights}
+    monkeypatch.setattr(fh, "market_weights",
+                        lambda *a: (weights, tickers, {i: "ETF" for i in weights}, date(2026, 10, 9)))
+    fh.cmd_report(report_args(holdings_dir, prices=Path("p.json")))
+    out = capsys.readouterr().out
+    assert "| all | Not available - no holdings file for any fund (SPPW 60.00% of the portfolio" in out
+
+
+def test_a_catalogue_fund_needs_only_ticker_and_isin(tmp_path):
+    funds = tmp_path / "funds.md"
+    funds.write_text("# Funds\n\n## Funds\n\n| Ticker | ISIN | Issuer | Holdings file |\n"
+                     "|---|---|---|---|\n"
+                     "| CSPX | IE00B5BMR087 | | |\n"
+                     "| VWRL | IE00B3RBWM25 | vanguard | |\n", encoding="utf-8")
+    out = fh.load_funds(funds)
+    cspx, vwrl = out["IE00B5BMR087"], out["IE00B3RBWM25"]
+    assert (cspx.ticker, cspx.issuer) == ("CSPX", "ishares")
+    assert "/products/253743/" in cspx.url and cspx.url.endswith("dataType=fund")
+    assert cspx.alts and cspx.alts[0].endswith("/products/253743/fund/latest-holdings.csv")
+    # VWRL is the distributing share class of VWCE: same holdings, its own ticker and ISIN.
+    assert (vwrl.ticker, vwrl.isin, vwrl.issuer) == ("VWRL", "IE00B3RBWM25", "vanguard")
+    assert vwrl.body["variables"]["portIds"] == ["9679"]
+
+
+def test_the_catalogue_parses_and_names_only_supported_issuers():
+    rows = fh.funds_table(fh.CATALOG_FILE)
+    assert len(rows) >= 20
+    assert {r[2] for r in rows} <= set(fh.ISSUERS)
+    isins = [r[1] for r in rows] + [a for r in rows for a in r[4]]
+    assert len(isins) == len(set(isins))
+    for t, isin, issuer, holdings, _ in rows:
+        fh.make_source(t, isin, issuer, holdings)  # every row makes a source
+
+
+def test_fetch_tries_the_alternate_link(tmp_path, monkeypatch, capsys):
+    tried = []
+
+    def fake(source, timeout=60):
+        tried.append(source.url)
+        if "ajax" in source.url:
+            raise fh.Refused("www.ishares.com returned 404")
+        return ishares_bytes()
+    monkeypatch.setattr(fh, "fetch", fake)
+    url, alts = fh.ishares_urls("264659", "EIMI")
+    monkeypatch.setattr(fh, "SOURCES", {"IE00BKM4GZ66": fh.Source(
+        "EIMI", "IE00BKM4GZ66", "ishares", url, "csv", alts=alts)})
+    assert fh.cmd_fetch(tmp_path, date(2026, 10, 9)) == 0
+    assert len(tried) == 2 and tried[1].endswith("latest-holdings.csv")
+    assert "EIMI: " in capsys.readouterr().out and (tmp_path / "EIMI-2026-10-09.csv").exists()
 
 
 def test_fetch_names_the_host_when_refused(tmp_path, monkeypatch, capsys):
