@@ -42,15 +42,18 @@ def test_demo_card_draws_the_drafts_own_figures(demo_draft, tmp_path):
     t = card.tables(demo_draft.read_text(encoding="utf-8").split("RESULT", 1)[1])
     bets = [r for r in t["Hidden bets"][1:] if r[0] != "none"]
     hero = max(bets, key=lambda r: card.Decimal(r[4]))  # most Added by the others
-    assert "BIGGEST HIDDEN BET" in text and f"{hero[3]}%" in text and hero[0] in text
-    if hero[2].startswith("Direct "):
-        assert f"{hero[2].split()[1]}% owned directly" in text
-    assert f"+ {hero[4]}% more inside SPYI and SPY5" in text
+    assert f"{hero[0]}: {hero[3]}% of the portfolio, reached through 3 holdings" in text
+    routes = dict(part.rsplit(" ", 1) for part in hero[1].split(" · "))
+    assert (f"{routes['Direct']}% owned directly, {routes['via SPYI']}% through SPYI and "
+            f"{routes['via SPY5']}% through SPY5") in text
     us = next(r for r in t["Countries"][1:] if r[0] == "United States")
     assert f"United States {us[-1]}%" in text
     pair = t["Holdings"][1]
     n = pair[1].split()[0]
-    assert f"SPYI and SPY5 share {n} companies, {pair[-1]}% shared weight." in text
+    assert f"Fund overlap {pair[-1]}% SPYI and SPY5 share {n} companies" in text
+    # The top 10 table prints Look-through's own cells
+    first = sorted(t["Look-through"][1:], key=lambda r: -card.Decimal(r[-1]))[0]
+    assert f"1 {first[0]} " + " ".join(f"{c}%" if c != "-" else "–" for c in first[1:]) in text
     assert "not financial advice" in text
 
 
@@ -74,7 +77,8 @@ def test_card_carries_no_amounts(demo_draft, tmp_path):
     bare = re.findall(r"(?<![\w.,])\d[\d,]*(?:\.\d+)?(?![\d.,%]|-\d)",
                       text.replace(card._date(c.as_of), ""))
     counts = {f"{c.companies:,}", str(len(c.funds)), str(c.direct), f"{int(c.overlap[1]):,}",
-              *(str(i) for i in range(1, 11))}  # the ledger's ranks
+              str(c.hidden[0]), str(len(c.hero[1])),  # companies and routes counted
+              *(str(i) for i in range(1, 11))}  # the table's ranks
     assert set(bare) <= counts, bare
 
 
@@ -108,10 +112,10 @@ def test_fund_only_hero_says_none_is_owned_directly():
                         card.Decimal("4.57"), card.Decimal("1.97")),
                   countries=[], sectors=[], overlap=None)
     text = svg_text(card.svg(card.layout(c, card.Fonts())))
-    assert "2.60% through A" in text and "+ 1.97% more inside B" in text
+    assert "2.60% through A and 1.97% through B" in text
     assert "owned directly" not in text
     assert "DEMO" not in text
-    assert "3,000 companies inside 2 funds" in text and "AS OF 15 OCT 2026" in text
+    assert "3,000 companies inside 2 funds" in text and "As of 15 Oct 2026" in text
 
 
 def test_without_pillow_the_svg_is_still_written(demo_draft, tmp_path, monkeypatch):
@@ -161,5 +165,5 @@ def test_own_shares_read_as_shares_not_a_place():
                         card.Decimal("5.00"), card.Decimal("1.00")),
                   countries=[], sectors=[], overlap=None)
     text = svg_text(card.svg(card.layout(c, card.Fonts())))
-    assert "+ 1.00% more in your own shares" in text
+    assert "4.00% through A and 1.00% owned directly" in text
     assert "inside your own shares" not in text

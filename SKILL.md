@@ -385,9 +385,11 @@ is a `METHOD` line, so nothing withheld or unconfirmed goes unsaid.
 
 ## Portfolio card
 
-One image of what a portfolio looks through to, made to be posted: the
-biggest hidden bet, the top 10 companies across every holding, countries,
-sectors and fund overlap, with the Holdnote link at its foot.
+One image of what a portfolio looks through to, set like an issuer's fund
+factsheet and made to be posted: its composition, three key figures, the top
+10 companies across every holding with each fund's part, the company reached
+through most holdings, countries and sectors, with the Holdnote link at its
+foot.
 
 1. **Get a checked Mode C draft** with the tables Allocation, Holdings,
    Look-through, Hidden bets, Countries and Sectors — the user's portfolio

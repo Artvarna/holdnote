@@ -23,7 +23,7 @@ number traceable.
 | `What do I actually own by sector and currency?` | Look-through of every company inside your funds, not just their top 10 (full holdings files with the free GitHub option: 23 popular ETFs such as VWCE, IWDA and CSPX are set up for you, and any other SSGA, iShares, Vanguard UK or Amundi fund in one step; the factsheet top 10 otherwise) |
 | `How much do my ETFs overlap?` | Shared companies and shared weight for each pair of funds |
 | `What am I really betting on?` | **Hidden bets:** every company you own through two or more holdings, and how much more of it you own than any one of them shows |
-| `Make a card` | A shareable image of what your portfolio looks through to: biggest hidden bet, top 10 companies, countries, sectors. Percentages only, never amounts |
+| `Make a card` | A one-page factsheet of what your portfolio looks through to: composition, key figures, top 10 companies with each fund's part, countries, sectors. Percentages only, never amounts |
 | `Should I buy AAPL?` | Buffett's four filters, answered from the scorecard and two questions to you — never a recommendation |
 | `Write a thesis for GOOGL` | A dated thesis in your words, checked against later reports |
 

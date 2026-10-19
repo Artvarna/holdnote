@@ -4,7 +4,7 @@
     python3 scripts/card.py <draft.md> --out <folder>
 
 Reads a checked Mode C draft (a real run or the demo) and draws its
-Look-through, Hidden bets, Countries, Sectors and Holdings tables as one
+Allocation, Look-through, Hidden bets, Countries, Sectors and Holdings tables as one
 1080 x 1350 image, the shape LinkedIn, X and Instagram show in full. It
 writes card.svg always and card.png when Pillow is installed, and prints the
 paths.
@@ -24,7 +24,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -38,29 +38,27 @@ for folder in (HERE, HERE.parent / "tests"):
 import contract  # noqa: E402
 
 W, H = 1080, 1350
-PAD = 72
+PAD = 64
 REPO = "github.com/Artvarna/holdnote"
 
-# Art direction: an annual letter. Cream paper, ink, hairline rules, a serif
-# display face for the title and the large figures, and one accent: the
-# hidden part of the biggest bet, drawn in ochre beside the part a single
-# holding shows.
-PAPER = "#F4EFE4"
-INK = "#1B1A17"
-MUTED = "#6E6A60"
-RULE = "#D6CDBA"
-TRACK = "#E6DECD"
-GREEN = "#1F5B43"
-OCHRE = "#B07A1F"
-# Stacked-bar parts, largest first; the folded Other is REST
-SEGMENTS = ["#1F5B43", "#B07A1F", "#7A8F6A", "#8C5A4B"]
-REST = "#CFC5B0"
+# Art direction: an issuer's fund factsheet. White page, a navy header band,
+# one typeface (Inter) in two weights, hairline rules, figures right-aligned
+# in tables, and one accent colour with tints of it for the parts of a bar.
+PAPER = "#FFFFFF"
+INK = "#14171C"
+MUTED = "#5F6670"
+RULE = "#DADDE2"
+PANEL = "#F2F4F6"
+NAVY = "#1F3A5F"
+ON_NAVY = "#C9D5E4"
+TRACK = "#E4E8ED"
+# Parts of a bar, largest first; the folded Other is REST
+SEGMENTS = ["#1F3A5F", "#4F6D8F", "#8399B3", "#B4C2D3", "#D5DEE8"]
+REST = "#E4E8ED"
 
 FONTS = HERE.parent / "assets" / "fonts"
 # key -> (file, SVG family, weight, style)
 FACES = {
-    "serif": ("Fraunces_600SemiBold.ttf", "BB Serif", 600, "normal"),
-    "serif-italic": ("Fraunces_600SemiBold_Italic.ttf", "BB Serif", 600, "italic"),
     "sans": ("Inter_400Regular.ttf", "BB Sans", 400, "normal"),
     "sans-bold": ("Inter_600SemiBold.ttf", "BB Sans", 600, "normal"),
 }
@@ -116,6 +114,10 @@ class Card:
     overlap: tuple[str, str, Decimal] | None
     partial: bool = False
     partial_label: str = "PARTIAL · TOP-10 DEPTH"
+    holdings: list[tuple[str, Decimal]] = field(default_factory=list)  # Allocation weights
+    columns: list[str] = field(default_factory=list)  # Look-through's cell columns
+    rows: list[tuple[str, list[str], Decimal]] = field(default_factory=list)  # top 10, cells as printed
+    hidden: tuple[int, Decimal] | None = None  # Hidden bets: companies, % together
 
 
 def _needed(t: dict[str, list[list[str]]], name: str) -> list[list[str]]:
@@ -189,8 +191,17 @@ def read(text: str) -> Card:
     funds = [h.split(" ", 1)[1] for h in header if h.startswith("via ")]
     has_direct = "Direct" in header
     di = header.index("Direct") if has_direct else None
-    top = sorted(((r[0], num(r[-1])) for r in lt[1:] if num(r[-1]) is not None),
-                 key=lambda kv: (-kv[1], kv[0]))[:10]
+    ranked = sorted((r for r in lt[1:] if num(r[-1]) is not None),
+                    key=lambda r: (-num(r[-1]), r[0]))[:10]
+    top = [(r[0], num(r[-1])) for r in ranked]
+    columns = header[1:-1]
+    rows = [(r[0], r[1:-1], num(r[-1])) for r in ranked]
+    holdings = []
+    alloc = t.get("Allocation")
+    if alloc and "Weight (market)" in alloc[0] and "Ticker" in alloc[0]:
+        ti, wi = alloc[0].index("Ticker"), alloc[0].index("Weight (market)")
+        holdings = [(r[ti], num(r[wi])) for r in alloc[1:]
+                    if r[ti].lower() != "total" and num(r[wi]) is not None]
     direct = sum(1 for r in lt[1:] if di is not None and num(r[di]) is not None)
 
     hero = None
@@ -213,8 +224,8 @@ def read(text: str) -> Card:
     # for the card asks for both (SKILL.md -> Portfolio card).
     # A Not available one (factsheet top-10 depth gives no country or sector
     # per company) is left off, and the card says why in its place.
-    countries = _buckets(t["Countries"], 3) if _available(t, "Countries") else []
-    sectors = _buckets(t["Sectors"], 3) if _available(t, "Sectors") else []
+    countries = _buckets(t["Countries"], 4) if _available(t, "Countries") else []
+    sectors = _buckets(t["Sectors"], 4) if _available(t, "Sectors") else []
 
     overlap = None
     hold = t.get("Holdings")
@@ -226,6 +237,11 @@ def read(text: str) -> Card:
                 a, b = r[0].split(" - ", 1)
                 overlap = (f"{a} and {b}", m.group(1), shared)
 
+    hidden = None
+    m = re.search(r"Hidden bets:.*?; (\d+) compan(?:y|ies), (\d+\.\d{2}) of the portfolio",
+                  sections.get("METHOD", ""))
+    if m:
+        hidden = (int(m.group(1)), Decimal(m.group(2)))
     companies = None
     m = re.search(r"Look-through rows:.*? of (\d+) companies", sections.get("METHOD", ""))
     if m:
@@ -248,7 +264,8 @@ def read(text: str) -> Card:
         companies = None  # the count of companies in some top 10s says nothing of the funds
     return Card(as_of=as_of, demo="Demo" in mode, funds=funds, direct=direct,
                 companies=companies, top=top, hero=hero, countries=countries,
-                sectors=sectors, overlap=overlap, partial=partial, partial_label=label)
+                sectors=sectors, overlap=overlap, partial=partial, partial_label=label,
+                holdings=holdings, columns=columns, rows=rows, hidden=hidden)
 
 
 # --- drawing ------------------------------------------------------------------
@@ -314,35 +331,60 @@ def _and(items: list[str]) -> str:
     return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
-def _label(x: float, y: float, s: str, color: str = MUTED, anchor: str = "start") -> Text:
-    """Small tracked capitals: section labels."""
-    return Text(x, y, s.upper(), 15, "sans-bold", color, anchor, 2.2)
-
-
 def _date(iso: str) -> str:
-    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", iso or "")
-    return f"{int(m[3])} {months[int(m[2]) - 1]} {m[1]}" if m else iso
+    try:
+        y, m, d = (int(x) for x in iso.split("-"))
+    except ValueError:
+        return iso
+    months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
+    return f"{d} {months[m - 1]} {y}"
+
+
+def _section(ops: list, x: float, y: float, w: float, title: str) -> None:
+    """A section heading as factsheets set them: bold, sentence case, a rule under."""
+    ops.append(Text(x, y, title, 19, "sans-bold", INK))
+    ops.append(Rect(x, y + 12, w, 1.5, NAVY))
 
 
 def _bucket_column(ops: list, x: float, y: float, w: float, title: str,
-                   buckets: list[tuple[str, Decimal]], fonts: Fonts) -> None:
-    ops.append(_label(x, y, title))
-    total = sum((v for _, v in buckets), Decimal(0)) or Decimal(1)
-    bx = x
-    for i, (label, value) in enumerate(buckets):
-        seg = float(value / total) * w
-        color = REST if label == "Other" else SEGMENTS[i % len(SEGMENTS)]
-        ops.append(Rect(bx, y + 16, max(seg - 2, 1), 10, color))
-        bx += seg
-    for i, (label, value) in enumerate(buckets):
-        ry = y + 58 + i * 30
-        color = REST if label == "Other" else SEGMENTS[i % len(SEGMENTS)]
-        ops.append(Rect(x, ry - 11, 10, 10, color, 5))
+                   buckets: list[tuple[str, Decimal]], fonts: Fonts) -> float:
+    """A two-column table, label and % of the portfolio, with a thin bar per row."""
+    _section(ops, x, y, w, title)
+    biggest = max((v for _, v in buckets), default=Decimal(1)) or Decimal(1)
+    ry = y + 44
+    for label, value in buckets:
         value_s = pct(value)
-        room = w - 22 - fonts.width(value_s, 20, "sans-bold") - 16
-        ops.append(Text(x + 20, ry, fonts.fit(label, 20, room), 20, "sans", INK))
-        ops.append(Text(x + w, ry, value_s, 20, "sans-bold", INK, "end"))
+        ops.append(Text(x, ry, fonts.fit(label, 17, w * 0.62), 17, "sans", INK))
+        ops.append(Text(x + w, ry, value_s, 17, "sans-bold", INK, "end"))
+        bar_x, bar_w = x + w * 0.64, w * 0.36 - fonts.width("00.00%", 17, "sans-bold") - 14
+        ops.append(Rect(bar_x, ry - 9, bar_w, 6, TRACK))
+        ops.append(Rect(bar_x, ry - 9, max(float(value / biggest) * bar_w, 2), 6,
+                        REST if label == "Other" else NAVY))
+        ops.append(Rect(x, ry + 10, w, 1, RULE))
+        ry += 30
+    return ry
+
+
+def nice(name: str) -> str:
+    """A name an export or factsheet prints in capitals, as a factsheet would
+    set it: 'APPLE INC. - COMMON ST' -> 'Apple Inc.', 'SK HYNIX' -> 'SK Hynix'.
+    Letters only change case; nothing is added or dropped but a share-type tail."""
+    name = name.split(" - ")[0].strip() or name
+    if name != name.upper() or " " not in name:  # a ticker (VWCE, KO) stays as it is
+        return name
+    return " ".join(w if len(w.strip(".,")) <= 2 else w[0] + w[1:].lower() for w in name.split())
+
+
+def _hero_lines(card: Card) -> tuple[str, str] | None:
+    """The company the portfolio reaches through most holdings, in words."""
+    if not card.hero:
+        return None
+    name, routes, total, _added = card.hero
+    ordered = sorted(routes, key=lambda r: (-r[1], r[0] != "Direct"))
+    parts = [f"{v:.2f}% owned directly" if lab == "Direct"
+             else f"{v:.2f}% through {lab.removeprefix('via ')}" for lab, v in ordered]
+    return (f"{nice(name)}: {pct(total)} of the portfolio, reached through "
+            f"{len(routes)} holdings", _and(parts).capitalize()[0] + _and(parts)[1:])
 
 
 def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
@@ -350,116 +392,136 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
     room = W - 2 * PAD
     right = W - PAD
 
-    # Masthead
-    ops.append(Text(PAD, 78, "HOLDNOTE", 18, "sans-bold", INK, spacing=4))
+    # Header band
+    ops.append(Rect(0, 0, W, 148, NAVY))
+    ops.append(Text(PAD, 56, "Holdnote", 20, "sans-bold", "#FFFFFF"))
+    ops.append(Text(PAD, 112, "Portfolio look-through", 44, "sans-bold", "#FFFFFF"))
+    if card.as_of:
+        ops.append(Text(right, 56, f"As of {_date(card.as_of)}", 18, "sans", "#FFFFFF", "end"))
     badge = ("DEMO · SYNTHETIC PORTFOLIO" if card.demo
              else card.partial_label if card.partial else "")
     if badge:
-        ops.append(_label(right, 78, badge, OCHRE, "end"))
-    elif card.as_of:
-        ops.append(_label(right, 78, f"As of {_date(card.as_of)}", MUTED, "end"))
-    ops.append(Rect(PAD, 102, room, 1.5, INK))
+        bw = fonts.width(badge, 14, "sans-bold") + 28
+        ops.append(Rect(right - bw, 86, bw, 30, "#2C4B73", 4))
+        ops.append(Text(right - 14, 106, badge, 14, "sans-bold", ON_NAVY, "end"))
 
-    # Title, the second line in italic: the editorial turn
-    ops.append(Text(PAD, 186, "What this portfolio", 64, "serif", INK))
-    ops.append(Text(PAD, 256, "actually owns.", 64, "serif-italic", GREEN))
     parts = []
     if card.companies:
         parts.append(f"{card.companies:,} companies")
     holds = [f"{len(card.funds)} fund{'s' if len(card.funds) != 1 else ''}"]
     if card.direct:
         holds.append(f"{card.direct} stock{'s' if card.direct != 1 else ''}")
-    deck = " ".join(parts + ["inside " + " and ".join(holds)])
-    if (badge or not card.as_of) and card.as_of:
-        deck += f" · as of {_date(card.as_of)}"
-    ops.append(Text(PAD, 304, fonts.fit(deck, 24, room), 24, "sans", MUTED))
+    deck = (" ".join(parts + ["inside " + " and ".join(holds)]) if parts
+            else "Holdings: " + " and ".join(holds))
+    ops.append(Text(PAD, 192, fonts.fit(deck, 20, room), 20, "sans", MUTED))
 
-    # Hero: the biggest hidden bet, and the bar that splits it
-    y = 340
-    ops.append(Rect(PAD, y, room, 1, RULE))
-    if card.hero:
-        name, routes, total, added = card.hero
-        top_label, largest = max(routes, key=lambda r: (r[1], r[0] == "Direct"))
-        own = any(lab == "Direct" for lab, _ in routes if lab != top_label)
-        funds = [lab.removeprefix("via ") for lab, _ in routes
-                 if lab != top_label and lab != "Direct"]
-        ops.append(_label(PAD, y + 42, "The biggest hidden bet", OCHRE))
-        big = pct(total)
-        ops.append(Text(PAD - 4, y + 168, big, 132, "serif", INK))
-        left = PAD + fonts.width(big, 132, "serif") + 36
-        avail = right - left
-        ops.append(Text(left, y + 98, fonts.fit(name, 34, avail, "serif"), 34, "serif", INK))
-        seen = (f"{largest:.2f}% owned directly" if top_label == "Direct"
-                else f"{largest:.2f}% through {top_label.removeprefix('via ')}")
-        ops.append(Text(left, y + 134, fonts.fit(seen, 22, avail), 22, "sans", INK))
-        where = " and ".join(([f"inside {_and(funds)}"] if funds else [])
-                             + (["in your own shares"] if own else []))
-        ops.append(Text(left, y + 166, fonts.fit(f"+ {added:.2f}% more {where}",
-                                                 22, avail), 22, "sans-bold", OCHRE))
-        # The signature: one bar, the part a single holding shows in ink and
-        # the part the others add in ochre
-        by = y + 200
-        split = float(largest / total) * room
-        ops.append(Rect(PAD, by, split - 2, 14, INK))
-        ops.append(Rect(PAD + split, by, room - split, 14, OCHRE))
-        ops.append(Text(PAD, by + 40, "what one holding shows", 17, "sans", MUTED))
-        ops.append(Text(right, by + 40, "what the others add", 17, "sans", OCHRE, "end"))
+    # Portfolio composition: one bar, the Allocation weights
+    y = 252
+    if card.holdings:
+        _section(ops, PAD, y, room, "Portfolio composition")
+        held = sorted(card.holdings, key=lambda kv: -kv[1])
+        total = sum((v for _, v in held), Decimal(0)) or Decimal(1)
+        bx = PAD
+        for i, (_, v) in enumerate(held):
+            seg = float(v / total) * room
+            ops.append(Rect(bx, y + 32, max(seg - 2, 1), 16, SEGMENTS[i % len(SEGMENTS)]))
+            bx += seg
+        lx, ly = PAD, y + 80
+        for i, (name, v) in enumerate(held):
+            label = fonts.fit(nice(name), 16, 220)
+            item = fonts.width(label, 16) + fonts.width(pct(v), 16, "sans-bold") + 50
+            if lx + item > right:
+                lx, ly = PAD, ly + 26
+            ops.append(Rect(lx, ly - 11, 11, 11, SEGMENTS[i % len(SEGMENTS)]))
+            ops.append(Text(lx + 18, ly, label, 16, "sans", INK))
+            ops.append(Text(lx + 18 + fonts.width(label, 16) + 8, ly, pct(v), 16, "sans-bold", INK))
+            lx += item
+        y = ly + 28
+
+    # Key figures: three panels
+    gap = 20
+    bw = (room - 2 * gap) / 3
+    panels = [("Largest exposure", pct(card.top[0][1]) if card.top else "-",
+               nice(card.top[0][0]) if card.top else "")]
+    if card.hidden:
+        n, together = card.hidden
+        panels.append(("In more than one holding", pct(together),
+                       f"{n} compan{'y' if n == 1 else 'ies'} reached twice or more"))
     else:
-        name, total = card.top[0]
-        ops.append(_label(PAD, y + 42, "The largest company, all holdings combined", GREEN))
-        ops.append(Text(PAD - 4, y + 168, pct(total), 132, "serif", INK))
-        left = PAD + fonts.width(pct(total), 132, "serif") + 36
-        ops.append(Text(left, y + 120, fonts.fit(name, 34, right - left, "serif"), 34, "serif", INK))
-    y = 604
-    ops.append(Rect(PAD, y, room, 1, RULE))
+        panels.append(("In more than one holding", "-", "no company reached twice"))
+    top10 = card.partial and card.partial_label == "PARTIAL · TOP-10 DEPTH"
+    if card.overlap and not top10:
+        pair, n, shared = card.overlap
+        panels.append(("Fund overlap", pct(shared),
+                       f"{pair} share {int(n):,} compan{'y' if int(n) == 1 else 'ies'}"))
+    elif top10:
+        panels.append(("Look-through depth", "Top 10", "per fund, from its factsheet"))
+    else:
+        panels.append(("Look-through depth", "Full", "every holding of each fund"))
+    for i, (title, value, caption) in enumerate(panels):
+        px = PAD + i * (bw + gap)
+        ops.append(Rect(px, y, bw, 100, PANEL))
+        ops.append(Rect(px, y, 4, 100, NAVY))
+        ops.append(Text(px + 20, y + 28, fonts.fit(title, 15, bw - 32), 15, "sans", MUTED))
+        ops.append(Text(px + 20, y + 64, value, 30, "sans-bold", INK))
+        ops.append(Text(px + 20, y + 88, fonts.fit(caption, 15, bw - 32), 15, "sans", MUTED))
+    y += 100 + 42
 
-    # Top 10: a ledger -- rank, name, a hairline bar, the figure
-    ops.append(_label(PAD, y + 44, "Top 10 companies, all holdings combined"))
-    biggest = max((v for _, v in card.top), default=Decimal(1)) or Decimal(1)
-    rank_w, name_w, val_w = 44, 400, 92
-    bar_x = PAD + rank_w + name_w
-    bar_w = room - rank_w - name_w - val_w
-    for i, (name, value) in enumerate(card.top):
-        ry = y + 86 + i * 30
-        ops.append(Text(PAD, ry, f"{i + 1}", 20, "serif-italic", MUTED))
-        ops.append(Text(PAD + rank_w, ry, fonts.fit(name, 21, name_w - 24), 21, "sans", INK))
-        ops.append(Rect(bar_x, ry - 9, bar_w, 4, TRACK, 2))
-        ops.append(Rect(bar_x, ry - 9, max(float(value / biggest) * bar_w, 4), 4, GREEN, 2))
-        ops.append(Text(right, ry, pct(value), 21, "sans-bold", INK, "end"))
-    y = y + 86 + 30 * (len(card.top) - 1) + 28
-    ops.append(Rect(PAD, y, room, 1, RULE))
+    # Top 10 companies: a table, a column per Look-through cell as the draft prints it
+    _section(ops, PAD, y, room, "Top 10 companies, all holdings combined")
+    cols = card.columns if len(card.columns) <= 4 else []
+    col_w = 112
+    name_w = room - 40 - col_w * (len(cols) + 1)
+    hy = y + 42
+    ops.append(Text(PAD, hy, "#", 15, "sans", MUTED))
+    ops.append(Text(PAD + 40, hy, "Company", 15, "sans", MUTED))
+    for j, c in enumerate(cols + ["Total"]):
+        ops.append(Text(PAD + 40 + name_w + col_w * (j + 1), hy, c, 15, "sans", MUTED, "end"))
+    ops.append(Rect(PAD, hy + 12, room, 1, RULE))
+    ry = hy + 40
+    for i, (name, cells, total) in enumerate(card.rows or [(n, [], v) for n, v in card.top]):
+        ops.append(Text(PAD, ry, f"{i + 1}", 18, "sans", MUTED))
+        ops.append(Text(PAD + 40, ry, fonts.fit(nice(name), 18, name_w - 16), 18, "sans", INK))
+        shown = cells if cols else []
+        for j, c in enumerate(shown):
+            x = PAD + 40 + name_w + col_w * (j + 1)
+            ops.append(Text(x, ry, f"{c}%" if num(c) is not None else "–", 18, "sans",
+                            INK if num(c) is not None else MUTED, "end"))
+        ops.append(Text(right, ry, pct(total), 18, "sans-bold", INK, "end"))
+        ops.append(Rect(PAD, ry + 12, room, 1, RULE))
+        ry += 32
+    y = ry + 4
+
+    # The company held through most routes, in one sentence
+    lines = _hero_lines(card)
+    if lines:
+        ops.append(Rect(PAD, y, room, 72, PANEL))
+        ops.append(Rect(PAD, y, 4, 72, NAVY))
+        ops.append(Text(PAD + 20, y + 30, fonts.fit(lines[0], 17, room - 40), 17, "sans-bold", INK))
+        ops.append(Text(PAD + 20, y + 56, fonts.fit(lines[1], 17, room - 40), 17, "sans", INK))
+        y += 72 + 40
 
     # Countries and sectors side by side
     columns = [(t, b) for t, b in (("Countries", card.countries), ("Sectors", card.sectors)) if b]
     gap = 48
-    col_w = (room - gap) / 2
+    col_w2 = (room - gap) / 2
     for i, (title, buckets) in enumerate(columns):
-        _bucket_column(ops, PAD + i * (col_w + gap), y + 44, col_w, title, buckets, fonts)
-    if columns:
-        y += 44 + 58 + 30 * (max(len(b) for _, b in columns) - 1) + 8
-    elif card.partial:
-        ops.append(_label(PAD, y + 44, "Countries and sectors"))
-        ops.append(Text(PAD, y + 82, fonts.fit(
-            "Need every company in each fund: this card reads each fund's factsheet top 10 only.",
-            20, room), 20, "sans", MUTED))
-        y += 82 + 16
+        _bucket_column(ops, PAD + i * (col_w2 + gap), y, col_w2, title, buckets, fonts)
+    if not columns and card.partial:
+        _section(ops, PAD, y, room, "Countries and sectors")
+        ops.append(Text(PAD, y + 46, fonts.fit(
+            "Not shown: they need every company in each fund, and this card reads each "
+            "fund's factsheet top 10 only.", 17, room), 17, "sans", MUTED))
 
-    # Overlap, in the serif's italic, where it clears the footer
-    # Not at top-10 depth: two funds share far more than their top 10s show.
-    top10 = card.partial and card.partial_label == "PARTIAL · TOP-10 DEPTH"
-    if card.overlap and not top10 and y + 44 <= H - 104:
-        pair, n, shared = card.overlap
-        text = (f"{pair} share {int(n):,} compan{'y' if int(n) == 1 else 'ies'}, "
-                f"{pct(shared)} shared weight.")
-        ops.append(Text(PAD, y + 44, fonts.fit(text, 24, room, "serif-italic"), 24,
-                        "serif-italic", INK))
-
-    # Footer
-    ops.append(Rect(PAD, H - 92, room, 1.5, INK))
-    ops.append(Text(PAD, H - 58, "Made with Holdnote, free and open source", 18, "sans-bold", INK))
-    ops.append(Text(right, H - 58, REPO, 18, "sans-bold", GREEN, "end"))
-    ops.append(Text(PAD, H - 30, "Percentages of the portfolio's market value. Research, "
-                    "not financial advice.", 15, "sans", MUTED))
+    # Notes
+    ops.append(Rect(PAD, H - 102, room, 1, RULE))
+    basis = ("Weights through funds use each fund's factsheet top 10, so they are minimums."
+             if top10 else "Weights through funds use each fund's full holdings file.")
+    ops.append(Text(PAD, H - 72, fonts.fit("Percentages of the portfolio's market value. " + basis,
+                                           14, room), 14, "sans", MUTED))
+    ops.append(Text(PAD, H - 48, "For research only, not financial advice. Made with Holdnote, "
+                    "free and open source.", 14, "sans", MUTED))
+    ops.append(Text(right, H - 48, REPO, 14, "sans-bold", NAVY, "end"))
     return ops
 
 
