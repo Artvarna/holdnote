@@ -1,0 +1,74 @@
+# Checks that every fund in templates/fund-catalog.md can still be fetched:
+# the link answers, the file parses, its rows pass fund_holdings' checks.
+#
+# Only a summary is kept -- one line per fund with its row count and as-of
+# date, on the `catalogue-check-log` branch (Actions logs are not readable
+# from Claude's session; see the Demo data workflow). The holdings files
+# themselves are deleted on the runner and never committed: the issuers'
+# terms do not allow passing them on (DECISIONS.md, 2026-10-15 and
+# 2026-10-19). Users' own copies fetch their own funds' files.
+
+name: Catalogue check
+
+on:
+  schedule:
+    - cron: "41 7 * * 1"  # Mondays 07:41 UTC
+  workflow_dispatch:
+  push:
+    paths:
+      - templates/fund-catalog.md
+      - scripts/fund_holdings.py
+      - .github/workflows/catalogue-check.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: catalogue-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    if: github.repository == 'Artvarna/holdnote'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Fetch every catalogue fund, keep only the summary
+        run: |
+          mkdir -p "$RUNNER_TEMP/files" log
+          set +e
+          python3 scripts/fund_holdings.py fetch --funds templates/fund-catalog.md \
+            --holdings-dir "$RUNNER_TEMP/files" > log/summary.txt 2>&1
+          code=$?
+          set -e
+          rm -rf "$RUNNER_TEMP/files"
+          sed -i "s|$RUNNER_TEMP/files/||g" log/summary.txt
+          {
+            echo "run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "ref: ${GITHUB_REF_NAME} ${GITHUB_SHA}"
+            echo "utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "exit: ${code}"
+            echo "ok: $(grep -vc 'Not available' log/summary.txt) lines, not available: $(grep -c 'Not available' log/summary.txt)"
+          } >> log/summary.txt
+          cat log/summary.txt
+
+      - name: Publish the summary
+        run: |
+          cd log
+          git init -q -b catalogue-check-log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Catalogue check $(date -u +%F)"
+          git push -q --force \
+            "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" \
+            catalogue-check-log
+
+      - name: Fail when a fund could not be fetched
+        run: |
+          if grep -q "Not available" log/summary.txt; then
+            grep "Not available" log/summary.txt
+            exit 1
+          fi
