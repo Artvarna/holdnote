@@ -327,6 +327,7 @@ class Fund:
     rows: list[Holding]
     path: Path
     unmatched_exchanges: int = 0  # EIMI rows on an exchange not in EXCHANGES
+    depth: str = "full"  # "full": the issuer's whole holdings file; "top10": its factsheet top 10
 
     @property
     def ticker(self) -> str:
@@ -929,6 +930,86 @@ def name_key(name: str) -> str:
     return " ".join(re.sub(r"[^A-Za-z0-9 ]", " ", text).upper().split())
 
 
+# Words a broker or factsheet adds to a company's name that say what kind of
+# share it is, not which company: "APPLE INC. - COMMON ST" is Apple.
+_SHARE_WORDS = re.compile(r"\b(common\s+stock|common\s+st|common|ordinary\s+shares|ordinary|"
+                          r"shares|reg|registered)\b\.?", re.IGNORECASE)
+
+
+def match_key(name: str) -> str:
+    """One company's name as two sources spell it: 'TAIWAN SEMICONDUCTOR
+    MANUFACTURING' (iShares) and 'Taiwan Semiconductor Manufacturing Co. Ltd.'
+    (Vanguard). Used only where a row has no ISIN or ticker to match by."""
+    head = display_name(name).split(" - ")[0]
+    return name_key(_SHARE_WORDS.sub(" ", head))
+
+
+# --- factsheet top 10s: a look-through without the holdings files -----------
+
+FACTSHEET_HEADER = ["fund", "isin", "as_of", "source", "company", "weight"]
+FACTSHEET_MAX_ROWS = 25
+
+
+def load_factsheets(path: Path) -> tuple[dict[str, Fund], dict[str, str]]:
+    """The top holdings each fund's own factsheet lists, as the run copied them
+    into `path` (references/any-broker.md -> Look-through without GitHub).
+
+    Returns ISIN -> Fund at depth "top10", and ISIN -> why for each fund whose
+    rows fail a check. Raises Refused when the file itself is unreadable.
+    """
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except OSError as exc:
+        raise Refused(f"{path.as_posix()}: {exc.strerror or exc}")
+    reader = csv.DictReader(line for line in text.splitlines() if not line.startswith("#"))
+    header = [h.strip().lower() for h in (reader.fieldnames or [])]
+    if header != FACTSHEET_HEADER:
+        raise Refused(f"{path.name}: header must be {','.join(FACTSHEET_HEADER)}")
+    by_isin: dict[str, list[dict[str, str]]] = {}
+    for raw in reader:
+        row = {k.strip().lower(): (v or "").strip() for k, v in raw.items() if k}
+        if any(row.values()):
+            by_isin.setdefault(row["isin"].upper(), []).append(row)
+    funds: dict[str, Fund] = {}
+    refused: dict[str, str] = {}
+    for isin, rows in by_isin.items():
+        try:
+            funds[isin] = _factsheet_fund(isin, rows, path)
+        except Refused as exc:
+            refused[isin] = str(exc)
+    return funds, refused
+
+
+def _factsheet_fund(isin: str, rows: list[dict[str, str]], path: Path) -> Fund:
+    if not ISIN.match(isin):
+        raise Refused(f"{isin or '(blank)'} is not an ISIN")
+    for col in ("fund", "as_of", "source"):
+        values = {r[col] for r in rows}
+        if len(values) != 1 or not next(iter(values)):
+            raise Refused(f"its rows need one {col}, not {sorted(values)}")
+    ticker, as_of_text, url = rows[0]["fund"], rows[0]["as_of"], rows[0]["source"]
+    try:
+        as_of = date.fromisoformat(as_of_text)
+    except ValueError:
+        raise Refused(f"as_of {as_of_text!r} is not a date like 2026-09-30")
+    if urlparse(url).scheme not in ("http", "https"):
+        raise Refused(f"source {url!r} is not the factsheet's link")
+    if len(rows) > FACTSHEET_MAX_ROWS:
+        raise Refused(f"{len(rows)} rows; a factsheet lists its top 10")
+    out: list[Holding] = []
+    for r in rows:
+        w = _dec(r["weight"].rstrip("%"))
+        if not r["company"] or w is None or not Decimal(0) < w <= HUNDRED:
+            raise Refused(f"row {r['company'] or '(no name)'} {r['weight'] or '(no weight)'}: "
+                          "needs a company and a weight between 0 and 100")
+        out.append(Holding(name=r["company"], weight=w, equity=True))
+    total = sum((h.weight for h in out), Decimal(0))
+    if total > WEIGHT_BAND[1]:
+        raise Refused(f"weights sum to {total:.2f}, over 100")
+    source = Source(ticker=ticker, isin=isin, issuer="factsheet", url=url, ext="")
+    return Fund(source, as_of, out, path, depth="top10")
+
+
 @dataclass
 class Exposure:
     """A fund's weight in each company, share classes summed."""
@@ -958,15 +1039,45 @@ def row_key(fund: Fund, r: Holding, by_bbg: dict[str, str]) -> str:
     return f"name:{fund.ticker}:{name_key(r.name)}"
 
 
-def exposures(funds: list[Fund]) -> dict[str, Exposure]:
+def name_index(funds: list[Fund], by_bbg: dict[str, str],
+               direct_names: dict[str, str] | None = None) -> dict[str, str]:
+    """match_key -> company key, from every full file's rows and the directly
+    held stocks: what a factsheet top 10 row, which has only a name, joins."""
+    index: dict[str, str] = {}
+    for name, key in (direct_names or {}).items():
+        if match_key(name):
+            index.setdefault(match_key(name), key)
+    for fund in funds:
+        if fund.depth != "full":
+            continue
+        for r in fund.rows:
+            if not r.equity:
+                continue
+            key = row_key(fund, r, by_bbg)
+            for name in (r.issuer_name, r.name):
+                if name and match_key(name):
+                    index.setdefault(match_key(name), key)
+    return index
+
+
+def exposures(funds: list[Fund], direct_names: dict[str, str] | None = None,
+              ) -> dict[str, Exposure]:
+    """Each fund's weight per company. `direct_names` (name -> company key)
+    lets a factsheet row join a stock held directly."""
     by_bbg = bbg_keys(funds)
+    index = name_index(funds, by_bbg, direct_names) if any(
+        f.depth != "full" for f in funds) else {}
     out: dict[str, Exposure] = {}
     for fund in funds:
         exp = Exposure()
         for r in fund.rows:
             if not r.equity or r.weight == 0:
                 continue
-            key = row_key(fund, r, by_bbg)
+            if fund.depth != "full":
+                mk = match_key(r.name)
+                key = index.get(mk) or f"name:{mk}"
+            else:
+                key = row_key(fund, r, by_bbg)
             exp.weights[key] = exp.weights.get(key, Decimal(0)) + r.weight
             exp.names.setdefault(key, display_name(r.name))
             if r.issuer_name:
@@ -1300,7 +1411,7 @@ def uncovered_why(uncovered: dict[str, Decimal], refused: dict[str, str]) -> lis
             for t, w in uncovered.items()]
 
 
-def report_no_funds(note: str) -> int:
+def report_no_funds(note: str, extra: str = "") -> int:
     """A stocks-only or not-yet-set-up user: nothing to look through, not an error."""
     why = no_funds_reason(note)
     print("Holdings")
@@ -1316,19 +1427,58 @@ def report_no_funds(note: str) -> int:
         print()
     print("METHOD")
     print(f"Funds list: {note}")
+    if extra:
+        print(extra)
     print()
     print("PROOF")
     print("No fund file read.")
     return 0
 
 
+def holding_names(path: Path | None) -> dict[str, str]:
+    """ISIN -> name, from holdings.csv: what a factsheet row joins a direct stock by."""
+    if path is None or not path.is_file():
+        return {}
+    lines = [ln for ln in path.read_text(encoding="utf-8-sig").splitlines() if not ln.startswith("#")]
+    return {(r.get("isin") or "").strip(): (r.get("name") or "").strip()
+            for r in csv.DictReader(lines) if (r.get("isin") or "").strip()}
+
+
 def cmd_report(args: argparse.Namespace) -> int:
+    """The report; the funds a factsheet adds last only for this run."""
+    global SOURCES, ISIN_OF
+    saved = SOURCES, ISIN_OF
+    try:
+        return _report(args)
+    finally:
+        SOURCES, ISIN_OF = saved
+
+
+def _report(args: argparse.Namespace) -> int:
+    global SOURCES, ISIN_OF
+    sheets: dict[str, Fund] = {}
+    sheets_refused: dict[str, str] = {}
+    sheets_note = ""
+    if getattr(args, "factsheets", None):
+        try:
+            sheets, sheets_refused = load_factsheets(args.factsheets)
+        except Refused as exc:
+            sheets_note = f"Not available - {exc}"
+    if sheets:
+        # A fund the funds list names keeps its ticker and source; a factsheet
+        # fills in for it only when its full file is missing or refused.
+        SOURCES = {**SOURCES, **{i: f.source for i, f in sheets.items() if i not in SOURCES}}
+        ISIN_OF = {s.ticker: s.isin for s in SOURCES.values()}
     if not SOURCES:
-        return report_no_funds(getattr(args, "funds_note", "") or "none")
+        why = "\n".join([f"Factsheets: {sheets_note}"] * bool(sheets_note) + [
+            f"Factsheet {i}: not used - {w}" for i, w in sheets_refused.items()])
+        return report_no_funds(getattr(args, "funds_note", "") or "none", why)
     order = [s.ticker for s in SOURCES.values()]
     funds: dict[str, Fund] = {}
     refused: dict[str, str] = {}
     for source in SOURCES.values():
+        if source.issuer == "factsheet":
+            continue
         path = latest_file(args.holdings_dir, source.ticker)
         if path is None:
             refused[source.ticker] = f"no file in {args.holdings_dir.as_posix()} (the Fund holdings Action fetches it - run it once from your repo's Actions tab)"
@@ -1337,6 +1487,11 @@ def cmd_report(args: argparse.Namespace) -> int:
             funds[source.ticker] = load_fund(source, path)
         except Refused as exc:
             refused[source.ticker] = f"{path.name}: {exc}"
+    for isin, sheet in sheets.items():
+        t = SOURCES[isin].ticker
+        if t not in funds:
+            funds[t] = replace(sheet, source=replace(sheet.source, ticker=t))
+            refused.pop(t, None)
 
     # Allocation's weights decide the fund order (largest first) when present.
     weights: dict[str, Decimal] = {}
@@ -1354,13 +1509,34 @@ def cmd_report(args: argparse.Namespace) -> int:
         except Refused as exc:
             lt_reason = str(exc)
     if weights:
+        # A factsheet for a fund the holdings do not have is left out, not looked through.
+        for isin in [i for i, s in SOURCES.items() if s.issuer == "factsheet" and i not in weights]:
+            sheets_refused[isin] = "not in the holdings"
+            funds.pop(SOURCES[isin].ticker, None)
+            order.remove(SOURCES[isin].ticker)
+            SOURCES = {i: s for i, s in SOURCES.items() if i != isin}
+        ISIN_OF = {s.ticker: s.isin for s in SOURCES.values()}
         by_ticker = {s.ticker: weights.get(isin, Decimal(0)) for isin, s in SOURCES.items()}
         order.sort(key=lambda t: (-by_ticker[t], t))
     name_order_ = name_order()
-    exps = exposures(list(funds.values()))
+    names = holding_names(getattr(args, "holdings", None))
+    direct_match = {}
+    for isin, kind in pies.items():
+        if kind.lower() == "stock" and isin not in SOURCES:
+            for n in (tickers.get(isin, ""), names.get(isin, "")):
+                if n:
+                    direct_match[n] = company_key(isin)
+    exps = exposures(list(funds.values()), direct_match)
 
-    dated = ", ".join(f"{t} {funds[t].as_of}" for t in order if t in funds)
-    depth = f"full issuer files, as of {dated}" if funds else "no issuer file read"
+    full_dated = [f"{t} {funds[t].as_of}" for t in order if t in funds and funds[t].depth == "full"]
+    top_dated = [f"{t} {funds[t].as_of}" for t in order if t in funds and funds[t].depth != "full"]
+    parts = []
+    if full_dated:
+        parts.append("full issuer files, as of " + ", ".join(full_dated))
+    if top_dated:
+        parts.append("factsheet top 10, as of " + ", ".join(top_dated)
+                     + " - names shared within the top 10s only")
+    depth = "; ".join(parts) if parts else "no issuer file read"
     if refused and funds:
         depth += "; not every fund read"
     print(f"Holdings ({depth})")
@@ -1410,8 +1586,11 @@ def cmd_report(args: argparse.Namespace) -> int:
                 direct_names[k] = tickers[isin]
         lines, stats = lookthrough_table(order, exps, fund_weights, direct, direct_names,
                                          args.top, name_order_)
+        shallow = [t for t in order if funds[t].depth != "full"]
+        top_note = (f"top-10 depth, partial for {', '.join(shallow)}: each fund's factsheet "
+                    "top 10 only, so what is reached through it is a floor") if shallow else ""
         print(f"Look-through (market weights, as of {as_of}"
-              + (f"; {cover_note}" if cover_note else "") + ")")
+              + "".join(f"; {n}" for n in (cover_note, top_note) if n) + ")")
         print("\n".join(lines))
     print()
 
@@ -1426,22 +1605,33 @@ def cmd_report(args: argparse.Namespace) -> int:
         print("\n".join(hidden_bets_table(bets)))
     print()
 
+    # Countries, Sectors and Currencies come from full files only: a factsheet
+    # top 10 names no country, sector or currency per company, so a fund read
+    # at that depth sits in them as Not looked through.
+    full_order = [t for t in order if t in funds and funds[t].depth == "full"]
+    bucket_reason = lt_reason
+    bucket_uncovered = dict(uncovered)
+    if not lt_reason:
+        bucket_uncovered.update({t: fund_weights[t] for t in order if t not in full_order})
+        if not full_order:
+            bucket_reason = ("no fund's full holdings file read; a factsheet top 10 gives no "
+                             "country, sector or currency per company")
     cstats = None
     direct_country: dict[str, str] = {}
-    if lt_reason:
+    if bucket_reason:
         print("Countries")
         print("| Country | Total |\n|---|---|")
-        print(f"| all | Not available - {lt_reason} |")
+        print(f"| all | Not available - {bucket_reason} |")
     else:
         by_country: dict[str, Decimal] = {}
-        fund_list = [funds[t] for t in name_order_ if t in funds]
+        fund_list = [funds[t] for t in name_order_ if t in full_order]
         for k, w in direct.items():
             c, src = country_of(k, fund_list)
             direct_country[direct_names[k]] = f"{c or NOT_STATED}" + (f" (from {src})" if src else "")
             c = c or NOT_STATED
             by_country[c] = by_country.get(c, Decimal(0)) + w
-        clines, cstats = countries_table(order, funds, fund_weights, by_country, args.min_country,
-                                         uncovered)
+        clines, cstats = countries_table(full_order, funds, fund_weights, by_country,
+                                         args.min_country, bucket_uncovered)
         print(f"Countries (market weights, as of {as_of})")
         print("\n".join(clines))
     print()
@@ -1451,16 +1641,16 @@ def cmd_report(args: argparse.Namespace) -> int:
             ("Sectors", "Sector", "Other sectors", NO_SECTOR, "sector", Decimal(0)),
             ("Currencies", "Currency", "Other currencies", NO_CURRENCY, "currency",
              args.min_currency)):
-        if lt_reason:
+        if bucket_reason:
             print(title)
             print(f"| {column} | Total |\n|---|---|")
-            print(f"| all | Not available - {lt_reason} |")
+            print(f"| all | Not available - {bucket_reason} |")
             print()
             continue
         peers = peer_values(funds, attr)
         by_bbg = bbg_keys(list(funds.values()))
         split, basis = {}, {}
-        for t in order:
+        for t in full_order:
             split[t], basis[t] = fund_split(funds[t], attr, peers, by_bbg, missing)
         direct_b: dict[str, Decimal] = {}
         direct_src: dict[str, str] = {}
@@ -1468,7 +1658,8 @@ def cmd_report(args: argparse.Namespace) -> int:
             value, src = peers.get(k, ("", ""))
             direct_src[direct_names[k]] = (value or missing) + (f" (from {src})" if src else "")
             direct_b[value or missing] = direct_b.get(value or missing, Decimal(0)) + w
-        b_order, b_split, b_weights = with_uncovered(order, split, fund_weights, uncovered)
+        b_order, b_split, b_weights = with_uncovered(full_order, split, fund_weights,
+                                                     bucket_uncovered)
         blines, bst = bucket_table(column, other, missing, b_order, b_split, b_weights,
                                    direct_b, minimum)
         bstats[title] = (bst, {"basis": basis, "direct": direct_src})
@@ -1483,8 +1674,19 @@ def cmd_report(args: argparse.Namespace) -> int:
         print("Not looked through: " + "; ".join(uncovered_why(uncovered, refused))
               + f" - each sits in the Countries, Sectors and Currencies tables as "
               f"{NOT_LOOKED}, and its fund brief has its factsheet top 10")
+    if sheets_note:
+        print(f"Factsheets: {sheets_note}")
+    for isin, why in sheets_refused.items():
+        print(f"Factsheet {isin}: not used - {why}")
     for t in order:
-        if t in funds:
+        if t in funds and funds[t].depth != "full":
+            f = funds[t]
+            got = sum((r.weight for r in f.rows), Decimal(0))
+            print(f"Holdings {t}: factsheet top {len(f.rows)}, {f.source.url}, as of {f.as_of}; "
+                  f"they sum to {got:.2f}% of the fund and the rest is not itemised, so every "
+                  f"via {t} cell is a floor; in Countries, Sectors and Currencies {t} is "
+                  f"{NOT_LOOKED}")
+        elif t in funds:
             f = funds[t]
             eq = sum(1 for r in f.rows if r.equity)
             print(f"Holdings file {t}: {f.path.as_posix()}, {f.source.issuer}, as of {f.as_of}, "
@@ -1494,7 +1696,11 @@ def cmd_report(args: argparse.Namespace) -> int:
     print("Holdings matching: one company per issuer - US/CA ISINs by CUSIP issuer "
           "(first six characters, so share classes combine), other ISINs exactly; "
           "iShares files have no ISINs, their rows matched by ticker + exchange to "
-          "Bloomberg tickers in Amundi's file")
+          "Bloomberg tickers in Amundi's file"
+          + ("; factsheet top 10 rows carry names only and join the same company in a full "
+             "file or a direct stock by name, share-class and legal-form words removed - a "
+             "name spelled another way stays its own row"
+             if any(f.depth != "full" for f in funds.values()) else ""))
     for f in (funds[t] for t in order if t in funds and funds[t].source.issuer == "ishares"):
         eq = [r for r in f.rows if r.equity]
         zero = sum(1 for r in eq if r.weight == 0)
@@ -1518,7 +1724,8 @@ def cmd_report(args: argparse.Namespace) -> int:
               f"of the {stats['everything']:.2f} the cells reach")
     if bets is not None:
         print(hidden_bets_method(bets))
-    print(countries_basis(order))
+    if cstats:
+        print(countries_basis(full_order))
     if cstats:
         print("Countries direct stocks: the country the fund files give the same company - "
               + ", ".join(f"{t} {c}" for t, c in direct_country.items()))
@@ -1529,11 +1736,11 @@ def cmd_report(args: argparse.Namespace) -> int:
               f"to 100" + (" (iShares' 0.01 rounding)" if "ishares" in _issuers(order) else "")
               + " and each cell rounded to 0.01 on its own")
     if bstats:
-        print(sectors_basis(order))
-        print(currencies_basis(order))
+        print(sectors_basis(full_order))
+        print(currencies_basis(full_order))
         for title, (bst, extra) in bstats.items():
             parts = []
-            for t in order:
+            for t in full_order:
                 b = extra["basis"][t]
                 bits = [f"{k} {v:.2f}" for k, v in b.items() if v]
                 parts.append(f"{t} " + (", ".join(bits) if bits else "none"))
@@ -1555,7 +1762,7 @@ def cmd_report(args: argparse.Namespace) -> int:
                   f"{len(exps[t].weights)} companies after share classes combine")
     if stats:
         if cstats:
-            for t in order:
+            for t in full_order:
                 sp = cstats["split"][t]
                 eq = sum((v for k, v in sp.items() if k != CASH), Decimal(0))
                 top = sorted(((k, v) for k, v in sp.items() if k not in (CASH, NOT_STATED)),
@@ -1565,7 +1772,7 @@ def cmd_report(args: argparse.Namespace) -> int:
                       f"{eq:.4f} + {CASH.lower()} {sp.get(CASH, Decimal(0)):.4f}; largest "
                       + ", ".join(f"{k} {v:.2f}" for k, v in top))
         for title, (bst, _extra) in bstats.items():
-            for t in order:
+            for t in full_order:
                 sp = bst["split"][t]
                 total = sum(sp.values(), Decimal(0))
                 top = sorted(((k, v) for k, v in sp.items() if k != CASH),
@@ -1820,6 +2027,9 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--holdings", type=Path, default=Path("me/holdings.csv"),
                    help="broker-neutral holdings; used instead of the Trading 212 exports "
                         "whenever it exists")
+    r.add_argument("--factsheets", type=Path, default=None,
+                   help="CSV of each fund's factsheet top 10 (fund,isin,as_of,source,company,"
+                        "weight): looks through funds with no holdings file at top-10 depth")
     r.add_argument("--top", type=int, default=15,
                    help="how many companies beyond the directly held to print")
     r.add_argument("--min-country", type=Decimal, default=Decimal("0.50"),

@@ -472,7 +472,11 @@ def variant_problems(sections: dict[str, str]) -> list[str]:
     for line in sections.get("CONTEXT", "").splitlines():
         if line.strip().startswith("Not available"):
             not_available = line
-    for name in ("Indexes", "Sectors"):
+    mode = next((ln for ln in sections.get("RESULT", "").splitlines() if ln.startswith("Mode:")), "")
+    # Market-wide's Sectors rows are sector indexes; Mode C's Sectors table,
+    # under the same bare heading when it is Not available, is the portfolio's.
+    names = ("Indexes", "Sectors") if "Market-wide" in mode or not mode else ("Indexes",)
+    for name in names:
         for row in tables.get(name, []):
             m = _INSTRUMENT.search(row[0])
             if not m:

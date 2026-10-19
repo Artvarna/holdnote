@@ -120,9 +120,27 @@ IE00BK5BQT80,VWCE,Vanguard FTSE All-World UCITS ETF,fund,12,Portfolio,
   ```
   A fund with no file there (not in `me/funds.md`, or its fetch failed) is
   left out of the look-through, which says what share of the portfolio it
-  covers; the tables print a `Not looked through` row for it.
-  Without GitHub, each fund falls back to its factsheet top 10, labelled
-  partial, as that section says, and the last line of the report offers the
-  full view in one line: `Full look-through of every company: say "set up
-  Holdnote" and pick GitHub (free).`
+  covers; the tables print a `Not looked through` row for it — unless its
+  factsheet top 10 is given, as below.
+- **Look-through without GitHub** (Claude on the web or a phone, or a fund
+  with no file): read each fund's top 10 from **its issuer's own factsheet**
+  (the PDF on the issuer's site for that share class — search for it, fetch
+  it, check its ISIN is the user's). Copy the rows exactly as printed into
+  `factsheets.csv` in the workspace, one row per holding:
+  ```
+  fund,isin,as_of,source,company,weight
+  VWCE,IE00BK5BQT80,2026-09-30,<factsheet URL>,Apple Inc.,4.5
+  ```
+  `as_of` is the date the factsheet gives its holdings; `weight` is the % of
+  the fund it prints. Never fill a row from memory or from a non-issuer site;
+  a fund whose factsheet cannot be fetched is left out, and the report says
+  `Not looked through` for it. Then add `--factsheets factsheets.csv` to the
+  `report` command above (no `--holdings-dir` needed). The Look-through and
+  Hidden bets are then at **top-10 depth, partial**: their heading says so,
+  every weight through a fund is a floor, and Countries, Sectors and
+  Currencies print `Not available`, because a top 10 gives no country or
+  sector per company. A card made from it says `PARTIAL · TOP-10 DEPTH`.
+  The `METHOD`'s `Next:` line offers the full view in one line: `Full
+  look-through of every company, with countries and sectors: say "set up
+  Holdnote" and pick GitHub (free).` Each factsheet is a `SOURCES` row.
 - **Stocks**: the `stock` rows, in the file's order.

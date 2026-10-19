@@ -385,9 +385,11 @@ is a `METHOD` line, so nothing withheld or unconfirmed goes unsaid.
 
 ## Portfolio card
 
-One image of what a portfolio looks through to, made to be posted: the
-biggest hidden bet, the top 10 companies across every holding, countries,
-sectors and fund overlap, with the Holdnote link at its foot.
+One image of what a portfolio looks through to, set like an issuer's fund
+factsheet and made to be posted: its composition, three key figures, the top
+10 companies across every holding with each fund's part, the company reached
+through most holdings, countries and sectors, with the Holdnote link at its
+foot.
 
 1. **Get a checked Mode C draft** with the tables Allocation, Holdings,
    Look-through, Hidden bets, Countries and Sectors — the user's portfolio
@@ -408,9 +410,11 @@ sectors and fund overlap, with the Holdnote link at its foot.
 the portfolio's market value — and never a quantity, close, value or amount,
 so the user can post it without showing what they have. It says nothing the
 tables do not: no rating, no verdict. A demo card is labelled `DEMO ·
-SYNTHETIC PORTFOLIO`. Exit 1 means the draft cannot make a card (most often
-Look-through is `Not available`): say why in one line and offer what would
-fix it — attach an export, or run the demo card.
+SYNTHETIC PORTFOLIO`. Without GitHub the card is made from a look-through
+at factsheet top-10 depth (`references/any-broker.md` → Look-through without
+GitHub) and says `PARTIAL · TOP-10 DEPTH`. Exit 1 means the draft cannot
+make a card (most often Look-through is `Not available`): say why in one
+line and offer what would fix it — attach an export, or run the demo card.
 
 ## Scope
 
