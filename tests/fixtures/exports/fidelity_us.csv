@@ -1,0 +1,6 @@
+Account Number,Account Name,Symbol,Description,Quantity,Last Price,Last Price Change,Current Value,Today's Gain/Loss Dollar,Total Gain/Loss Dollar,Percent Of Account,Cost Basis Total,Type
+Z12345678,Individual,SPAXX**,HELD IN MONEY MARKET,,,,$1520.33,,,5.12%,,Cash
+Z12345678,Individual,QQQ,INVESCO QQQ TR UNIT SER 1,12,$598.10,+$3.20,$7177.20,+$38.40,+$1500.00,24.17%,$5677.20,Cash
+Z12345678,Individual,VTI,VANGUARD INDEX FDS VANGUARD TOTAL STK MKT ETF,30,$312.20,+$1.10,$9366.00,+$33.00,+$2000.00,31.54%,$7366.00,Cash
+
+"The data and information in this spreadsheet is provided to you solely for your use..."
