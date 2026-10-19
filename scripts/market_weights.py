@@ -78,6 +78,8 @@ class Row:
     target: Decimal | None  # % of portfolio, from pies.md or holdings.csv; None: none set
     cost_eur: Decimal | None = None  # FIFO cost basis in EUR, for the unit check
     kind: str = ""  # fund or stock; blank: the Trading 212 pie decides
+    value: Decimal | None = None  # holdings.csv: the position's value as the export stated it
+    value_ccy: str = ""
 
     @property
     def is_stock(self) -> bool:
@@ -164,7 +166,7 @@ def price_rows(rows: list[Row], as_of: date, prices: dict, fx: dict) -> list[Pri
 
 
 def allocation_table(priced: list[Priced], pie_targets: dict[str, Decimal | None],
-                     label: str = "Pie") -> list[str]:
+                     label: str = "Pie", currency: str = "EUR") -> list[str]:
     """The Allocation table: one row per holding, one total row per pie.
 
     ``label`` is ``Pie`` for Trading 212 pies, ``Group`` for holdings.csv,
@@ -187,7 +189,7 @@ def allocation_table(priced: list[Priced], pie_targets: dict[str, Decimal | None
         return [f"{weight:.2f}", shown, diff]
 
     lines = [
-        f"| {label} | Ticker | Quantity | Close | Value (EUR) | Weight (market) | Target | Diff (pp) |",
+        f"| {label} | Ticker | Quantity | Close | Value ({currency}) | Weight (market) | Target | Diff (pp) |",
         "|---|---|---|---|---|---|---|---|",
     ]
     groups = list(dict.fromkeys(p.row.pie for p in priced))
@@ -238,12 +240,48 @@ def csv_rows(path: Path) -> tuple[list[Row], dict[str, Decimal | None], date | N
     except ih.Refused as exc:
         raise Refused(str(exc))
     rows = [Row(h.group, h.isin, h.ticker or h.name[:24] or h.isin, h.quantity, h.target,
-                None, h.kind) for h in f.holdings]
+                None, h.kind, h.value, h.value_ccy) for h in f.holdings]
     targets: dict[str, Decimal | None] = {}
     for g in dict.fromkeys(r.pie for r in rows):
         members = [r.target for r in rows if r.pie == g]
         targets[g] = None if any(m is None for m in members) else sum(members, Decimal(0))
     return rows, targets, f.as_of, f.source
+
+
+def value_rows(rows: list[Row]) -> tuple[list[Priced], str]:
+    """Each holding valued at the export's own figure, when every row has one
+    in one stated currency; else Refused with what is missing.
+
+    For a user with no prices to hand (no desktop browser): the weights are
+    the export's, as of its date, and no close or exchange rate is read.
+    """
+    missing = [r.ticker for r in rows if r.value is None]
+    if missing:
+        raise Refused("the export gives no value for " + ", ".join(missing)
+                      + " - weights need closes (Performance) instead")
+    ccys = {r.value_ccy for r in rows}
+    if "" in ccys:
+        raise Refused("the export's values do not say their currency - ask the user and "
+                      "import again with --value-currency")
+    if len(ccys) > 1:
+        raise Refused("the export's values are in " + " and ".join(sorted(ccys))
+                      + " - weights need ECB rates to put them in one currency")
+    return [Priced(r, "-", _q(r.value)) for r in rows], ccys.pop()
+
+
+def values_method_lines(path: Path, snapshot: date | None, source: str, ccy: str,
+                        any_target: bool) -> list[str]:
+    when = f"positions as of {snapshot}" if snapshot else "positions undated"
+    return [
+        f"Allocation values: {path.as_posix()}, {when}"
+        + (f", from {source}" if source else "")
+        + f"; each holding's value as the export states it, in {ccy}; import_holdings",
+        "Allocation prices: none read - the weights are the export's own values on its date, "
+        "not today's closes",
+        "Allocation arithmetic: Weight = Value / portfolio total x 100"
+        + ("; Diff = Weight - Target, pp; Target is target_pct from holdings.csv"
+           if any_target else "; no targets set in holdings.csv, so no Diff"),
+    ]
 
 
 def holdings_rows(data_dir: Path, pies_path: Path, ownership_path: Path) -> tuple[list[Row], t.Pies, date]:
@@ -321,8 +359,9 @@ def method_lines(rows: list[Row], last_trade: date, as_of: date, fx: dict, data_
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--prices", type=Path, required=True,
-                        help="JSON of closes and FX rates, as in this module's docstring")
+    parser.add_argument("--prices", type=Path, default=None,
+                        help="JSON of closes and FX rates, as in this module's docstring; "
+                             "without it, holdings.csv's own values (export values) are used")
     parser.add_argument("--data-dir", type=Path, default=Path("data/t212"))
     parser.add_argument("--pies", type=Path, default=Path("me/pies.md"))
     parser.add_argument("--ownership", type=Path, default=Path("me/ownership.md"))
@@ -331,6 +370,22 @@ def main(argv: list[str] | None = None) -> int:
                              "exports whenever it exists")
     args = parser.parse_args(argv)
 
+    if args.prices is None:
+        try:
+            if not args.holdings.exists():
+                raise Refused("needs --prices: the Trading 212 exports carry no current values")
+            rows, targets, snapshot, source = csv_rows(args.holdings)
+            priced, ccy = value_rows(rows)
+        except Refused as exc:
+            print(f"Allocation: Not available - {exc}")
+            return 1
+        print(f"Allocation (weights from the export's values, {ccy}, as of "
+              f"{snapshot or 'the export date'})")
+        print("\n".join(allocation_table(priced, targets, label="Group", currency=ccy)))
+        print()
+        print("\n".join(values_method_lines(args.holdings, snapshot, source, ccy,
+                                            any(r.target is not None for r in rows))))
+        return 0
     try:
         spec = json.loads(args.prices.read_text(encoding="utf-8"))
         try:

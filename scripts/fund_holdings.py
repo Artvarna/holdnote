@@ -1151,6 +1151,22 @@ def market_weights(prices_path: Path, data_dir: Path, pies_path: Path,
     import market_weights as mw
     import t212_holdings as t
 
+    if prices_path is None:
+        # No closes to hand: holdings.csv's own export values, when complete.
+        if holdings_path is None or not holdings_path.exists():
+            raise Refused("no --prices file, so no market weights")
+        try:
+            rows, _targets, snapshot, _source = mw.csv_rows(holdings_path)
+            priced, _ccy = mw.value_rows(rows)
+        except mw.Refused as exc:
+            raise Refused(f"no --prices file, and {exc}")
+        total = sum((p.value for p in priced), Decimal(0))
+        if total == 0:
+            raise Refused("portfolio value is zero")
+        return ({p.row.isin: mw._q(p.value / total * 100) for p in priced},
+                {p.row.isin: p.row.ticker for p in priced},
+                {p.row.isin: "stock" if p.row.is_stock else "fund" for p in priced},
+                snapshot or date.today())
     try:
         spec = json.loads(prices_path.read_text(encoding="utf-8"))
         as_of = date.fromisoformat(spec["as_of"])
@@ -1300,7 +1316,7 @@ def cmd_report(args: argparse.Namespace) -> int:
     pies: dict[str, str] = {}
     lt_reason = ""
     as_of = None
-    if args.prices is None:
+    if args.prices is None and not (getattr(args, "holdings", None) and args.holdings.exists()):
         lt_reason = "no --prices file, so no market weights"
     else:
         try:

@@ -51,7 +51,11 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-FIELDS = ["isin", "ticker", "name", "kind", "quantity", "group", "target_pct"]
+FIELDS = ["isin", "ticker", "name", "kind", "quantity", "group", "target_pct", "value", "value_ccy"]
+# The currencies a value column or cell may be in, by code or sign.
+CCY_CODES = {"EUR", "USD", "GBP", "CHF", "PLN", "SEK", "NOK", "DKK", "BGN", "CZK", "HUF",
+             "RON", "JPY", "CAD", "AUD", "NZD", "HKD", "SGD", "ZAR", "TRY", "ILS", "CNY"}
+CCY_SIGNS = {"€": "EUR", "$": "USD", "£": "GBP", "лв": "BGN", "zł": "PLN", "kč": "CZK"}
 KINDS = {"fund", "stock"}
 DEFAULT_GROUP = "Portfolio"
 DEFAULT_OUT = Path("me/holdings.csv")
@@ -88,6 +92,16 @@ SYNONYMS: dict[str, list[str]] = {
              "trade time", "settlement date", "datum", "fecha", "data", "дата"],
 }
 
+# A position's current value: "Value", "Market value (EUR)", "Waarde in EUR",
+# "Marktwert", ... A column that names the account's currency wins over one
+# in each instrument's own ("Local value"), which needs exchange rates.
+VALUE_WORDS = (r"(market |current |position |total |portfolio )?(value|valuation|marktwert|"
+               r"kurswert|wert|aktueller wert|waarde|valeur|valeur de marche|valorisation|"
+               r"valor|valor de mercado|valor actual|valore|controvalore|valore di mercato|"
+               r"wartosc|wartosc rynkowa|стоимость|рыночная стоимость|стойност|пазарна стойност)")
+VALUE_HEADER = re.compile(r"^" + VALUE_WORDS + r"( in| en| w| в)?( (?P<ccy>[a-z]{3}))?$")
+LOCAL_VALUE = re.compile(r"\blocal\b|\blokal|\blocale?\b|\bnative\b")
+
 BUY = re.compile(r"\b(buy|bought|purchase|kauf|achat|compra|acquisto|koop|kupno|"
                  r"покупка|купить|subscription|sparplan|savings plan|reinvest\w*)\b", re.I)
 SELL = re.compile(r"\b(sell|sold|sale|verkauf|vente|venta|vendita|verkoop|sprzedaz|"
@@ -121,6 +135,8 @@ class Holding:
     quantity: Decimal
     group: str = DEFAULT_GROUP
     target: Decimal | None = None  # % of the whole portfolio
+    value: Decimal | None = None  # the position's value as the export states it, at as_of
+    value_ccy: str = ""  # the currency of value
 
 
 @dataclass
@@ -333,6 +349,40 @@ class Parsed:
     name: str
     quantity: Decimal
     bad_isin: str = ""  # an ISIN-shaped cell that failed the check digit
+    value: Decimal | None = None  # positions exports: the value column, as stated
+    value_ccy: str = ""
+
+
+def value_column(header: list[str], taken: set[int]) -> tuple[int, str] | None:
+    """The column holding each position's current value, and its currency
+    when the header names one. Account-currency columns before local ones."""
+    found = []
+    for i, h in enumerate(header):
+        n = norm_header(h)
+        if i in taken or not n:
+            continue
+        m = VALUE_HEADER.match(n)
+        if not m:
+            continue
+        ccy = (m.group("ccy") or "").upper()
+        if ccy and ccy not in CCY_CODES:
+            continue
+        local = bool(LOCAL_VALUE.search(n))
+        found.append((local, 0 if ccy else 1, i, ccy))
+    if not found:
+        return None
+    _, _, i, ccy = min(found)
+    return i, ccy
+
+
+def cell_currency(raw: str) -> str:
+    """A currency written in a value cell: `EUR 1.234,56`, `1 234,56 €`, `$1,234.56`."""
+    text = str(raw or "")
+    for code in re.findall(r"\b([A-Z]{3})\b", text.upper()):
+        if code in CCY_CODES:
+            return code
+    low = text.lower()
+    return next((c for sign, c in CCY_SIGNS.items() if sign in low), "")
 
 
 def parse_export(path: Path, overrides: dict[str, str],
@@ -359,6 +409,15 @@ def parse_export(path: Path, overrides: dict[str, str],
         comma, unsure = decimal == "comma", []
     else:
         comma, unsure = decimal_mode(quantities, delim)
+    vcol = None if "value" in overrides else value_column(header, set(cols.values()))
+    if "value" in cols:
+        vcol = (cols["value"], "")
+    v_ccy_header = ""
+    if vcol is not None:
+        cols["value"], v_ccy_header = vcol
+        came_from["value"] = header[vcol[0]]
+        v_comma = decimal == "comma" if decimal else decimal_mode(
+            [get(r, "value") for r in body], delim)[0]
     history = False
     if "type" in cols:
         kinds = [get(r, "type") for r in body]
@@ -423,14 +482,23 @@ def parse_export(path: Path, overrides: dict[str, str],
         elif qty is None:
             info["skipped"] += 1
             continue
+        value, v_ccy = None, ""
+        if not history and "value" in cols and get(row, "value"):
+            value = parse_number(get(row, "value"), v_comma)
+            v_ccy = v_ccy_header or cell_currency(get(row, "value")) or (
+                get(row, "currency").upper() if get(row, "currency").upper() in CCY_CODES else "")
         key = isin or (ticker.upper() if ticker else name.lower())
         p = out.get(key)
         if p is None:
-            out[key] = Parsed(key, isin, ticker, name, qty, bad)
+            out[key] = Parsed(key, isin, ticker, name, qty, bad, value, v_ccy)
         else:
             p.quantity += qty
             p.ticker = p.ticker or ticker
             p.name = p.name or name
+            if p.value is not None and value is not None and p.value_ccy == v_ccy:
+                p.value += value
+            else:
+                p.value, p.value_ccy = None, ""
     if bad_isins:
         raise NeedsInput(f"{label}: not a valid ISIN (check digit): " + ", ".join(bad_isins)
                          + ". Check the export for a typo, or pass the right one with "
@@ -507,8 +575,21 @@ def load_holdings(path: Path) -> HoldingsFile:
                 raise Refused(f"{where}: target_pct {raw_t!r} is not a number")
             if not (0 <= target <= 100):
                 raise Refused(f"{where}: target_pct {raw_t} is outside 0-100")
+        value = None
+        raw_v = (r.get("value") or "").strip()
+        if raw_v:
+            try:
+                value = Decimal(raw_v)
+            except InvalidOperation:
+                raise Refused(f"{where}: value {raw_v!r} is not a number")
+            if not value.is_finite() or value < 0:
+                raise Refused(f"{where}: value {raw_v!r} is not zero or more")
+        v_ccy = (r.get("value_ccy") or "").strip().upper()
+        if value is not None and v_ccy and v_ccy not in CCY_CODES:
+            raise Refused(f"{where}: value_ccy {v_ccy!r} is not a currency code (EUR, USD, ...)")
         holdings.append(Holding(isin, (r.get("ticker") or "").strip(), (r.get("name") or "").strip(),
-                                kind, qty, (r.get("group") or "").strip() or DEFAULT_GROUP, target))
+                                kind, qty, (r.get("group") or "").strip() or DEFAULT_GROUP, target,
+                                value, v_ccy if value is not None else ""))
     if not holdings:
         raise Refused(f"{path}: no holdings")
     return HoldingsFile(holdings, as_of, source)
@@ -523,13 +604,15 @@ def write_holdings(path: Path, holdings: list[Holding], as_of: date, source: str
     path.parent.mkdir(parents=True, exist_ok=True)
     buf = io.StringIO()
     buf.write("# Holdnote holdings. quantity is what you hold; target_pct is your\n"
-              "# chosen % of the whole portfolio (optional). Edit freely.\n")
+              "# chosen % of the whole portfolio (optional). value is each position's\n"
+              "# value on as_of as the export stated it (optional). Edit freely.\n")
     buf.write(f"# as_of: {as_of.isoformat()}\n# source: {source}\n")
     w = csv.writer(buf, lineterminator="\n")
     w.writerow(FIELDS)
     for h in holdings:
         w.writerow([h.isin, h.ticker, h.name, h.kind, _fmt(h.quantity), h.group,
-                    "" if h.target is None else _fmt(h.target)])
+                    "" if h.target is None else _fmt(h.target),
+                    "" if h.value is None else _fmt(h.value), h.value_ccy if h.value is not None else ""])
     path.write_text(buf.getvalue(), encoding="utf-8")
 
 
@@ -573,7 +656,12 @@ def build(parsed: list[Parsed], existing: HoldingsFile | None, isins: dict[str, 
     merged: dict[str, Parsed] = {}
     for p in parsed:
         if p.isin in merged:
-            merged[p.isin].quantity += p.quantity
+            m = merged[p.isin]
+            m.quantity += p.quantity
+            if m.value is not None and p.value is not None and m.value_ccy == p.value_ccy:
+                m.value += p.value
+            else:
+                m.value, m.value_ccy = None, ""
         else:
             merged[p.isin] = p
     old = {h.isin: h for h in existing.holdings} if existing else {}
@@ -590,7 +678,8 @@ def build(parsed: list[Parsed], existing: HoldingsFile | None, isins: dict[str, 
                 guessed.append(p.isin)
         out.append(Holding(p.isin, p.ticker or (prev.ticker if prev else ""),
                            p.name or (prev.name if prev else ""), kind, p.quantity,
-                           prev.group if prev else DEFAULT_GROUP, prev.target if prev else None))
+                           prev.group if prev else DEFAULT_GROUP, prev.target if prev else None,
+                           p.value, p.value_ccy if p.value is not None else ""))
     dropped = [h.ticker or h.name or h.isin for i, h in old.items() if i not in merged]
     out.sort(key=lambda h: (h.group, 0 if h.kind == "fund" else 1, h.ticker or h.name))
     return out, guessed, dropped
@@ -628,6 +717,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--decimal", choices=("comma", "dot"), default=None,
                     help="which separator is the decimal one in quantities, when the "
                          "export leaves it open (1,250 or 1.250)")
+    ap.add_argument("--value-currency", default=None, metavar="CCY",
+                    help="the currency of a value column that does not state one, as the "
+                         "user confirms it (EUR, USD, ...)")
     ap.add_argument("--dry-run", action="store_true", help="print, do not write")
     args = ap.parse_args(argv)
 
@@ -646,6 +738,13 @@ def main(argv: list[str] | None = None) -> int:
         existing = load_holdings(args.out) if args.out.exists() else None
         holdings, guessed, dropped = build(parsed, existing, _pairs(args.isin, "--isin"),
                                            _pairs(args.kind, "--kind"))
+        if args.value_currency:
+            ccy = args.value_currency.strip().upper()
+            if ccy not in CCY_CODES:
+                raise Refused(f"--value-currency {args.value_currency}: not a currency code")
+            for h in holdings:
+                if h.value is not None and not h.value_ccy:
+                    h.value_ccy = ccy
     except NeedsInput as exc:
         print(f"Needs input: {exc}")
         return 2
@@ -658,7 +757,7 @@ def main(argv: list[str] | None = None) -> int:
     source = "; ".join(f"{i['label']} ({i['mode']})" for i in infos)
     for i in infos:
         cols = ", ".join(f'{f} from "{h}"' for f, h in i["came_from"].items()
-                         if f in ("isin", "ticker", "name", "quantity", "type"))
+                         if f in ("isin", "ticker", "name", "quantity", "value", "type"))
         print(f"Read: {i['label']} - {i['mode']}, header on line {i['header_line']}; {cols}")
         if i["skipped"]:
             print(f"Skipped: {i['skipped']} rows that are not a holding (cash, totals, blanks)")
@@ -668,13 +767,29 @@ def main(argv: list[str] | None = None) -> int:
         for w in i["warnings"]:
             print(f"Check: {w}")
     print()
-    print("| ISIN | Ticker | Name | Kind | Quantity | Group | Target % |")
-    print("|---|---|---|---|---|---|---|")
+    print("| ISIN | Ticker | Name | Kind | Quantity | Value | Group | Target % |")
+    print("|---|---|---|---|---|---|---|---|")
     for h in holdings:
         kind = h.kind + (" (guessed)" if h.isin in guessed else "")
+        val = "-" if h.value is None else f"{_fmt(h.value)} {h.value_ccy or '(currency?)'}"
         print(f"| {h.isin} | {h.ticker or '-'} | {h.name or '-'} | {kind} | {_fmt(h.quantity)} "
-              f"| {h.group} | {'-' if h.target is None else _fmt(h.target)} |")
+              f"| {val} | {h.group} | {'-' if h.target is None else _fmt(h.target)} |")
     print()
+    valued = [h for h in holdings if h.value is not None]
+    ccys = {h.value_ccy for h in valued}
+    if valued and len(valued) == len(holdings) and len(ccys) == 1 and "" not in ccys:
+        print(f"Values: every holding's value is in the export, in {ccys.pop()}: the portfolio "
+              "view can weigh holdings from them, with no prices to fetch")
+    elif valued and len(valued) == len(holdings) and ccys == {""}:
+        print("Values: every holding has a value, but the export does not say in which "
+              "currency. Ask the user, then import again with --value-currency CCY "
+              "and the portfolio view weighs holdings from them")
+    elif valued:
+        missing = [h.ticker or h.isin for h in holdings if h.value is None]
+        print("Values: " + (f"no value for {', '.join(missing)}" if missing else
+                            "values in more than one currency (" + ", ".join(
+                                sorted(c or "not stated" for c in ccys)) + ")")
+              + " - weights need closes and exchange rates instead")
     if dropped:
         print("No longer in the export, removed: " + ", ".join(dropped))
     if guessed:
