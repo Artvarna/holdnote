@@ -435,7 +435,9 @@ funds in `pies.md` it comes from each issuer's **full** holdings file, read
 by `scripts/fund_holdings.py` (see Holdings and Look-through tables below).
 A top 10 from the factsheet is the fallback only for a fund whose file could
 not be fetched or failed its checks, or for a fund the script has no source
-for; the table's heading then says `top-10 depth, partial` for that fund and
+for: `fund_holdings.py report --factsheets factsheets.csv`, the file written
+as `references/any-broker.md` → Look-through without GitHub says. The
+table's heading then says `top-10 depth, partial` for that fund and
 `METHOD` names why.
 
 **Shared weight is one figure:** the sum, over the shared names, of the

@@ -434,6 +434,36 @@ def catalog_tickers(path: Path = CATALOG) -> dict[str, str]:
     return out
 
 
+def catalog_isins(path: Path = CATALOG) -> dict[str, str]:
+    """ISIN -> ticker for every fund in the catalogue: each row's own Ticker and
+    ISIN, then the first ticker of each group in its Tickers column."""
+    out: dict[str, str] = {}
+    if not path.is_file():
+        return out
+    cols: dict[str, int] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if "ISIN" in cells and "Ticker" in cells:
+            cols = {c: i for i, c in enumerate(cells)}
+            continue
+        if not cols or set("".join(cells)) <= set("-: "):
+            continue
+        ticker, isin = cells[cols["Ticker"]], cells[cols["ISIN"]].upper()
+        if isin_valid(isin) and TICKER_CELL.match(ticker):
+            out.setdefault(isin, ticker)
+        tick_col = cols.get("Tickers")
+        if tick_col is not None and tick_col < len(cells):
+            for group in cells[tick_col].split(";"):
+                if "=" in group:
+                    names, code = group.rsplit("=", 1)
+                    first = names.split(",")[0].strip().upper()
+                    if isin_valid(code.strip().upper()) and first:
+                        out.setdefault(code.strip().upper(), first)
+    return out
+
+
 def file_isins(rows: list[list[str]]) -> dict[str, str]:
     """Symbol -> ISIN from rows elsewhere in the same export that carry both,
     such as Interactive Brokers' "Financial Instrument Information" section.
@@ -741,7 +771,7 @@ def write_holdings(path: Path, holdings: list[Holding], as_of: date, source: str
 
 
 def guess_kind(name: str, ticker: str, isin: str = "") -> str:
-    if isin and isin in set(catalog_tickers().values()):
+    if isin and (isin in catalog_isins() or isin in set(catalog_tickers().values())):
         return "fund"  # a fund in Holdnote's catalogue
     return "fund" if FUND_WORDS.search(f"{name} {ticker}") else "stock"
 
@@ -796,16 +826,22 @@ def build(parsed: list[Parsed], existing: HoldingsFile | None, isins: dict[str, 
     old = {h.isin: h for h in existing.holdings} if existing else {}
     kind_over = {k.upper(): v.strip().lower() for k, v in kinds.items()}
     out, guessed = [], []
+    in_catalog = catalog_isins()
     for p in merged.values():
         prev = old.get(p.isin)
         kind = kind_over.get(p.isin) or kind_over.get(p.ticker.upper())
         if kind and kind not in KINDS:
             raise Refused(f"--kind {p.ticker or p.isin}={kind}: must be fund or stock")
+        if not kind and not prev and p.isin in in_catalog:
+            kind = "fund"  # the catalogue lists it: an ETF, not a guess
         if not kind:
             kind = prev.kind if prev else guess_kind(p.name, p.ticker, p.isin)
             if not prev:
                 guessed.append(p.isin)
-        out.append(Holding(p.isin, p.ticker or (prev.ticker if prev else ""),
+        # An export with no ticker column (DEGIRO) still gets a catalogue fund's
+        # usual ticker, so the tables read VWCE rather than its long name.
+        out.append(Holding(p.isin, p.ticker or (prev.ticker if prev else "")
+                           or in_catalog.get(p.isin, ""),
                            p.name or (prev.name if prev else ""), kind, p.quantity,
                            prev.group if prev else DEFAULT_GROUP, prev.target if prev else None,
                            p.value, p.value_ccy if p.value is not None else ""))

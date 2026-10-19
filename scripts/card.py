@@ -130,6 +130,11 @@ def _needed(t: dict[str, list[list[str]]], name: str) -> list[list[str]]:
     return rows
 
 
+def _available(t: dict[str, list[list[str]]], name: str) -> bool:
+    rows = t.get(name)
+    return bool(rows) and "Not available" not in " ".join(" ".join(r) for r in rows[1:])
+
+
 HUNDRED = Decimal(100)
 # How far a whole-portfolio table's Total row may sit from 100 through
 # rounding each cell to 0.01: half a hundredth per cell, for ~20 cells.
@@ -206,8 +211,10 @@ def read(text: str) -> Card:
 
     # Countries and Sectors are drawn when the draft carries them; a run made
     # for the card asks for both (SKILL.md -> Portfolio card).
-    countries = _buckets(_needed(t, "Countries"), 3) if "Countries" in t else []
-    sectors = _buckets(_needed(t, "Sectors"), 3) if "Sectors" in t else []
+    # A Not available one (factsheet top-10 depth gives no country or sector
+    # per company) is left off, and the card says why in its place.
+    countries = _buckets(t["Countries"], 3) if _available(t, "Countries") else []
+    sectors = _buckets(t["Sectors"], 3) if _available(t, "Sectors") else []
 
     overlap = None
     hold = t.get("Holdings")
@@ -237,6 +244,8 @@ def read(text: str) -> Card:
     label = ("PARTIAL · SOME FUNDS NOT LOOKED THROUGH"
              if re.search(r"^Look-through\b.*\bnot looked through\b", result, re.MULTILINE)
              else "PARTIAL · TOP-10 DEPTH")
+    if partial and label == "PARTIAL · TOP-10 DEPTH":
+        companies = None  # the count of companies in some top 10s says nothing of the funds
     return Card(as_of=as_of, demo="Demo" in mode, funds=funds, direct=direct,
                 companies=companies, top=top, hero=hero, countries=countries,
                 sectors=sectors, overlap=overlap, partial=partial, partial_label=label)
@@ -428,11 +437,20 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
         _bucket_column(ops, PAD + i * (col_w + gap), y + 44, col_w, title, buckets, fonts)
     if columns:
         y += 44 + 58 + 30 * (max(len(b) for _, b in columns) - 1) + 8
+    elif card.partial:
+        ops.append(_label(PAD, y + 44, "Countries and sectors"))
+        ops.append(Text(PAD, y + 82, fonts.fit(
+            "Need every company in each fund: this card reads each fund's factsheet top 10 only.",
+            20, room), 20, "sans", MUTED))
+        y += 82 + 16
 
     # Overlap, in the serif's italic, where it clears the footer
-    if card.overlap and y + 44 <= H - 104:
+    # Not at top-10 depth: two funds share far more than their top 10s show.
+    top10 = card.partial and card.partial_label == "PARTIAL · TOP-10 DEPTH"
+    if card.overlap and not top10 and y + 44 <= H - 104:
         pair, n, shared = card.overlap
-        text = f"{pair} share {int(n):,} companies, {pct(shared)} shared weight."
+        text = (f"{pair} share {int(n):,} compan{'y' if int(n) == 1 else 'ies'}, "
+                f"{pct(shared)} shared weight.")
         ops.append(Text(PAD, y + 44, fonts.fit(text, 24, room, "serif-italic"), 24,
                         "serif-italic", INK))
 

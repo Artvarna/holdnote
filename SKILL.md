@@ -408,9 +408,11 @@ sectors and fund overlap, with the Holdnote link at its foot.
 the portfolio's market value — and never a quantity, close, value or amount,
 so the user can post it without showing what they have. It says nothing the
 tables do not: no rating, no verdict. A demo card is labelled `DEMO ·
-SYNTHETIC PORTFOLIO`. Exit 1 means the draft cannot make a card (most often
-Look-through is `Not available`): say why in one line and offer what would
-fix it — attach an export, or run the demo card.
+SYNTHETIC PORTFOLIO`. Without GitHub the card is made from a look-through
+at factsheet top-10 depth (`references/any-broker.md` → Look-through without
+GitHub) and says `PARTIAL · TOP-10 DEPTH`. Exit 1 means the draft cannot
+make a card (most often Look-through is `Not available`): say why in one
+line and offer what would fix it — attach an export, or run the demo card.
 
 ## Scope
 

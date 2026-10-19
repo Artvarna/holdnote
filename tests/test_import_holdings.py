@@ -274,7 +274,7 @@ def test_reimport_keeps_kind_group_and_target(tmp_path):
     h = holdings(tmp_path)
     assert h[APPLE].quantity == Decimal("2")
     assert (h[APPLE].group, h[APPLE].target, h[APPLE].ticker) == ("Stocks", Decimal("20"), "AAPL")
-    assert WORLD not in h and "removed: World ETF" in out
+    assert WORLD not in h and "removed: SPPW" in out  # its catalogue ticker
     assert "(guessed)" not in out
 
 
