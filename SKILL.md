@@ -146,6 +146,9 @@ Market-wide mode → Trigger.
 | "how's iShares Core FTSE 100 done this month" | `Mode: Portfolio (Mode C)` | instrument named; not held changes nothing |
 | "how's my S&P 500 tracker doing" | `Mode: Portfolio (Mode C)` | possessive plus instrument; outranks the index-name match |
 | "what's driving my portfolio up in the last few days?" | `Mode: Portfolio (Mode C)` | ownership scope; the "driving" is rule 7 and gets moves, not causes |
+| "is my portfolio diversified?" · "am I too concentrated?" | `Mode: Portfolio (Mode C)` | ownership scope; a judgement word gets the Look-through, Hidden bets, Countries and Sectors tables — shares, not a verdict, which is the user's |
+| "how much tech do I have?" · "how exposed am I to China?" | `Mode: Portfolio (Mode C)` | a sector or country of what they own: Sectors or Countries, from the look-through |
+| "which ETF should I buy?" · "what's the best ETF?" — nothing named | no Mode line: plain prose | a general question: say Holdnote does not pick, in one sentence, then offer to brief or compare any funds they name |
 
 ## Source discipline
 

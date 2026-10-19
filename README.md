@@ -19,8 +19,8 @@ number traceable.
 | `Quick brief on KO` | Just the Buffett scorecard: the fastest brief, and the lightest on your plan's limits |
 | `Brief me on NVDA` | A Buffett scorecard (moat, returns on capital, debt, owner earnings, margin of safety), key numbers, what changed since your last run, and red flags from the filings |
 | `Brief me on VWCE with the Graham and Lynch lenses` | The same for a fund or stock, plus any of 7 investor lenses: Graham, Lynch, Greenblatt, Piotroski, Terry Smith, Munger, Bogle |
-| `What do I own?` + your broker export or a screenshot | Market weights for every holding, from any app or website |
-| `What do I actually own by sector and currency?` | Look-through of every company inside your funds, not just their top 10 (full holdings files for SSGA, iShares, Vanguard UK and Amundi funds with the GitHub option; the factsheet top 10 otherwise) |
+| `What do I own?` + your broker export or a screenshot | Weights for every holding, from any app or website. On the web or your phone they come from the values in your export, with nothing to set up |
+| `What do I actually own by sector and currency?` | Look-through of every company inside your funds, not just their top 10 (full holdings files with the free GitHub option: 23 popular ETFs such as VWCE, IWDA and CSPX are set up for you, and any other SSGA, iShares, Vanguard UK or Amundi fund in one step; the factsheet top 10 otherwise) |
 | `How much do my ETFs overlap?` | Shared companies and shared weight for each pair of funds |
 | `What am I really betting on?` | **Hidden bets:** every company you own through two or more holdings, and how much more of it you own than any one of them shows |
 | `Make a card` | A shareable image of what your portfolio looks through to: biggest hidden bet, top 10 companies, countries, sectors. Percentages only, never amounts |
@@ -35,7 +35,9 @@ full evidence: every source, its date, and the arithmetic behind each figure.
 - **Any broker.** Give it your app's export (CSV or Excel, positions or a
   buy/sell history), a screenshot of your holdings, or just type them. It
   finds the columns in most languages, checks every ISIN, and asks rather
-  than guesses when something is missing.
+  than guesses when something is missing. Tested on exports from Degiro,
+  Interactive Brokers, Trading 212, Revolut, Scalable Capital, Comdirect,
+  Hargreaves Lansdown, XTB, Schwab and Fidelity, among others.
 - **Your data stays yours.** Your holdings, targets and theses live in a
   `me/` folder **you** choose: a folder on your computer, your own private
   GitHub repo, or nowhere (attach your file when you ask). The skill itself
@@ -72,9 +74,10 @@ after its Action's first run, and week-on-week changes a week after that.
   limits won't cover.
 - **Skills enabled:** turn on *Code execution and file creation*, then
   upload the zip under Skills.
-- **The Claude desktop app, for the full portfolio view.** Live prices from
-  the London Stock Exchange, Deutsche Börse and the ECB are read through
-  the desktop app's built-in browser, so keep it open on your computer.
+- **The Claude desktop app, for today's prices.** Live closes from the
+  London Stock Exchange, Deutsche Börse and the ECB are read through the
+  desktop app's built-in browser. Without it (on the web or a phone), the
+  portfolio view uses the values in your export, as of its date.
 - GitHub is optional.
 
 ## Repo layout
