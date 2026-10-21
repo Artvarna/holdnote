@@ -1388,6 +1388,271 @@ def lens_source_problems(sections: dict[str, str]) -> list[str]:
             if host in sections.get("SOURCES", "")]
 
 
+# --------------------------------------------------------------------------
+# Price move (references/price-move.md, RULES.md rule 7 v14)
+#
+# The one mode that prints reported reasons. These checks hold the narrow
+# allowance narrow: reasons only in their own table, each attributed, dated
+# inside its window and short; events typed and dated; contributions that
+# add up; and no causal wording anywhere else in RESULT.
+# --------------------------------------------------------------------------
+
+PRICE_MOVE_MODE = "Price move"
+PRICE_MOVE_TABLES = ["Move", "Contribution", "Dated events", "Reported reasons"]
+PRICE_MOVE_REQUIRED = ["Move", "Dated events", "Reported reasons"]
+CONTRIBUTION_HEADER = ["Holding", "Weight %", "Move %", "Contribution pp"]
+EVENTS_HEADER = ["Date", "About", "Event", "Source"]
+REASONS_HEADER = ["About", "Published", "Source", "Reason as reported", "Premise"]
+EVENT_TYPES = ("Results release:", "Filing:", "Company release:", "Ex-dividend:",
+               "Index change:", "Rate decision:", "Fund notice:")
+PREMISE_VALUES = {"Matches primary source", "Not in primary sources", "Not checkable"}
+REASON_VERBS = ("Says ", "Reports ", "Writes ", "States ")
+REASON_MAX_WORDS = 30
+REASONS_PER_ABOUT = 5
+NOT_A_SOURCE = {"", "—", "-", "analysts", "reports", "media", "news", "the market",
+                "market", "holdnote", "claude", "unknown", "various"}
+PRICE_MOVE_METHOD = ["Benchmark:", "Contribution:", "Events window:", "Reasons window:",
+                     "Reasons rule:", "Reasons searched:"]
+# Holdnote's own reason, in the shapes it usually takes. Outside the
+# Reported reasons table none of these may appear in RESULT.
+CAUSAL_WORDING = [
+    r"\bbecause\b", r"\bdue to\b", r"\bdriven by\b", r"\bthanks to\b",
+    r"\bas a result of\b", r"\bin response to\b", r"\bweighed on\b",
+    r"\bcaused\b", r"\btriggered\b", r"\bsparked\b", r"\bfuel(?:l)?ed\b",
+    r"\bled to\b", r"\bsent (?:shares|the stock|the fund|it)\b",
+    r"\bon (?:fears|hopes|worries|concerns|optimism|pessimism)\b",
+    r"\bthe reason (?:for|behind)\b",
+]
+# The user's money never enters a Price move (rule 11).
+USER_POSITION = re.compile(
+    r"\byour (?:position|holding|shares|stake|portfolio)\b|\byou (?:lost|gained|own)\b",
+    re.IGNORECASE,
+)
+_PERIOD_BOUNDS = re.compile(rf"({_ISO}) close to ({_ISO}) close")
+
+
+def _context_field(sections: dict[str, str], name: str) -> str:
+    """A CONTEXT field's value, its continuation lines joined."""
+    lines = sections.get("CONTEXT", "").splitlines()
+    for i, line in enumerate(lines):
+        if line.strip().startswith(f"{name}:"):
+            value = [line.split(":", 1)[1]]
+            for nxt in lines[i + 1:]:
+                if nxt.startswith((" ", "\t")) and not re.match(r"^\s*[A-Z][\w /]*:\s", nxt):
+                    value.append(nxt)
+                else:
+                    break
+            return re.sub(r"\s+", " ", " ".join(value)).strip()
+    return ""
+
+
+def is_price_move(sections: dict[str, str]) -> bool:
+    mode = _mode_line(sections.get("RESULT", "")) or ""
+    return PRICE_MOVE_MODE in mode.split(" + ")
+
+
+def _named(result: str, prefix: str) -> str | None:
+    """The full heading of the first RESULT table whose heading starts with prefix."""
+    return next((n for n in result_tables(result) if n.split(" (")[0] == prefix), None)
+
+
+def _float(cell: str) -> float | None:
+    try:
+        return float(cell.replace(",", "").replace("+", ""))
+    except ValueError:
+        return None
+
+
+def _without_table(result: str, heading: str) -> str:
+    """RESULT with one table (heading line and its pipe rows) cut out."""
+    lines = result.splitlines()
+    out: list[str] = []
+    skipping = False
+    for line in lines:
+        if line.strip() == heading:
+            skipping = True
+            continue
+        if skipping and line.strip().startswith("|"):
+            continue
+        skipping = False
+        out.append(line)
+    return "\n".join(out)
+
+
+def reported_reasons_elsewhere(sections: dict[str, str]) -> list[str]:
+    """Rule 7 v14: only a Price move prints reported reasons."""
+    result = sections.get("RESULT", "")
+    if is_price_move(sections) or _named(result, "Reported reasons") is None:
+        return []
+    return ["Reported reasons printed outside a Price move (RULES.md rule 7)"]
+
+
+def price_move_problems(sections: dict[str, str]) -> list[str]:
+    """A Price move against references/price-move.md."""
+    if not is_price_move(sections):
+        return []
+    result = sections.get("RESULT", "")
+    method = sections.get("METHOD", "")
+    problems: list[str] = []
+
+    # Windows come from Latest period's base and end sessions.
+    latest = _context_field(sections, "Latest period")
+    bounds = _PERIOD_BOUNDS.search(latest)
+    base = end = None
+    if bounds:
+        base, end = _date(bounds.group(1)), _date(bounds.group(2))
+    else:
+        problems.append("Latest period is not 'YYYY-MM-DD close to YYYY-MM-DD close'")
+
+    # Tables: the four, in order, the three required ones present.
+    names = [n.split(" (")[0] for n in result_tables(result)]
+    for name in names:
+        if name not in PRICE_MOVE_TABLES:
+            problems.append(f"{name!r} in a Price move; it prints Move, Contribution, "
+                            "Dated events and Reported reasons only")
+    known = [n for n in names if n in PRICE_MOVE_TABLES]
+    if known != [n for n in PRICE_MOVE_TABLES if n in known]:
+        problems.append(f"Price move tables out of order: {known}")
+    missing = [n for n in PRICE_MOVE_REQUIRED if n not in names]
+    if missing:
+        problems.append(f"Price move is missing tables: {missing}")
+
+    for label in PRICE_MOVE_METHOD:
+        if not re.search(rf"^\s*{re.escape(label)}\s*\S", method, re.MULTILINE):
+            problems.append(f"Price move METHOD has no {label} line")
+
+    # Move: the instrument first, every other row a benchmark.
+    fund_move = None
+    move = _named(result, "Move")
+    if move:
+        header = _table_header(result, move)
+        rows = result_tables(result)[move]
+        if not rows:
+            problems.append("Move has no rows")
+        elif rows[0][0].startswith("Benchmark"):
+            problems.append("Move's first row is the benchmark; the instrument comes first")
+        else:
+            if "Period %" in header:
+                fund_move = _float(rows[0][header.index("Period %")])
+            for row in rows[1:]:
+                if not row[0].startswith("Benchmark: "):
+                    problems.append(f"Move row {row[0]!r} is neither the instrument nor "
+                                    "a `Benchmark: ` row")
+
+    # Contribution: weight x move / 100, sorted, and a residual that adds up.
+    contrib = _named(result, "Contribution")
+    if contrib:
+        header = _table_header(result, contrib)
+        if header != CONTRIBUTION_HEADER:
+            problems.append(f"Contribution header is {header}, not {CONTRIBUTION_HEADER}")
+        else:
+            rows = result_tables(result)[contrib]
+            body = [r for r in rows if r[0] != "Rest of fund"]
+            rest = next((r for r in rows if r[0] == "Rest of fund"), None)
+            values: list[float] = []
+            gap = False
+            for r in body:
+                w, m, c = (_float(x) for x in r[1:4])
+                if c is None:
+                    gap = True
+                    continue
+                values.append(c)
+                if w is not None and m is not None and abs(w * m / 100 - c) > 0.01:
+                    problems.append(f"Contribution {r[0]}: {r[1]} x {r[2]} / 100 is "
+                                    f"{w * m / 100:.4f}, printed {r[3]}")
+            if [abs(v) for v in values] != sorted((abs(v) for v in values), reverse=True):
+                problems.append("Contribution rows are not sorted by size of contribution")
+            if rest is None:
+                problems.append("Contribution has no Rest of fund row")
+            else:
+                cell = rest[3]
+                if gap:
+                    if not cell.startswith("Not available"):
+                        problems.append("Rest of fund must be Not available when a "
+                                        "contribution is")
+                elif fund_move is not None:
+                    want = fund_move - sum(values)
+                    got = _float(cell)
+                    if got is None or abs(want - got) > 0.01 + 0.005 * len(values):
+                        problems.append(f"Rest of fund is {cell}, but {fund_move} - "
+                                        f"{' - '.join(f'{v}' for v in values)} = {want:.2f}")
+
+    # Dated events: typed, dated inside the window, or the one None row.
+    events = _named(result, "Dated events")
+    if events:
+        header = _table_header(result, events)
+        if header != EVENTS_HEADER:
+            problems.append(f"Dated events header is {header}, not {EVENTS_HEADER}")
+        else:
+            for date, _about, event, source in (r[:4] for r in result_tables(result)[events]):
+                if event == "None in window":
+                    if date != "—" or not source.startswith("checked:"):
+                        problems.append("Dated events None row is `| — | <About> | None in "
+                                        "window | checked: <sources> |`")
+                    continue
+                if not event.startswith(EVENT_TYPES):
+                    problems.append(f"Dated events event {event!r} does not start with "
+                                    f"one of {list(EVENT_TYPES)}")
+                day = _date(date)
+                if day is None:
+                    problems.append(f"Dated events date {date!r} is not YYYY-MM-DD")
+                elif base and end and not base <= day <= end:
+                    problems.append(f"Dated events {date} is outside the window "
+                                    f"{base} to {end}")
+
+    # Reported reasons: attributed, dated, short, a known Premise, at most 5.
+    reasons = _named(result, "Reported reasons")
+    if reasons:
+        header = _table_header(result, reasons)
+        if header != REASONS_HEADER:
+            problems.append(f"Reported reasons header is {header}, not {REASONS_HEADER}")
+        else:
+            per_about: dict[str, int] = {}
+            dates: list[_dt.date] = []
+            for about, published, source, reason, premise in (
+                    r[:5] for r in result_tables(result)[reasons]):
+                if reason.startswith("None found"):
+                    if (published, source, premise) != ("—", "—", "—"):
+                        problems.append("Reported reasons None row is `| <About> | — | — | "
+                                        "None found — ... | — |`")
+                    continue
+                per_about[about] = per_about.get(about, 0) + 1
+                if source.strip().lower() in NOT_A_SOURCE:
+                    problems.append(f"Reported reason with no named source: {source!r}")
+                if not reason.startswith(REASON_VERBS):
+                    problems.append(f"Reported reason does not open with Says/Reports/"
+                                    f"Writes/States: {reason!r}")
+                if len(reason.split()) >= REASON_MAX_WORDS:
+                    problems.append(f"Reported reason is {len(reason.split())} words; "
+                                    f"under {REASON_MAX_WORDS}")
+                if premise not in PREMISE_VALUES:
+                    problems.append(f"Premise {premise!r} is not one of {sorted(PREMISE_VALUES)}")
+                day = _date(published)
+                if day is None:
+                    problems.append(f"Reported reason published {published!r} is not YYYY-MM-DD")
+                    continue
+                dates.append(day)
+                if base and end and not base <= day <= end + _dt.timedelta(days=1):
+                    problems.append(f"Reported reason published {published} is outside "
+                                    f"{base} to {end + _dt.timedelta(days=1)}")
+            for about, n in per_about.items():
+                if n > REASONS_PER_ABOUT:
+                    problems.append(f"{n} reported reasons for {about}; at most "
+                                    f"{REASONS_PER_ABOUT}")
+            if dates != sorted(dates):
+                problems.append("Reported reasons are not in order of publication date")
+
+    # No reason of Holdnote's own anywhere else in RESULT.
+    outside = _without_table(result, reasons) if reasons else result
+    for pat in CAUSAL_WORDING:
+        for m in re.finditer(pat, outside, re.IGNORECASE):
+            snippet = outside[max(0, m.start() - 30): m.end() + 30].replace("\n", " ")
+            problems.append(f"causal wording outside Reported reasons: {snippet!r}")
+    for m in USER_POSITION.finditer(result):
+        problems.append(f"the user's position in a Price move: {m.group(0)!r}")
+    return problems
+
+
 def output_problems(text: str) -> list[str]:
     """Every contract check that applies to a composed output, in one list.
 
@@ -1413,6 +1678,7 @@ def output_problems(text: str) -> list[str]:
                   lookthrough_problems, hidden_bets_problems, countries_problems,
                   sectors_problems, currencies_problems,
                   brief_layout_problems, quick_brief_problems, sources_summary_problems,
-                  lens_source_problems, buffett_notes_problems, checklist_problems):
+                  lens_source_problems, buffett_notes_problems, checklist_problems,
+                  price_move_problems, reported_reasons_elsewhere):
         problems += check(sections)
     return problems

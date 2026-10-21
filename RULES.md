@@ -1,6 +1,6 @@
 # RULES.md — Research Agent Constitution
 
-Version 13 · Last edited 2026-10-15
+Version 14 · Last edited 2026-10-21
 
 Every module in this project obeys these rules. If a rule conflicts with a
 request, the rule wins. Each skill file must open with: `Follow RULES.md.`
@@ -139,6 +139,18 @@ constructed after the fact, and it is the single easiest way for a research
 tool to sound authoritative while saying nothing verifiable.
 
 Report the move and the dated facts around it. Let me draw the line.
+
+**Reported reasons, attributed (v14).** What a named source published as the
+reason for a move may be reported, the way rule 8 lets analyst estimates be
+reported: as that source's claim, never the agent's. Each one carries the
+source and its publication date, is paraphrased in the agent's words, and
+sits in a table labelled as reported. The agent never adds a reason of its
+own, never picks one reported reason over another, never ranks them by
+plausibility, and never draws a line from a dated event to the move — the
+events and the reported reasons are separate tables, and the connection is
+still mine to make. "No named source gave a reason" is a complete answer.
+Only `references/price-move.md` prints reported reasons; every other module
+still reports moves without them.
 
 ### 8. No forecasting
 
@@ -396,6 +408,7 @@ Mode: Any broker
 Mode: Thesis journal
 Mode: Run journal
 Mode: Demo + Portfolio (Mode C)
+Mode: Price move
 ```
 
 Where routes combine, the line names each, joined by ` + `, in the order
@@ -549,7 +562,9 @@ Before returning any brief, verify:
 - [ ] Reported figures used; any adjusted figures marked as such
 - [ ] No recommendation, price-target, or forecast language (the user's own
       allocation targets in `pies.md` are a decision of theirs, not this)
-- [ ] No causal story about price movement
+- [ ] No causal story about price movement of the agent's own; reported
+      reasons only in a Price move's `Reported reasons` table, each with
+      its source and date (rule 7)
 - [ ] Gaps listed explicitly rather than omitted
 - [ ] Sections present, in order: five, or six with `PROOF` when it was
       asked for or the run halted
@@ -588,6 +603,14 @@ If any box fails, fix it before output rather than shipping with a caveat.
 
 ## Changelog
 
+- **v14 (2026-10-21)** — Rule 7 gains a second paragraph: a reason a named
+  source published for a move may be reported, attributed and dated, the
+  way rule 8 reports analyst estimates — never the agent's own reason,
+  never one chosen over another, and never linked to an event by the agent.
+  Only the new Price move mode (`Mode: Price move`,
+  `references/price-move.md`) prints them, in a `Reported reasons` table
+  the contract checks. Rule 7's first paragraph is unchanged and still
+  binds every other module. Rule numbers are untouched.
 - **v13 (2026-10-15)** — Two modes. A quick brief
   (`Mode: Stock brief (quick)`, `Mode: Fund brief (Mode A, quick)`) prints
   the `Scorecard:` TL;DR line and the Buffett scorecard, plus lenses only

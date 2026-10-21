@@ -34,6 +34,7 @@ ICONS = {
     "Allocation": "🎯", "Look-through": "🔍", "Hidden bets": "🕵️", "Countries": "🌍", "Sectors": "🏭",
     "Currencies": "💱", "Holdings changes": "📅", "Holdings": "🔗", "Comparison": "⚖️",
     "Structural": "🧱", "Performance": "📈", "Stocks": "🗓️",
+    "Move": "📈", "Contribution": "🧮", "Dated events": "📌", "Reported reasons": "🗞️",
 }
 # Cells that are a result against a stated threshold or a status the spec fixes
 RESULT_CELLS = {
@@ -43,6 +44,13 @@ RESULT_CELLS = {
     "None on file": "— none on file",
 }
 RESULT_COLUMNS = {"Result", "Status"}
+# A Price move's Premise column: whether the fact a source cites is in a
+# primary document (references/price-move.md). Never whether it caused the move.
+PREMISE_CELLS = {
+    "Matches primary source": "✅ Matches primary source",
+    "Not in primary sources": "❔ Not in primary sources",
+    "Not checkable": "⚪ Not checkable",
+}
 TYPE_CELLS = {"Filing risk": "📄 Filing", "Thesis": "📝 Thesis"}
 # METHOD lines a reader must see even with METHOD hidden (RULES.md Part IV v9)
 WARNING_LABELS = ("Conflict", "Source conflict", "Stale", "Stale source", "Fallback")
@@ -68,7 +76,8 @@ def _title(text: str, mode: str) -> str:
     first = next((ln.strip() for ln in text.splitlines() if ln.strip()), "")
     m = re.match(r"^=== (?P<ticker>[^—]+?)\s+—\s+(?P<name>[^·]+?)(?:\s+·.*)?\s*===$", first)
     if m:
-        return f"## {m['ticker']} · {m['name']}"
+        why = " · why it moved" if mode.split(" + ")[0] == "Price move" else ""
+        return f"## {m['ticker']} · {m['name']}{why}"
     names = {"Portfolio (Mode C)": "Your portfolio", "Market-wide": "The market",
              "Demo": "Demo portfolio",
              "Portfolio sync": "Portfolio update", "Thesis journal": "Thesis journal"}
@@ -129,6 +138,8 @@ def _table(lines: list[str]) -> list[str]:
                 c = RESULT_CELLS[c]
             elif col == "Type" and c in TYPE_CELLS:
                 c = TYPE_CELLS[c]
+            elif col == "Premise" and c in PREMISE_CELLS:
+                c = PREMISE_CELLS[c]
             cells.append(c)
         out.append(_row(cells))
     return out
@@ -183,6 +194,9 @@ def _warnings(method: str) -> list[str]:
         line = raw.strip()
         label = line.split(":", 1)[0]
         lower = line.lower()
+        value = line.split(":", 1)[1].strip().lower() if ":" in line else ""
+        if value in ("none", "none.", "-", "—"):
+            continue  # "Conflict: none" is the absence of a warning, not one
         single = label == "Confirmation" and ("one source" in lower or "single source" in lower)
         if label in WARNING_LABELS or single or (label == "Self-check" and "not run" in lower) \
                 or ("stale" in lower and label not in ("Build", "Tables")):

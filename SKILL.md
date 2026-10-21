@@ -1,6 +1,6 @@
 ---
 name: holdnote
-description: Research ETFs, individual stocks, market indexes and portfolio overlap from primary sources — factsheets, KIDs, annual reports and regulatory filings — and keep a written investment thesis journal. Use it when the user wants research on a specific fund, ETF, index, stock, ticker or ISIN (a brief, its costs, holdings, valuation, filings or earnings); asks what their portfolio holds, how their holdings overlap or compare, or what changed since last time; attaches a broker export or a screenshot of their holdings; or asks for a Holdnote demo, quick brief or portfolio card. Not for general money questions or explaining an investing term when no instrument or portfolio is named.
+description: Research ETFs, individual stocks, market indexes and portfolio overlap from primary sources — factsheets, KIDs, annual reports and regulatory filings — and keep a written investment thesis journal. Use it when the user wants research on a specific fund, ETF, index, stock, ticker or ISIN (a brief, its costs, holdings, valuation, filings or earnings); asks why a named stock or ETF moved (the move, its dated events and the reasons named sources reported); asks what their portfolio holds, how their holdings overlap or compare, or what changed since last time; attaches a broker export or a screenshot of their holdings; or asks for a Holdnote demo, quick brief or portfolio card. Not for general money questions or explaining an investing term when no instrument or portfolio is named.
 ---
 
 # Holdnote
@@ -24,7 +24,8 @@ the built-in browser for the rows it cannot fill.
 ## Read first, every run
 
 `RULES.md` — the constitution. Sourced numbers only, `Not available` over
-estimates, no recommendations, no forecasts, no causal price narrative,
+estimates, no recommendations, no forecasts, no causal price narrative of
+its own (reported reasons, attributed, in Price move only),
 no "what this implies" section.
 
 `me/profile.md` — the user's preferences (Your files). Its settings decide
@@ -101,6 +102,7 @@ that fails is said plainly, with the text printed so nothing is lost.
 | An individual company or stock | `references/stock-brief.md` |
 | Overlap, concentration, look-through, "what do I actually own", actual vs target weights | `references/etf-brief.md` → Mode C, whose Allocation table carries market weight vs target per holding (`scripts/market_weights.py`, run in the repo), whose Holdings, Look-through, Countries, Sectors and Currencies tables come from every company each fund holds (`scripts/fund_holdings.py report`, run in the repo on files a GitHub Actions job fetches daily to the `holdings-data` branch), and whose Stocks table carries each stock's next earnings date and newest SEC filings |
 | What changed in my funds' holdings — names added or dropped, weight moves week on week | `references/etf-brief.md` → Mode C → Holdings changes table (`scripts/fund_holdings.py changes`, run in Claude's workspace on the `holdings-data` and `holdings-history` branches) |
+| Why a named stock or ETF moved, or whether there is a reason — "why did NVDA drop today", "any reason VUSA is down this week", "why did my Apple shares fall" | `references/price-move.md` — one instrument per output; never opens the user's holdings |
 | Policy rates, inflation, earnings dates, index changes affecting holdings | `references/market-context.md` |
 | Where the market, an index or a sector stands and how it moved — not scoped to holdings | `references/market-context.md` → Market-wide mode |
 | "Why did I buy this", writing or checking a thesis | `references/thesis-journal.md` |
@@ -146,6 +148,9 @@ Market-wide mode → Trigger.
 | "how's iShares Core FTSE 100 done this month" | `Mode: Portfolio (Mode C)` | instrument named; not held changes nothing |
 | "how's my S&P 500 tracker doing" | `Mode: Portfolio (Mode C)` | possessive plus instrument; outranks the index-name match |
 | "what's driving my portfolio up in the last few days?" | `Mode: Portfolio (Mode C)` | ownership scope; the "driving" is rule 7 and gets moves, not causes |
+| "why did NVDA drop today" | `Mode: Price move` | a reason asked for one named instrument |
+| "why did my Apple shares fall" | `Mode: Price move` | the reason test fires before the possessive; the mode reads no files |
+| "why did the S&P 500 fall today" | `Mode: Market-wide` | an index, not an instrument: the move, no reasons |
 | "is my portfolio diversified?" · "am I too concentrated?" | `Mode: Portfolio (Mode C)` | ownership scope; a judgement word gets the Look-through, Hidden bets, Countries and Sectors tables — shares, not a verdict, which is the user's |
 | "how much tech do I have?" · "how exposed am I to China?" | `Mode: Portfolio (Mode C)` | a sector or country of what they own: Sectors or Countries, from the look-through |
 | "which ETF should I buy?" · "what's the best ETF?" — nothing named | no Mode line: plain prose | a general question: say Holdnote does not pick, in one sentence, then offer to brief or compare any funds they name |

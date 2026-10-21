@@ -36,7 +36,9 @@ Each item carries its source and its date. An item without both is dropped.
 
 - Why anything moved. "Stocks fell on rate fears" is a story assembled after
   the fact. Report the move and the dated facts; the connection is the user's
-  to draw.
+  to draw. Reasons that named sources reported for one stock or ETF are
+  `references/price-move.md`'s, attributed and dated (`RULES.md` rule 7);
+  this module prints none.
 - What "the market expects", "sentiment", or "investors are pricing in".
 - Forecasts of any kind. Third-party forecasts may be reported as data with
   the forecaster and date named, never restated as the system's own view.
@@ -67,10 +69,17 @@ everything it says beyond them.
 
 ### Trigger
 
-Four tests, in order; the first that matches decides the route. The router
+Five tests, in order; the first that matches decides the route. The router
 never opens `portfolio.md` to decide — which instruments the user holds is a
 question for the module being routed to, not an input to the routing.
 
+0. **A reason asked for one named stock or ETF** — "why did NVDA drop",
+   "any reason VUSA is down this week", "why did my Apple shares fall" →
+   `references/price-move.md`. It fires before the possessive test: the
+   question is about the instrument, and that mode reads none of the user's
+   holdings. A "why" about an index, a sector or the whole portfolio does
+   not match here and falls through to the tests below, which report the
+   move without reasons.
 1. **Possessive or first-person ownership scope** — "my portfolio", "my
    S&P 500 tracker", "my direct stock pie", "what I own", "what I bought" →
    portfolio view (`references/etf-brief.md` → Mode C). This test fires
