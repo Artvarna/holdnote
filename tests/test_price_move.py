@@ -333,3 +333,13 @@ def test_an_empty_conflict_line_is_not_a_warning():
                               "Conflict:          AAA end 95.40 [Nasdaq] vs 95.90 [Yahoo] gap 0.52% CONFLICT")
     out = render.render(flagged)
     assert "⚠️ *Conflict:" in out and "95.40 [Nasdaq] vs 95.90 [Yahoo]" in out
+
+
+def test_a_reason_for_a_premarket_or_after_hours_move_is_refused():
+    # Live run 2026-10-21: a premarket-dip piece printed beside a week the
+    # stock closed up. Move measures closes; that reason is for another price.
+    for phrase in ("the 0.4% premarket dip", "the after-hours jump", "Nasdaq futures falling"):
+        bad = replace_row(REASONS, "some analysts pointed to slower data-centre orders",
+                          f"{phrase} came with broader tech weakness")
+        assert any("outside the session closes" in p
+                   for p in problems(output(MOVE + EVENTS + bad))), phrase

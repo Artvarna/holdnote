@@ -1429,6 +1429,9 @@ USER_POSITION = re.compile(
     re.IGNORECASE,
 )
 _PERIOD_BOUNDS = re.compile(rf"({_ISO}) close to ({_ISO}) close")
+# A reason for a price Move never printed (references/price-move.md).
+OFF_SESSION = re.compile(r"\b(?:pre-?market|after-?hours|extended[- ]hours|futures)\b",
+                         re.IGNORECASE)
 
 
 def _context_field(sections: dict[str, str], name: str) -> str:
@@ -1625,6 +1628,9 @@ def price_move_problems(sections: dict[str, str]) -> list[str]:
                 if len(reason.split()) >= REASON_MAX_WORDS:
                     problems.append(f"Reported reason is {len(reason.split())} words; "
                                     f"under {REASON_MAX_WORDS}")
+                if OFF_SESSION.search(reason):
+                    problems.append(f"Reported reason is about a move outside the session "
+                                    f"closes: {reason!r}")
                 if premise not in PREMISE_VALUES:
                     problems.append(f"Premise {premise!r} is not one of {sorted(PREMISE_VALUES)}")
                 day = _date(published)

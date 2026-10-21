@@ -169,6 +169,13 @@ Reported reasons (as published by the named sources — not Holdnote's view)
 - **Published** — the article's own publication date, between the base
   session's date and the day after the end session, inclusive. A piece
   about a different window is not used, however relevant it looks.
+- **The move it explains is a session move in the window.** Move measures
+  closes, so a reason counts only when the source gives it for a session's
+  close-to-close move inside the window, or for the window as a whole. A
+  reason for a premarket, after-hours or futures move is about a price the
+  Move table never printed, and is left out, counted on `Reasons
+  searched:`. (Live run 2026-10-21: a "premarket dip" piece was printed
+  beside a week the stock closed up.)
 - **Source** — the outlet or the issuer, by name. Never "analysts",
   "reports", "the market", Holdnote or Claude. The article is a `SOURCES`
   row with its URL and both dates.
@@ -291,6 +298,14 @@ Coverage:         Move n of m rows · Dated events n of m sources checked ·
 `RESULT` opens with `Mode: Price move`, then the four tables, nothing
 between them.
 
+**Nothing after the report.** Which sessions the period covers, and
+articles left out because they cover another window, go on `METHOD`'s
+`Period:` and `Reasons searched:` lines. An offer of another window is the
+`Next:` line — `Next: say "why did NVDA move last week" for the 2026-10-09
+to 2026-10-16 sessions`. A paragraph under the disclaimer is text outside
+the sections (`RULES.md` Part IV), however helpful it reads. (Live run
+2026-10-21 printed one.)
+
 `METHOD`, on every run:
 
 ```
@@ -341,6 +356,8 @@ cell, the document and the line it was checked against.
 - [ ] Reported reasons ordered by date and source rank, never by fit;
       disagreeing sources both printed
 - [ ] Premise judges the cited fact, never whether it caused the move
+- [ ] No reported reason for a premarket, after-hours or futures move
+- [ ] Nothing printed after the report; window notes are `METHOD` lines
 
 ## Frequency
 
