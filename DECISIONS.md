@@ -1190,3 +1190,21 @@ windows, the reason cells' attribution and length, the Premise values, the
 Contribution arithmetic, and that no causal wording appears in `RESULT`
 outside Reported reasons. It also refuses a Reported reasons table in any
 other mode.
+
+### Amended 2026-10-21, after the first live run
+
+- **US stock closes without the browser.** The run took NVDA's closes
+  from history pages the spec did not allow, and they were right. A
+  US-listed stock has one primary listing in USD, so the listing mix-ups
+  that ruled those pages out for funds do not arise: two pages that state
+  the same session's close and agree within 0.10% now fill the row, named
+  on `Fallbacks:`. One page alone, an ETF, a non-US stock or the
+  Contribution table stay `Not available` without the browser.
+- **Bylined financial news counts as a source**, ranked after the wires
+  and major media. With Reuters, AP and MarketWatch refused by the search
+  tool's domain filter and CNBC pages failing to open, the stricter set
+  left the table empty nearly every run. Unsigned aggregators, prediction
+  pages and pieces framed as advice still do not count.
+- **A reason for a premarket, after-hours or futures move is refused**,
+  in the spec and the contract: Move measures closes, and the run printed
+  a premarket-dip reason beside a week the stock closed up.

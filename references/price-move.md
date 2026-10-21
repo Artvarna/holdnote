@@ -204,14 +204,20 @@ reasons:
 
 1. The issuer itself (a release that states why, which is rare)
 2. Wire services: Reuters, AP, Bloomberg, Dow Jones Newswires
-3. Named financial media with an editor and a byline: CNBC, Financial
-   Times, Wall Street Journal, MarketWatch, Barron's, Handelsblatt, and the
-   like
+3. Major financial media: CNBC, Financial Times, Wall Street Journal,
+   MarketWatch, Barron's, Handelsblatt, and the like
+4. Other bylined financial news: a news report with a named author or
+   desk, from a publisher that names itself — Benzinga, Invezz, Yahoo
+   Finance's own reporting, and the like (chosen 2026-10-21: with the
+   wires mostly unreachable, the table is otherwise nearly always empty)
 
 Not sources: social media, forums, video, newsletters with no outlet,
-"stock prediction" and AI-written aggregator pages, and any page that
-reports a reason without naming who gives it. A syndicated wire story is
-one row, credited to the wire, however many sites carry it.
+"stock prediction" and price-target pages, AI-written or unsigned
+aggregator pages, and any page that reports a reason without naming who
+gives it. Nor is a piece framed as advice — a headline asking whether to
+buy or sell, or "is it time to …" — whatever its byline: its reason is
+the setup for a recommendation (rule 6). A syndicated story is one row,
+credited to its original publisher, however many sites carry it.
 
 **How reasons are found.** WebSearch, at most four queries per About,
 built from the company name, the ticker and the end session's date. A
@@ -255,7 +261,8 @@ mode.
 - **Closes** — a fund's listing: `references/etf-brief.md` → Where fund
   prices come from. A US stock: Yahoo's chart data (*browser*), the same
   JSON route; a second source for the close makes the row checked, and
-  without one it is `single source` on the `Confirmation` line. Benchmark
+  without one it is `single source` on the `Confirmation` line. Without
+  the browser, a US stock takes the fallback below. Benchmark
   index closes: `references/market-context.md` → Where the closes come
   from (the AP wire route for the S&P 500 works without the browser).
 - **Filings** — SEC EDGAR submissions, browser-only
@@ -267,12 +274,33 @@ mode.
 - **Reported reasons** — WebSearch and WebFetch, which work everywhere,
   the web and the phone included.
 
-**Without the built-in browser** the run goes on. Move and Contribution
-rows whose closes need the browser print `Not available (browser route
-down)`; Dated events loses EDGAR and says so in its `none` row or on a
-`Fallbacks:` line; Reported reasons runs in full. A reason table beside an
-empty Move table is still an honest output: the reasons are dated, and the
-move is marked as not fetched rather than guessed.
+**Without the built-in browser** the run goes on.
+
+- **A US-listed stock** (one primary listing, USD) may take its base and
+  end close from two pages WebFetch can read — a stock's history page on
+  StockAnalysis, Investing.com or Yahoo Finance — when both:
+  - state the close for the **same session** on the **same listing**
+    (Nasdaq or NYSE, USD);
+  - have the end session as their latest row (Investing.com and Yahoo's
+    history pages have served stale snapshots: market-context → Where the
+    closes come from);
+  - agree within 0.10%. Further apart is a conflict: the row is
+    `Not available — sources conflict`, with both figures on a `Conflict:`
+    line.
+
+  The row is then checked, and `METHOD` names the route on every such
+  run: `Fallbacks: NVDA closes from StockAnalysis and Investing.com
+  history pages (browser route down; US listing, two sources agreeing)`.
+  One page alone is not enough: the row is `Not available (browser route
+  down; one source only)`.
+- **An ETF, a non-US stock, and the Contribution table** stay strict:
+  their rows print `Not available (browser route down)`. A fund trades on
+  several exchanges in several currencies, and these pages have mixed
+  listings up before (etf-brief → Without the built-in browser).
+- Dated events loses EDGAR and says so on its `none` row or a
+  `Fallbacks:` line, and Reported reasons runs in full. A reason table
+  beside an empty Move table is still an honest output: the reasons are
+  dated, and the move is marked as not fetched rather than guessed.
 
 ## Output
 
