@@ -525,6 +525,12 @@ period % is the instrument's move, not the position's: a portfolio total
 or a weight × move contribution needs market weights (`portfolio-sync.md`
 → Mode M) and is not a column here.
 
+A Performance question that asks why ("what's driving my portfolio",
+"why is my portfolio down") still gets moves, not reasons (rule 7). Its
+`METHOD` ends with `Next: say "why did <ticker> move" for its dated events
+and reported reasons`, naming the row with the largest move by size, which
+opens `references/price-move.md` for that one instrument.
+
 ### Allocation table
 
 What share of the portfolio each holding is at the brief's closes, next to

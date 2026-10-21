@@ -18,9 +18,11 @@ number traceable.
 | `Show me a demo` | A full portfolio report on a sample portfolio, in seconds, with no setup |
 | `Quick brief on KO` | Just the Buffett scorecard: the fastest brief, and the lightest on your plan's limits |
 | `Brief me on NVDA` | A Buffett scorecard (moat, returns on capital, debt, owner earnings, margin of safety), key numbers, what changed since your last run, and red flags from the filings |
+| `What are NVDA's margins?` | Five years of gross, operating, EBITDA, pretax, net and FCF margins, plus R&D, SG&A, stock-based pay, capex and tax as a share of revenue. Ask about `returns` or `growth` for ROE, ROIC, ROA and cash conversion, or YoY growth and CAGR. Every figure from the filings, every formula stated |
 | `Brief me on VWCE with the Graham and Lynch lenses` | The same for a fund or stock, plus any of 7 investor lenses: Graham, Lynch, Greenblatt, Piotroski, Terry Smith, Munger, Bogle |
 | `What do I own?` + your broker export or a screenshot | Weights for every holding, from any app or website. On the web or your phone they come from the values in your export, with nothing to set up |
 | `What do I actually own by sector and currency?` | Look-through of every company inside your funds, not just their top 10 (full holdings files with the free GitHub option: 23 popular ETFs such as VWCE, IWDA and CSPX are set up for you, and any other SSGA, iShares, Vanguard UK or Amundi fund in one step; the factsheet top 10 otherwise) |
+| `Why did NVDA drop today?` | **Price move:** how far it moved against its benchmark, what happened to it in that window (results, filings, dividends, rate decisions), and the reasons named outlets reported, each with its source and date and a check of the fact it cites. Holdnote never adds a reason of its own |
 | `How much do my ETFs overlap?` | Shared companies and shared weight for each pair of funds |
 | `What am I really betting on?` | **Hidden bets:** every company you own through two or more holdings, and how much more of it you own than any one of them shows |
 | `Make a card` | A one-page factsheet of what your portfolio looks through to: composition, key figures, top 10 companies with each fund's part, countries, sectors. Percentages only, never amounts |

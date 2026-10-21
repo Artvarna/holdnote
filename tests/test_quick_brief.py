@@ -123,6 +123,6 @@ def test_quick_brief_cannot_cite_a_lens_restatement():
 
 def test_renders_with_the_offer_of_the_full_brief():
     out = render.render(quick(TLDR + SCORECARD))
-    assert "🏰 Buffett scorecard" in out
+    assert "### Buffett scorecard" in out
     assert 'full brief on AAA' in out
     assert "Key numbers" not in out

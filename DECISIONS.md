@@ -2,7 +2,7 @@
 
 Follow RULES.md.
 
-Last updated: 2026-10-01
+Last updated: 2026-10-21
 
 Policies that have been decided but are not implemented. **Nothing in this
 file is read by any code, now or ever.** `scripts/t212_holdings.py` parses
@@ -1130,3 +1130,143 @@ weights for them, and the look-through went blank.
   cells were read as quantities (5,949,181,045 shares). A cell with letters
   besides a currency is no longer a number.
 
+
+## Price move: why did it move, with reported reasons, 2026-10-21
+
+**DECIDED 2026-10-21.** "Why did X drop?" is the question a holder asks
+first, and until now rule 7 forbade any reason at all: the honest answer was
+the move and nothing else, and the user went to a news site that gives a
+reason with no date, no source rank and no check. A new mode,
+`Mode: Price move` (`references/price-move.md`), answers it for one stock or
+ETF.
+
+- **Reasons are reported, never Holdnote's own.** Rule 7 gains a second
+  paragraph modelled on rule 8: a named source's reason may be printed as
+  that source's claim, with its publication date, in a table whose heading
+  says it is not Holdnote's view. Three options were weighed: facts only
+  (the move and a dated timeline, rule 7 unchanged), attributed reasons,
+  and dropping rule 7. Facts only does not answer the question users ask;
+  dropping the rule turns the skill into the authoritative-sounding story
+  rule 7 was written against. Attribution keeps every printed sentence
+  checkable: anyone can open the article and see that the outlet said it.
+- **Events and reasons are separate tables, built separately.** Holdnote
+  never writes "the drop came after the results release". An event is in
+  Dated events because it is in the window, not because a reason names it,
+  and a reason is printed in the source's terms whether or not an event
+  backs it. Joining the two is the causal story, done by the tool.
+- **Premise checks the fact, not the cause.** A reason usually rests on a
+  fact ("revenue outlook below estimates"). Where that fact is the kind a
+  filing or release states, the run checks it there and says whether it
+  matches. That is the part of a news story a primary document can settle;
+  whether the fact moved the price is not, and the column says nothing
+  about it.
+- **The benchmark is fixed by rule**: S&P 500 for a US-listed stock, STOXX
+  Europe 600 for a European one, an ETF's own factsheet benchmark. Chosen
+  per run, the comparison index would become an argument. A sector index
+  was considered and not chosen: the stock's sector would have to come from
+  the index provider's own classification, which no checked route serves
+  yet.
+- **For an ETF, Contribution** reuses market-context's arithmetic on the
+  fund's top 10, with the residual printed as Rest of fund so the table adds
+  up to the fund's move. Currency and fees sit in the residual and are not
+  broken down.
+- **Indexes and whole portfolios do not get reasons.** "Why did the S&P 500
+  fall" stays Market-wide, and "why is my portfolio down" stays Mode C. An
+  index move is the macro story where reported reasons are most often a
+  guess wearing a byline; a portfolio question would need a reason per
+  holding. Mode C's `Next:` line offers a Price move on its largest mover.
+- **It never opens the user's files.** No position size, no amount lost:
+  the question is about the instrument, and the answer in the user's money
+  is a prompt to act (rule 11).
+- **Sources for reasons** follow rule 4: the issuer, then wire services,
+  then named financial media. Social media, forums, newsletters and
+  aggregator pages are not sources. A search snippet is a lead; the row
+  comes from the article itself, paraphrased, no quotation, at most five
+  per instrument.
+
+The contract (`tests/contract.py` → `price_move_problems`,
+`tests/test_price_move.py`) holds the table order, the event types, the
+windows, the reason cells' attribution and length, the Premise values, the
+Contribution arithmetic, and that no causal wording appears in `RESULT`
+outside Reported reasons. It also refuses a Reported reasons table in any
+other mode.
+
+### Amended 2026-10-21, after the first live run
+
+- **US stock closes without the browser.** The run took NVDA's closes
+  from history pages the spec did not allow, and they were right. A
+  US-listed stock has one primary listing in USD, so the listing mix-ups
+  that ruled those pages out for funds do not arise: two pages that state
+  the same session's close and agree within 0.10% now fill the row, named
+  on `Fallbacks:`. One page alone, an ETF, a non-US stock or the
+  Contribution table stay `Not available` without the browser.
+- **Bylined financial news counts as a source**, ranked after the wires
+  and major media. With Reuters, AP and MarketWatch refused by the search
+  tool's domain filter and CNBC pages failing to open, the stricter set
+  left the table empty nearly every run. Unsigned aggregators, prediction
+  pages and pieces framed as advice still do not count.
+- **A reason for a premarket, after-hours or futures move is refused**,
+  in the spec and the contract: Move measures closes, and the run printed
+  a premarket-dip reason beside a week the stock closed up.
+
+## The report's look, 2026-10-21
+
+**DECIDED 2026-10-21**, at the user's ask after the first Price move runs:
+the chat view read as noisy. `scripts/render.py` changes shape only; every
+figure, table and warning of the draft still reaches the reader, and the
+tests that hold that (`test_no_number_is_invented_and_none_is_lost`,
+`test_the_render_keeps_every_figure_of_result`) are unchanged in substance.
+
+- **Plain headings.** No emoji before table names; icons stay only where
+  they carry a result (Met, Not met, a Premise value).
+- **A quiet meta line** under the title — what ran, data date, units —
+  with no `Complete` badge. Only a stop is announced, and first.
+- **A Price move opens with its answer**, restated from Move and Latest
+  period: `**NVDA -6.61%** · S&P 500 -1.95% · the two closes`.
+- **Sentence tables read as lists.** Dated events and Reported reasons
+  have cells that are titles and sentences, which a five-column table
+  squeezes to a word per line on a phone. Each row becomes one bullet:
+  **lead** — text · *the rest*. An About column that is the same on every
+  row is the only cell left out.
+- **Warnings under one heading**, one per line, labels bold, instead of
+  a run-on italic line.
+- **The disclaimer drops "Not affiliated with Warren Buffett or Berkshire
+  Hathaway."** The user chose this. The statement stays in
+  `DISCLAIMER.md`, the README and SKILL.md, which a reader of the
+  Buffett scorecard can still find; it no longer closes every report.
+
+## Margins and the metrics around them, 2026-10-21
+
+**DECIDED 2026-10-21**, at the user's ask: "every margin a good research
+tool should have". The stock brief had gross and operating margin only.
+
+- **Four new detail tables**, built every run and printed on request:
+  Margins (gross, operating, EBITDA, pretax, net, FCF), Expense ratios
+  (R&D, SG&A, stock-based compensation, capex, effective tax rate),
+  Returns (ROE, ROIC, ROA, asset turnover, cash conversion) and Growth
+  (YoY and CAGR for revenue, operating income, EPS, FCF, shares). Four
+  questions, four tables (Part IV: one table per question). Balance sheet
+  gains current ratio and interest coverage; Valuation gains EV/Sales,
+  P/S and dividend yield; Capital return gains payout ratio and FCF
+  returned.
+- **Key numbers grows to the figures a reader checks first**: gross, net
+  and FCF margin, ROIC and revenue CAGR join revenue, operating margin,
+  FCF, net debt, EPS and the multiple. It stays one compact table.
+- **EBITDA is Holdnote's sum**, operating income plus D&A from the cash
+  flow statement, so it means the same for every company; a company's
+  "adjusted EBITDA" is shown beside it only where the filing presents it,
+  marked.
+- **Stock-based compensation is a ratio of its own.** It is a real cost
+  that FCF leaves out, and for the companies users ask about most it is
+  large enough to change how a margin reads.
+- **ROE and ROIC use the scorecard's definitions**, so a year never prints
+  two different ROICs in one brief.
+- **No PEG, no forward multiples.** Both need a forecast growth or earnings
+  figure (rule 8); the Lynch lens keeps its historical PEG.
+- **Banks and insurers** get `Not available` for gross margin and EBITDA,
+  with the reason, rather than a reconstructed figure. Sector metrics for
+  them (net interest margin, combined ratio) were considered and left for
+  later: they need their own tags and definitions.
+- The contract checks each cell is a figure or a reasoned `Not
+  available`, that gross margin never exceeds 100%, and that no tax rate
+  or cost ratio is negative (`tests/test_metrics.py`).

@@ -57,6 +57,7 @@ FILES = {
     "references/lenses.md": "references/lenses.md",
     "references/market-context.md": "references/market-context.md",
     "references/portfolio-sync.md": "references/portfolio-sync.md",
+    "references/price-move.md": "references/price-move.md",
     "references/run-journal.md": "references/run-journal.md",
     "references/setup.md": "references/setup.md",
     "references/stock-brief.md": "references/stock-brief.md",
