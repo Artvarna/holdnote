@@ -126,3 +126,9 @@ def test_the_spec_defines_every_margin_and_its_source():
     assert "`ShareBasedCompensation`" in spec and "`GrossProfit`" in spec
     skill = (REPO / "SKILL.md").read_text(encoding="utf-8")
     assert "net\nmargin" in skill or "net margin" in skill
+
+
+def test_growth_cells_are_signed():
+    # The AAPL run of 2026-10-21 printed "33.3%" beside "-2.8%".
+    bad = [r.replace("| +7.8% |", "| 7.8% |") for r in GROWTH]
+    assert "Growth Revenue 7.8% is unsigned; print +7.8%" in problems(full(bad))

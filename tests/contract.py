@@ -1692,6 +1692,8 @@ def metric_table_problems(sections: dict[str, str]) -> list[str]:
                 value = _float(cell.rstrip("%")) if cell[:1].isdigit() or cell[:1] in "+-" else None
                 if value is None:
                     continue
+                if table == "Growth" and not cell[:1] in "+-" and value != 0:
+                    problems.append(f"Growth {metric} {cell} is unsigned; print +{cell}")
                 if metric in _AT_MOST_100 and value > 100:
                     problems.append(f"{table} {metric} {cell} is over 100%: a parse error")
                 if metric in _NOT_NEGATIVE and value < 0:

@@ -344,6 +344,13 @@ figures, and the buyback columns for a company that has never repurchased.
 0 dp, and EPS at 2 dp does not drag a margin to 2 dp. Print each at what the
 filing states, trailing zeros dropped.
 
+**Round half up, never truncate.** A derived figure is computed in full and
+rounded once, at print: 339.50 ÷ 8.76 = 38.756 prints `38.8`, not `38.7`.
+(The AAPL run of 2026-10-21 truncated its P/E; every other ratio in it
+re-derived exactly.) Growth cells are signed like Period %: `+6.4%`,
+`-2.8%`. A cell with no figure is `Not available — reason`, in Key numbers
+as everywhere: never `not fetched` alone.
+
 `METHOD` — how the figures were resolved:
 
 ```
