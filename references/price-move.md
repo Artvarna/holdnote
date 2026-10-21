@@ -213,6 +213,33 @@ itself, opened with WebFetch, and a page WebFetch cannot open is not used.
 A paywalled article whose open part states the reason may be used; one
 whose reason is behind the wall is not.
 
+**Credit what was read.** The Source cell names the outlet whose article
+was opened. A syndicated copy (a Yahoo Finance page carrying a 24/7 Wall
+St. story) is credited to the original publisher, which the copy names. A
+reason the article relays from someone else ("an economist told Reuters")
+stays the opened article's row, with the relay in its words — `Reports an
+AMP economist told Reuters that…` — and is never promoted to a Reuters row
+nobody opened.
+
+**What the search routes did, checked live 2026-10-21** (NVDA, the week
+to 2026-10-20). A record of reachability, not a rank:
+
+- **WebSearch without filters** works, and most of what it returns is not
+  a source here: stock-prediction pages, AI-written or unsigned
+  aggregators, and syndicated copies. Read past them; do not lower the
+  bar to fill the table.
+- **WebSearch with `allowed_domains`** was refused by the search proxy for
+  `reuters.com`, `apnews.com`, `marketwatch.com` and `investopedia.com`,
+  and for a list of several domains together. `cnbc.com` alone worked.
+  Search plainly with the outlet's name in the query instead.
+- **CNBC article pages** failed on WebFetch twice; the search result's
+  title and date are a lead only, so a CNBC row needs another route.
+- **Yahoo Finance news pages** opened on WebFetch and name the original
+  publisher of a syndicated story.
+- **A query for "this week" returned an article from November 2025**
+  whose headline matched. The Published window caught it; never take a
+  piece's date from the query that found it.
+
 ## Where the data comes from
 
 The routes the other modules already use; nothing new is fetched for this
