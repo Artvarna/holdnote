@@ -26,15 +26,21 @@ for folder in (HERE, HERE.parent / "tests"):
 import contract  # noqa: E402
 
 DISCLAIMER = ("Not financial advice. Research from public documents; check the originals "
-              "before acting. Not affiliated with Warren Buffett or Berkshire Hathaway.")
+              "before acting.")
 
-ICONS = {
-    "Buffett scorecard": "🏰", "Key numbers": "📊", "What changed": "🔄", "Red flags": "🚩",
-    "Buffett notes": "💡", "Four filters": "🧭", "Your position": "🧺",
-    "Allocation": "🎯", "Look-through": "🔍", "Hidden bets": "🕵️", "Countries": "🌍", "Sectors": "🏭",
-    "Currencies": "💱", "Holdings changes": "📅", "Holdings": "🔗", "Comparison": "⚖️",
-    "Structural": "🧱", "Performance": "📈", "Stocks": "🗓️",
-    "Move": "📈", "Contribution": "🧮", "Dated events": "📌", "Reported reasons": "🗞️",
+# What the line under the title calls each route (RULES.md Part IV, Mode line)
+MODE_LABELS = {
+    "Price move": "Why it moved", "Stock brief": "Stock brief", "Stock brief (quick)": "Quick brief",
+    "Fund brief (Mode A)": "Fund brief", "Fund brief (Mode A, quick)": "Quick brief",
+    "Buffett checklist": "Buffett checklist", "Market-wide": "Market",
+    "Index construction (Mode B)": "Index construction", "Portfolio (Mode C)": "Portfolio",
+    "Demo + Portfolio (Mode C)": "Synthetic portfolio",
+}
+# Tables whose rows are sentences read as a list on a phone: (lead column,
+# main column, columns after it). Every cell is kept; only the shape changes.
+LIST_TABLES = {
+    "Dated events": ("Date", "Event", ["Source"]),
+    "Reported reasons": ("Source", "Reason as reported", ["Premise"]),
 }
 # Cells that are a result against a stated threshold or a status the spec fixes
 RESULT_CELLS = {
@@ -53,7 +59,7 @@ PREMISE_CELLS = {
 }
 TYPE_CELLS = {"Filing risk": "📄 Filing", "Thesis": "📝 Thesis"}
 # METHOD lines a reader must see even with METHOD hidden (RULES.md Part IV v9)
-WARNING_LABELS = ("Conflict", "Source conflict", "Stale", "Stale source", "Fallback")
+WARNING_LABELS = ("Conflict", "Source conflict", "Stale", "Stale source", "Fallback", "Fallbacks")
 TLDR_LABELS = ("Scorecard:", "Changed:", "Red flags:", "Filters:", "Position:", "Thesis:")
 
 
@@ -76,27 +82,31 @@ def _title(text: str, mode: str) -> str:
     first = next((ln.strip() for ln in text.splitlines() if ln.strip()), "")
     m = re.match(r"^=== (?P<ticker>[^—]+?)\s+—\s+(?P<name>[^·]+?)(?:\s+·.*)?\s*===$", first)
     if m:
-        why = " · why it moved" if mode.split(" + ")[0] == "Price move" else ""
-        return f"## {m['ticker']} · {m['name']}{why}"
+        return f"## {m['ticker']} · {m['name']}"
     names = {"Portfolio (Mode C)": "Your portfolio", "Market-wide": "The market",
              "Demo": "Demo portfolio",
              "Portfolio sync": "Portfolio update", "Thesis journal": "Thesis journal"}
     return f"## {names.get(mode.split(' + ')[0], mode or 'Holdnote')}"
 
 
-def _status(sections: dict[str, str]) -> str:
+def _status(sections: dict[str, str], mode: str) -> str:
+    """One quiet line under the title: what ran, as of when, in what units.
+
+    A complete run needs no badge; only a stop is announced, and first."""
     status = sections.get("STATUS", "").strip()
     context = sections.get("CONTEXT", "")
-    if status.lower().startswith("complete"):
-        head = "✅ **Complete**"
-    else:
-        head = f"⛔ **Stopped** · {status.removeprefix('Halted - ').removeprefix('halted - ')}"
     asof = _field(context, "Data as of")
-    # One line: the units' first clause only. The full field stays in the
-    # draft, which "show proof" prints.
-    units = (_field(context, "Currency / units") or _field(context, "Currency/units")).split(";")[0].strip()
-    bits = [b for b in (f"data as of {asof}" if asof else "", units) if b]
-    return " · ".join([head, *bits])
+    # The units' first clause only. The full field stays in the draft, which
+    # "show proof" prints.
+    units = (_field(context, "Currency / units") or _field(context, "Currency/units"))
+    units = units.split(";")[0].split(" · ")[0].strip()
+    label = MODE_LABELS.get(mode, mode.split(" + ")[0].split(" (")[0])
+    bits = [b for b in (label, f"data as of {asof}" if asof else "", units) if b]
+    line = "*" + " · ".join(bits) + "*" if bits else ""
+    if not status.lower().startswith("complete"):
+        stop = f"⛔ **Stopped** · {status.removeprefix('Halted - ').removeprefix('halted - ')}"
+        return stop + ("  \n" + line if line else "")
+    return line
 
 
 def _heading(line: str) -> tuple[str, str]:
@@ -105,12 +115,6 @@ def _heading(line: str) -> tuple[str, str]:
     if not m:
         return line.strip(), ""
     return m["name"].strip(), (m["sub"] or m["sub2"] or "").strip()
-
-
-def _icon(name: str) -> str:
-    if name.endswith(" lens"):
-        return "📐"
-    return ICONS.get(name, "📄")
 
 
 def _row(cells: list[str]) -> str:
@@ -145,6 +149,36 @@ def _table(lines: list[str]) -> list[str]:
     return out
 
 
+def _cells(line: str) -> list[str]:
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+
+def _as_list(name: str, lines: list[str]) -> list[str]:
+    """A sentence table as a list: **lead** · main — *the rest*. Every cell
+    is kept except an About column that says the same thing on every row."""
+    lead, main, rest = LIST_TABLES[name]
+    header, body = _cells(lines[0]), [_cells(ln) for ln in lines[1:]]
+    body = [r for r in body if not set("".join(r)) <= set("-: ")]
+    col = {h: i for i, h in enumerate(header)}
+    abouts = {r[col["About"]] for r in body} if "About" in col else set()
+    out = []
+    for r in body:
+        get = lambda h: r[col[h]] if h in col and col[h] < len(r) else ""  # noqa: E731
+        bits = [f"**{get(lead)}**"] if get(lead) not in ("", "—") else []
+        if len(abouts) > 1:
+            bits.append(get("About"))
+        if name == "Reported reasons" and get("Published") not in ("", "—"):
+            bits.append(get("Published"))
+        head = " · ".join(bits)
+        tail = [PREMISE_CELLS.get(get(h), get(h)) for h in rest if get(h) not in ("", "—")]
+        text = get(main)
+        line = f"- {head} — {text}" if head else f"- {text}"
+        if tail:
+            line += " · *" + " · ".join(tail) + "*"
+        out.append(line)
+    return out
+
+
 def _result(result: str) -> list[str]:
     lines = result.splitlines()
     out: list[str] = []
@@ -163,21 +197,21 @@ def _result(result: str) -> list[str]:
             continue
         if nxt.startswith("|"):
             name, sub = _heading(line)
-            out += ["", f"### {_icon(name)} {name}"]
+            out += ["", f"### {name}"]
             if sub:
-                out.append(f"*{sub}*")
+                out.append(f"*{sub[0].upper() + sub[1:]}*")
             out.append("")
             j = i + 1
             block = []
             while j < len(lines) and lines[j].strip().startswith("|"):
                 block.append(lines[j])
                 j += 1
-            out += _table(block)
+            out += _as_list(name, block) if name in LIST_TABLES else _table(block)
             i = j
             continue
         if nxt == "none":  # a heading with nothing under it, as the spec prints it
             name, sub = _heading(line)
-            out += ["", f"### {_icon(name)} {name}", "", "*none*"]
+            out += ["", f"### {name}", "", "*none*"]
             i += 2
             continue
         out += ["", line]
@@ -200,7 +234,8 @@ def _warnings(method: str) -> list[str]:
         single = label == "Confirmation" and ("one source" in lower or "single source" in lower)
         if label in WARNING_LABELS or single or (label == "Self-check" and "not run" in lower) \
                 or ("stale" in lower and label not in ("Build", "Tables")):
-            found.append(line if len(line) <= 140 else line[:137] + "...")
+            label, _, value = line.partition(":")
+            found.append(f"**{label.strip()}:** {re.sub(r'\s+', ' ', value).strip()}")
     return found[:3]
 
 
@@ -225,15 +260,56 @@ def _footer(sections: dict[str, str]) -> str:
     return "*" + " · ".join(p for p in parts if p) + "*"
 
 
+def _lede(sections: dict[str, str], mode: str) -> str:
+    """A Price move's answer in one line, restated from its Move table and
+    Latest period: **NVDA -6.61%** · S&P 500 -1.95% · the two closes."""
+    if mode.split(" + ")[0] != "Price move":
+        return ""
+    result = sections.get("RESULT", "")
+    rows = contract.result_tables(result).get("Move")
+    if not rows:
+        return ""
+    header = contract._table_header(result, "Move")
+    if "Period %" not in header:
+        return ""
+    col = header.index("Period %")
+    bits = []
+    for i, r in enumerate(rows):
+        name = r[0].removeprefix("Benchmark: ")
+        short = re.search(r"\((?P<t>[A-Z0-9.]+),", name) if i == 0 else None
+        label = short["t"] if short else re.sub(r"\s*\(.*\)$", "", name)
+        cell = r[col] if col < len(r) else ""
+        move = f"{cell}%" if contract._SIGNED.match(cell) else cell
+        bits.append(f"**{label} {move}**" if i == 0 else f"{label} {move}")
+    period = _field(sections.get("CONTEXT", ""), "Latest period")
+    if period:
+        bits.append(re.sub(r"\s*\(.*\)$", "", period))
+    return " · ".join(bits)
+
+
+def _missing(context: str) -> str:
+    """Partial coverage, stated before the results (rule 9)."""
+    missing = _field(context, "Not available")
+    if not missing or missing.lower() in ("none", "-", "—"):
+        return ""
+    return f"*Not available: {missing}*"
+
+
 def render(text: str) -> str:
     sections = contract.split_sections(text)
     result = sections.get("RESULT", "")
     mode = re.search(r"^\s*Mode:\s*(.+)$", result, re.MULTILINE)
     mode = mode.group(1).strip() if mode else ""
-    out = [_title(text, mode), _status(sections)]
-    missing = _field(sections.get("CONTEXT", ""), "Not available")
-    if missing and missing.lower() not in ("none", "-", "—"):
-        out.append(f"⚪ *Missing: {missing}*")
+    out = [_title(text, mode)]
+    status = _status(sections, mode)
+    if status:
+        out.append(status)
+    lede = _lede(sections, mode)
+    if lede:
+        out += ["", lede]
+    missing = _missing(sections.get("CONTEXT", ""))
+    if missing:
+        out += ["", missing]
     if result.strip():
         out += _result(result)
     else:
@@ -241,10 +317,10 @@ def render(text: str) -> str:
                     'say **"show proof"** to see which check and why.']
     warnings = _warnings(sections.get("METHOD", ""))
     if warnings:
-        out += ["", "⚠️ *" + " · ".join(warnings) + "*"]
+        out += ["", "#### ⚠️ Check before relying on this", ""] + [f"- {w}" for w in warnings]
     nxt = _next(sections.get("METHOD", ""))
     if nxt:
-        out += ["", f"👉 *{nxt}*"]
+        out += ["", f"**Next** · {nxt}"]
     out += ["", "---", _footer(sections) + "  ", f"*{DISCLAIMER}*"]
     return "\n".join(out).rstrip() + "\n"
 

@@ -155,7 +155,7 @@ def test_lookthrough_counts_a_stock_held_directly_and_through_funds(run):
 
 def test_hidden_bets_show_what_no_single_holding_does(run):
     _, out, draft = run()
-    assert "### 🕵️ Hidden bets" in out
+    assert "### Hidden bets" in out
     tables = contract.result_tables(contract.split_sections(draft)["RESULT"])
     rows = next(v for k, v in tables.items() if k.startswith("Hidden bets"))
     amazon = next(r for r in rows if r[0].startswith("Amazon"))
@@ -194,14 +194,14 @@ def test_draft_keeps_full_sources_and_proof_while_report_shows_one_line(run):
 def test_tables_can_be_picked_and_proof_shown(run):
     code, out, draft = run("--tables", "Holdings", "--proof")
     assert code == 0, out
-    assert "### 🔗 Holdings" in out and "Allocation" not in out.split("---")[0].split("Holdings", 1)[0]
+    assert "### Holdings" in out and "Allocation" not in out.split("---")[0].split("Holdings", 1)[0]
     assert "Tables: Holdings (demo, asked: Holdings)" in draft
 
 
 def test_all_tables(run):
     code, out, _ = run("--tables", "all")
     assert code == 0, out
-    assert "### 💱 Currencies" in out
+    assert "### Currencies" in out
 
 
 def test_a_report_for_another_portfolio_is_refused(run, tmp_path, monkeypatch):

@@ -212,8 +212,7 @@ disclaimer. The renderer adds no figure the draft lacks and drops no table
 or warning it has; a rule here that a reader must see something is met when
 the report shows it. "Show proof" prints the draft's `METHOD`, `PROOF` and
 full `SOURCES`. Every report ends with the disclaimer: not financial
-advice, research from public documents, not affiliated with Warren Buffett
-or Berkshire Hathaway.
+advice, research from public documents.
 
 Every module in this project prints the same sections, in this order. The
 contract is structural: the answer is one section, the evidence is another,
@@ -611,6 +610,8 @@ If any box fails, fix it before output rather than shipping with a caveat.
   `references/price-move.md`) prints them, in a `Reported reasons` table
   the contract checks. Rule 7's first paragraph is unchanged and still
   binds every other module. Rule numbers are untouched.
+  The report's closing disclaimer drops its non-affiliation sentence
+  (still stated in `DISCLAIMER.md`, `README.md` and `SKILL.md`).
 - **v13 (2026-10-15)** — Two modes. A quick brief
   (`Mode: Stock brief (quick)`, `Mode: Fund brief (Mode A, quick)`) prints
   the `Scorecard:` TL;DR line and the Buffett scorecard, plus lenses only

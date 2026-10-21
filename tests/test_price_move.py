@@ -302,13 +302,29 @@ def test_the_users_position_never_enters():
 # -- rendering and wiring ----------------------------------------------------------
 
 
-def test_renders_with_its_title_and_attributed_table():
+def test_renders_with_its_answer_first_and_reasons_as_a_list():
     out = render.render(stock())
-    assert out.startswith("## AAA · Company A Inc. · why it moved")
-    assert "### 🗞️ Reported reasons" in out
-    assert "*as published by the named sources — not Holdnote's view*" in out
-    assert "✅ Matches primary source" in out
-    assert "📌 Dated events" in out
+    lines = out.splitlines()
+    assert lines[0] == "## AAA · Company A Inc."
+    assert lines[1] == "*Why it moved · data as of 2026-10-21 · USD*"
+    assert lines[3] == ("**AAA -4.31%** · S&P 500 -0.85% · "
+                        "2026-10-16 close to 2026-10-20 close")
+    assert "### Reported reasons" in out
+    assert "*As published by the named sources — not Holdnote's view*" in out
+    # sentences read as a list on a phone; every cell is kept
+    assert ("- **Reuters** · 2026-10-17 — Reports shares fell after the revenue outlook "
+            "came in below analyst estimates · *✅ Matches primary source*") in out
+    assert ("- **2026-10-17** — Results release: Company A Reports Third Quarter Results"
+            " · *Company A newsroom*") in out
+
+
+def test_the_render_keeps_every_figure_of_result():
+    import re
+    number = re.compile(r"[-+]?\d[\d,]*(?:\.\d+)?")
+    draft = contract.split_sections(etf())["RESULT"]
+    body = render.render(etf()).split("\n---\n")[0]
+    assert set(number.findall(draft)) <= set(number.findall(body))
+    assert set(number.findall(body)) <= set(number.findall(etf()))
 
 
 def test_rule_7_allows_reported_reasons_only_here():
@@ -332,7 +348,7 @@ def test_an_empty_conflict_line_is_not_a_warning():
     flagged = stock().replace("Conflict:          none",
                               "Conflict:          AAA end 95.40 [Nasdaq] vs 95.90 [Yahoo] gap 0.52% CONFLICT")
     out = render.render(flagged)
-    assert "⚠️ *Conflict:" in out and "95.40 [Nasdaq] vs 95.90 [Yahoo]" in out
+    assert "- **Conflict:** AAA end 95.40 [Nasdaq] vs 95.90 [Yahoo] gap 0.52% CONFLICT" in out
 
 
 def test_a_reason_for_a_premarket_or_after_hours_move_is_refused():

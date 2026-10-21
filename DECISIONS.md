@@ -1208,3 +1208,29 @@ other mode.
 - **A reason for a premarket, after-hours or futures move is refused**,
   in the spec and the contract: Move measures closes, and the run printed
   a premarket-dip reason beside a week the stock closed up.
+
+## The report's look, 2026-10-21
+
+**DECIDED 2026-10-21**, at the user's ask after the first Price move runs:
+the chat view read as noisy. `scripts/render.py` changes shape only; every
+figure, table and warning of the draft still reaches the reader, and the
+tests that hold that (`test_no_number_is_invented_and_none_is_lost`,
+`test_the_render_keeps_every_figure_of_result`) are unchanged in substance.
+
+- **Plain headings.** No emoji before table names; icons stay only where
+  they carry a result (Met, Not met, a Premise value).
+- **A quiet meta line** under the title — what ran, data date, units —
+  with no `Complete` badge. Only a stop is announced, and first.
+- **A Price move opens with its answer**, restated from Move and Latest
+  period: `**NVDA -6.61%** · S&P 500 -1.95% · the two closes`.
+- **Sentence tables read as lists.** Dated events and Reported reasons
+  have cells that are titles and sentences, which a five-column table
+  squeezes to a word per line on a phone. Each row becomes one bullet:
+  **lead** — text · *the rest*. An About column that is the same on every
+  row is the only cell left out.
+- **Warnings under one heading**, one per line, labels bold, instead of
+  a run-on italic line.
+- **The disclaimer drops "Not affiliated with Warren Buffett or Berkshire
+  Hathaway."** The user chose this. The statement stays in
+  `DISCLAIMER.md`, the README and SKILL.md, which a reader of the
+  Buffett scorecard can still find; it no longer closes every report.
