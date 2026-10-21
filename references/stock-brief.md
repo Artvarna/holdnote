@@ -53,10 +53,17 @@ use.
 | Line | Notes |
 |---|---|
 | Revenue | |
-| Gross profit and margin | |
-| Operating income and margin | |
+| Gross profit | |
+| Research and development | Where the income statement shows it |
+| Selling, general and administrative | Where the income statement shows it |
+| Operating income | |
+| Interest expense | |
+| Income before tax | |
+| Income tax expense | |
 | Net income | Reported, not adjusted |
 | Diluted EPS | |
+| Depreciation and amortization | From the cash flow statement |
+| Stock-based compensation | From the cash flow statement |
 | Operating cash flow | |
 | Capital expenditure | |
 | Free cash flow | State the definition used — it is not standardized |
@@ -66,9 +73,110 @@ Label every figure: currency, units, fiscal or calendar year, reported or
 adjusted. Where the company presents both reported and adjusted figures,
 report the reported one and show the adjusted alongside, marked.
 
+**Where each line comes from** in SEC company facts, by its standard
+`us-gaap` tag — the first that the company reports, in this order:
+
+| Line | Tags |
+|---|---|
+| Revenue | `Revenues`, `RevenueFromContractWithCustomerExcludingAssessedTax`, `SalesRevenueNet` |
+| Gross profit | `GrossProfit` — never revenue minus a cost line the filing does not total itself |
+| Research and development | `ResearchAndDevelopmentExpense` |
+| Selling, general and administrative | `SellingGeneralAndAdministrativeExpense` |
+| Operating income | `OperatingIncomeLoss` |
+| Interest expense | `InterestExpense`, `InterestExpenseNonoperating` |
+| Income before tax | `IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest`, `IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments` |
+| Income tax expense | `IncomeTaxExpenseBenefit` |
+| Net income | `NetIncomeLoss` |
+| Depreciation and amortization | `DepreciationDepletionAndAmortization`, `DepreciationAndAmortization` |
+| Stock-based compensation | `ShareBasedCompensation` |
+| Operating cash flow | `NetCashProvidedByUsedInOperatingActivities` |
+| Capital expenditure | `PaymentsToAcquirePropertyPlantAndEquipment` |
+
+A tag the company does not use is the extension-tag trap below: the line
+is read from the filing's own statement, or is `Not available`. Which tag
+filled each line goes in `PROOF`.
+
+### Margins — five years
+
+Each line of the income or cash flow statement as a share of revenue, per
+fiscal year, from the Financials figures of the same year:
+
+| Margin | Definition |
+|---|---|
+| Gross margin | gross profit ÷ revenue |
+| Operating margin | operating income ÷ revenue |
+| EBITDA margin | (operating income + depreciation and amortization) ÷ revenue |
+| Pretax margin | income before tax ÷ revenue |
+| Net margin | net income ÷ revenue |
+| FCF margin | free cash flow ÷ revenue |
+
+**EBITDA is Holdnote's, not the company's.** It is computed by the
+definition above from reported lines, so every company's is the same sum;
+a company-presented "adjusted EBITDA" is shown alongside only where the
+filing presents one, marked adjusted, never in its place.
+
+A company with no gross profit line (banks, insurers, most REITs) prints
+Gross margin `Not available — no gross profit line in the income
+statement`, the scorecard's rule. EBITDA is not meaningful for a bank's
+income statement either and is `Not available` for one. The other margins
+still print.
+
+### Expense ratios — five years
+
+Where revenue goes, per fiscal year:
+
+| Ratio | Definition |
+|---|---|
+| R&D | research and development ÷ revenue |
+| SG&A | selling, general and administrative ÷ revenue |
+| Stock-based compensation | stock-based compensation ÷ revenue |
+| Capex | capital expenditure ÷ revenue |
+| Effective tax rate | income tax expense ÷ income before tax |
+
+A company that does not break out R&D or SG&A prints that row
+`Not available — not shown separately in the income statement`. An
+effective tax rate on a pretax loss is `Not available — pretax loss`,
+never a negative rate.
+
+### Returns — five years
+
+| Return | Definition |
+|---|---|
+| ROE | net income ÷ average shareholders' equity |
+| ROIC | operating income × (1 − effective tax rate) ÷ (total debt + shareholders' equity − cash and equivalents) |
+| ROA | net income ÷ average total assets |
+| Asset turnover | revenue ÷ average total assets |
+| Cash conversion | operating cash flow ÷ net income |
+
+ROE and ROIC are the scorecard's definitions (`references/buffett-scorecard.md`
+→ Capital efficiency), so the same year prints the same figure in both
+places. Averages are the year's opening and closing balance sheets. ROE
+with zero or negative equity at either end is `Not available — equity
+negative in FY____`; ROIC with zero or negative invested capital likewise.
+Cash conversion on a net loss is `Not available — net loss`.
+
+### Growth — five years
+
+Year-over-year change for revenue, operating income, diluted EPS, free
+cash flow and diluted shares outstanding, plus the compound annual growth
+rate across the window:
+
+```
+YoY % = (this year ÷ last year − 1) × 100
+CAGR % = ((latest ÷ earliest) ^ (1 ÷ years) − 1) × 100
+```
+
+These are **history, not a forecast** (rule 8): every figure is between two
+reported years. A change from or to a negative figure has no meaningful
+percentage and prints `Not available — negative base`. The CAGR uses the
+same years the columns print, and `years` is their count minus one.
+
 ### Balance sheet
 Total debt · cash and equivalents · net debt · total equity · net debt to
-EBITDA if both are disclosed · maturity profile if stated
+EBITDA (EBITDA as defined under Margins) · current ratio (current assets ÷
+current liabilities) · interest coverage (operating income ÷ interest
+expense; `Not available — no interest expense reported` where there is
+none) · maturity profile if stated
 
 **Net debt** = total debt − cash and cash equivalents, from the same
 balance sheet. Total debt is short-term debt plus the current portion of
@@ -78,8 +186,13 @@ them, which `METHOD` then says. A negative result prints as negative (net
 cash), never as zero.
 
 ### Valuation
-P/E, EV/EBITDA, P/B, FCF yield — each with the price date and the earnings
-period used. A multiple without both is meaningless.
+P/E, EV/EBITDA, EV/Sales, P/S, P/B, FCF yield, dividend yield — each with
+the price date and the earnings period used. A multiple without both is
+meaningless. EV = market capitalization + total debt − cash and
+equivalents, from the same balance sheet. A P/E on negative earnings is
+`Not available — net loss`, never a negative multiple. PEG belongs to the
+Lynch lens, which defines its growth rate as historical
+(`references/lenses.md`); no forecast growth rate is used anywhere (rule 8).
 
 Peer comparison: name the peers and their source. Do not assemble a peer set
 from memory; use the company's own stated competitors or an index
@@ -90,8 +203,9 @@ Only what the filing's risk section states. Summarize, do not editorialize,
 do not rank them by severity, and do not add risks the company does not name.
 
 ### Capital returns
-Dividend per share and history · buyback authorization and actual
-repurchases · share count trend
+Dividend per share and history · payout ratio (dividends paid ÷ net
+income) · buyback authorization and actual repurchases · FCF returned
+((dividends paid + repurchases) ÷ free cash flow) · share count trend
 
 ## Step 3 — Output
 
@@ -138,18 +252,28 @@ carries a one-line business model drawn from the filing's own wording.
 
 The detail tables below are built on every run, because the scorecard and
 Key numbers draw on them, and print after `Red flags` only when asked for
-("full detail", or a question about one of them). Business is the one
-prose block among them, two or three sentences from the filing:
+("full detail", or a question about one of them). A question names a
+table by what it asks: "margins" or "how profitable" prints Margins and
+Expense ratios; "returns", "ROE" or "ROIC" prints Returns; "growth" or
+"how fast is it growing" prints Growth; "debt" or "balance sheet" prints
+Balance sheet; "valuation", "multiples" or "is it expensive" prints
+Valuation (and is answered with the figures, never a word of judgement,
+rule 6). Business is the one prose block among them, two or three
+sentences from the filing:
 
 ```
 Business       [2–3 sentences from the filing]
 Segments       segment, revenue, share — if disclosed
 Geography      region, revenue, share — if disclosed
-Financials     five years: revenue, gross profit and margin, operating
-               income and margin, net income, diluted EPS, operating cash
-               flow, capex, free cash flow, diluted shares outstanding
+Financials     five years: the lines in the Financials table above
+Margins        five years: gross, operating, EBITDA, pretax, net, FCF
+Expense ratios five years: R&D, SG&A, stock-based compensation, capex,
+               effective tax rate
+Returns        five years: ROE, ROIC, ROA, asset turnover, cash conversion
+Growth         five years of YoY %, and the CAGR: revenue, operating
+               income, diluted EPS, FCF, diluted shares
 Balance sheet  total debt, cash, net debt, equity, net debt/EBITDA,
-               maturity profile
+               current ratio, interest coverage, maturity profile
 Valuation      multiple, value, price date, earnings period used
 Peers          peer, source of the peer set, the same multiples
 Capital return dividend per share, buyback authorization, actual
@@ -230,6 +354,9 @@ Basis:             reported (IFRS/US GAAP); adjusted shown where the
 FCF definition:    [the definition used — it is not standardized]
 Peer set source:   [company's own stated competitors | index constituent
                    list] — never assembled from memory
+Metric definitions: as in this file → Margins, Expense ratios, Returns,
+                   Growth; EBITDA = operating income + D&A, Holdnote's own
+                   sum, not the company's adjusted EBITDA
 Valuation inputs:  price date [date], earnings period [period]
 Currency basis:    [as reported | constant currency, where the filing
                    provides it and which is shown]
@@ -245,6 +372,11 @@ geography         ... = 23,715                                          PASS
 FCF               OCF 30,110 − capex 4,200 = 25,910                     PASS
 net debt          debt 18,400 − cash 12,900 = 5,500                     PASS
 EPS               net income 9,820 ÷ diluted shares 1,204 = 8.16        PASS
+net margin FY2025 net income 9,820 ÷ revenue 23,715 = 41.4%            PASS
+EBITDA FY2025     operating income 11,300 + D&A 1,450 = 12,750          PASS
+ROIC FY2025       11,300 × (1 − 0.16) ÷ (18,400 + 40,100 − 12,900)
+                  = 9,492 ÷ 45,600 = 20.8%                              PASS
+revenue CAGR      (23,715 ÷ 16,200) ^ (1 ÷ 4) − 1 = 10.0%               PASS
 restatement       FY2023 revenue 21,090 in FY2025 filing vs 21,040 as
                   originally filed — restated, both reported
 segment defs      unchanged across the five years shown
@@ -314,6 +446,11 @@ segment trend.
       never substituted
 - [ ] FCF definition named in `METHOD` — it is not standardized
 - [ ] Every multiple carries its price date and earnings period
+- [ ] Every margin, ratio and return re-derives from the Financials and
+      balance sheet figures of the same year, its addends in `PROOF`
+- [ ] Gross margin and EBITDA `Not available` for a bank or insurer; no
+      negative tax rate, P/E or percentage change off a negative base
+- [ ] Growth is between reported years only — no forecast growth anywhere
 - [ ] Peer set sourced, never assembled from memory
 - [ ] `PROOF` carries addends: segment and geography sums against reported
       revenue, FCF, net debt, EPS

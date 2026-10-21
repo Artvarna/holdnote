@@ -1234,3 +1234,39 @@ tests that hold that (`test_no_number_is_invented_and_none_is_lost`,
   Hathaway."** The user chose this. The statement stays in
   `DISCLAIMER.md`, the README and SKILL.md, which a reader of the
   Buffett scorecard can still find; it no longer closes every report.
+
+## Margins and the metrics around them, 2026-10-21
+
+**DECIDED 2026-10-21**, at the user's ask: "every margin a good research
+tool should have". The stock brief had gross and operating margin only.
+
+- **Four new detail tables**, built every run and printed on request:
+  Margins (gross, operating, EBITDA, pretax, net, FCF), Expense ratios
+  (R&D, SG&A, stock-based compensation, capex, effective tax rate),
+  Returns (ROE, ROIC, ROA, asset turnover, cash conversion) and Growth
+  (YoY and CAGR for revenue, operating income, EPS, FCF, shares). Four
+  questions, four tables (Part IV: one table per question). Balance sheet
+  gains current ratio and interest coverage; Valuation gains EV/Sales,
+  P/S and dividend yield; Capital return gains payout ratio and FCF
+  returned.
+- **Key numbers grows to the figures a reader checks first**: gross, net
+  and FCF margin, ROIC and revenue CAGR join revenue, operating margin,
+  FCF, net debt, EPS and the multiple. It stays one compact table.
+- **EBITDA is Holdnote's sum**, operating income plus D&A from the cash
+  flow statement, so it means the same for every company; a company's
+  "adjusted EBITDA" is shown beside it only where the filing presents it,
+  marked.
+- **Stock-based compensation is a ratio of its own.** It is a real cost
+  that FCF leaves out, and for the companies users ask about most it is
+  large enough to change how a margin reads.
+- **ROE and ROIC use the scorecard's definitions**, so a year never prints
+  two different ROICs in one brief.
+- **No PEG, no forward multiples.** Both need a forecast growth or earnings
+  figure (rule 8); the Lynch lens keeps its historical PEG.
+- **Banks and insurers** get `Not available` for gross margin and EBITDA,
+  with the reason, rather than a reconstructed figure. Sector metrics for
+  them (net interest margin, combined ratio) were considered and left for
+  later: they need their own tags and definitions.
+- The contract checks each cell is a figure or a reasoned `Not
+  available`, that gross margin never exceeds 100%, and that no tax rate
+  or cost ratio is negative (`tests/test_metrics.py`).

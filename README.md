@@ -18,6 +18,7 @@ number traceable.
 | `Show me a demo` | A full portfolio report on a sample portfolio, in seconds, with no setup |
 | `Quick brief on KO` | Just the Buffett scorecard: the fastest brief, and the lightest on your plan's limits |
 | `Brief me on NVDA` | A Buffett scorecard (moat, returns on capital, debt, owner earnings, margin of safety), key numbers, what changed since your last run, and red flags from the filings |
+| `What are NVDA's margins?` | Five years of gross, operating, EBITDA, pretax, net and FCF margins, plus R&D, SG&A, stock-based pay, capex and tax as a share of revenue. Ask about `returns` or `growth` for ROE, ROIC, ROA and cash conversion, or YoY growth and CAGR. Every figure from the filings, every formula stated |
 | `Brief me on VWCE with the Graham and Lynch lenses` | The same for a fund or stock, plus any of 7 investor lenses: Graham, Lynch, Greenblatt, Piotroski, Terry Smith, Munger, Bogle |
 | `What do I own?` + your broker export or a screenshot | Weights for every holding, from any app or website. On the web or your phone they come from the values in your export, with nothing to set up |
 | `What do I actually own by sector and currency?` | Look-through of every company inside your funds, not just their top 10 (full holdings files with the free GitHub option: 23 popular ETFs such as VWCE, IWDA and CSPX are set up for you, and any other SSGA, iShares, Vanguard UK or Amundi fund in one step; the factsheet top 10 otherwise) |

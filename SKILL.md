@@ -295,9 +295,12 @@ measured against what.
 `CONTEXT` → `Not available`, never improvised.
 
 **Key numbers.** One table carrying the figures a reader needs beside the
-scorecard. For a stock: revenue, operating margin, free cash flow, net
-debt, diluted EPS and the valuation multiple with its price date, each with
-the value five years earlier where the filings provide it. For a fund: the
+scorecard. For a stock: revenue, gross margin, operating margin, net
+margin, free cash flow, FCF margin, ROIC, net debt, diluted EPS and the
+valuation multiple with its price date, each with the value five years
+earlier where the filings provide it, then revenue's five-year CAGR, which
+has one value only. Definitions are `references/stock-brief.md` → Margins,
+Returns and Growth. For a fund: the
 Fund facts rows from `references/etf-brief.md` → Mode A.
 
 **What changed.** Against the most recent logged run of the same ISIN or
@@ -339,12 +342,13 @@ Holdnote never writes failure scenarios of its own: a red flag is
 something a filing states or a criterion the user wrote.
 
 **Detail tables.** The module's other tables — for a stock, Business,
-Segments, Geography, Financials, Balance sheet, Valuation, Peers, Capital
-return and Risks stated; for a fund, Top 10, Sectors and Countries — are
+Segments, Geography, Financials, Margins, Expense ratios, Returns, Growth,
+Balance sheet, Valuation, Peers, Capital return and Risks stated; for a fund, Top 10, Sectors and Countries — are
 still built on every run, because the scorecard and Key numbers draw on
 them. They print after `Red flags` only when asked for: "full detail",
 "show everything", a question about one of them ("what are Apple's
-segments?" prints Segments), or the profile's `Report length` set to `full`. `METHOD` names the ones held back on a
+segments?" prints Segments, "what are its margins?" prints Margins and
+Expense ratios), or the profile's `Report length` set to `full`. `METHOD` names the ones held back on a
 `Detail tables:` line.
 
 `scripts/check_output.py` holds a brief to this order.

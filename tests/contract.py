@@ -1659,6 +1659,47 @@ def price_move_problems(sections: dict[str, str]) -> list[str]:
     return problems
 
 
+# --------------------------------------------------------------------------
+# Stock brief metric tables (references/stock-brief.md -> Margins, Expense
+# ratios, Returns, Growth). What a parser can hold: every cell a figure or a
+# reasoned Not available, and the bounds a ratio cannot cross.
+# --------------------------------------------------------------------------
+
+METRIC_TABLES = ("Margins", "Expense ratios", "Returns", "Growth")
+_METRIC_CELL = re.compile(r"^(?:[+-]?\d[\d,]*(?:\.\d+)?%?|—|Not available — \S.*)$")
+# Ratios that cannot exceed 100% of revenue, or go below zero, whatever the year.
+_AT_MOST_100 = {"Gross margin"}
+_NOT_NEGATIVE = {"Effective tax rate", "R&D", "SG&A", "Stock-based compensation", "Capex",
+                 "Asset turnover"}
+
+
+def metric_table_problems(sections: dict[str, str]) -> list[str]:
+    if not is_brief(sections):
+        return []
+    result = sections.get("RESULT", "")
+    problems: list[str] = []
+    for name in result_tables(result):
+        table = name.split(" (")[0]
+        if table not in METRIC_TABLES:
+            continue
+        for row in result_tables(result)[name]:
+            metric, cells = row[0], row[1:]
+            for cell in cells:
+                if not _METRIC_CELL.match(cell):
+                    problems.append(f"{table} {metric}: cell {cell!r} is not a figure, — "
+                                    "or `Not available — reason`")
+                    continue
+                value = _float(cell.rstrip("%")) if cell[:1].isdigit() or cell[:1] in "+-" else None
+                if value is None:
+                    continue
+                if metric in _AT_MOST_100 and value > 100:
+                    problems.append(f"{table} {metric} {cell} is over 100%: a parse error")
+                if metric in _NOT_NEGATIVE and value < 0:
+                    problems.append(f"{table} {metric} {cell} is negative; a loss year is "
+                                    "`Not available — pretax loss`")
+    return problems
+
+
 def output_problems(text: str) -> list[str]:
     """Every contract check that applies to a composed output, in one list.
 
@@ -1685,6 +1726,6 @@ def output_problems(text: str) -> list[str]:
                   sectors_problems, currencies_problems,
                   brief_layout_problems, quick_brief_problems, sources_summary_problems,
                   lens_source_problems, buffett_notes_problems, checklist_problems,
-                  price_move_problems, reported_reasons_elsewhere):
+                  price_move_problems, reported_reasons_elsewhere, metric_table_problems):
         problems += check(sections)
     return problems
