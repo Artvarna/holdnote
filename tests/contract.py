@@ -1702,6 +1702,595 @@ def metric_table_problems(sections: dict[str, str]) -> list[str]:
     return problems
 
 
+# --------------------------------------------------------------------------
+# Shared by Earnings recap and Head-to-head: numbers as printed.
+# --------------------------------------------------------------------------
+
+_NUM_CELL = re.compile(
+    r"^(?P<ccy>[A-Z]{3} )?(?P<sign>[+\-−]?)(?P<num>\d[\d,]*(?:\.\d+)?)"
+    r"(?P<unit>%|pp|m|bn|/7)?(?: \(.*\))?$"
+)
+
+
+def _num(cell: str) -> tuple[float, str, str] | None:
+    """A printed figure as (value, unit, currency); None for anything else."""
+    m = _NUM_CELL.match(cell.strip())
+    if not m:
+        return None
+    value = float(m["num"].replace(",", ""))
+    if m["sign"] in ("-", "−"):
+        value = -value
+    return value, m["unit"] or "", (m["ccy"] or "").strip()
+
+
+def _decimals(cell: str) -> int:
+    m = re.search(r"\.(\d+)", cell)
+    return len(m.group(1)) if m else 0
+
+
+def _tolerance(*cells: str) -> float:
+    """Half a unit in the last printed place of the coarsest cell, plus slack."""
+    places = min(_decimals(c) for c in cells)
+    return 0.5 * 10 ** -places + 1e-9
+
+
+def _pct_change(new: float, old: float) -> float:
+    return (new - old) / abs(old) * 100
+
+
+def _change_problems(table: str, metric: str, new_cell: str, old_cell: str,
+                     change: str) -> list[str]:
+    """A QoQ / YoY cell against the two values beside it."""
+    if change in ("—", "-") or change.startswith("Not available"):
+        return []
+    new, old, ch = _num(new_cell), _num(old_cell), _num(change)
+    if not re.match(r"^[+\-−]\d+(?:\.\d+)?(?:%|pp)$", change):
+        return [f"{table} {metric}: change {change!r} is not a signed % or pp, — or "
+                "`Not available — reason`"]
+    if new is None or old is None or ch is None:
+        return []
+    if new[1] == "%" and old[1] == "%":
+        if ch[1] != "pp":
+            return [f"{table} {metric}: a change of two margins is in pp, not {change!r}"]
+        want = new[0] - old[0]
+        tol = _tolerance(new_cell, old_cell) * 2 + _tolerance(change)
+    else:
+        if ch[1] != "%":
+            return [f"{table} {metric}: a change of two amounts is in %, not {change!r}"]
+        if old[0] <= 0:
+            return [f"{table} {metric}: a change from a zero or negative base is —, "
+                    f"not {change!r}"]
+        want = _pct_change(new[0], old[0])
+        rel = 10 ** -min(_decimals(new_cell), _decimals(old_cell)) / abs(old[0]) * 100
+        tol = rel + _tolerance(change)
+    if abs(want - ch[0]) > tol:
+        return [f"{table} {metric}: {new_cell} against {old_cell} is {want:+.2f}, "
+                f"printed {change}"]
+    return []
+
+
+def _numbers_in(text: str) -> set[str]:
+    return {n.replace(",", "") for n in re.findall(r"\d[\d,]*(?:\.\d+)?", text)}
+
+
+def _tldr_numbers_problems(result: str, lines: list[str], labels: tuple[str, ...]) -> list[str]:
+    """Every figure on these TL;DR lines is printed again in a table."""
+    tables = result_tables(result)
+    printed: set[str] = set()
+    for name, rows in tables.items():
+        printed |= _numbers_in(name)
+        for row in rows:
+            printed |= _numbers_in(" ".join(row))
+    problems = []
+    for line in lines:
+        if not line.startswith(labels):
+            continue
+        for n in _numbers_in(line.split(":", 1)[1]):
+            if n not in printed:
+                problems.append(f"TL;DR figure {n} is in no table below: {line!r}")
+    return problems
+
+
+def _tables_by_prefix(result: str) -> dict[str, tuple[str, list[list[str]]]]:
+    """RESULT tables keyed by the heading's name before any bracket."""
+    out = {}
+    for heading, rows in result_tables(result).items():
+        out.setdefault(heading.split(" (")[0].strip(), (heading, rows))
+    return out
+
+
+# --------------------------------------------------------------------------
+# Earnings recap (references/earnings-recap.md, RULES.md rules 6-8 v15)
+#
+# One company's reported quarter. The checks hold the comparisons to
+# arithmetic (every change re-derives, an estimate's gap is a signed number
+# with its provider named), the outlook to the company's own figures, and
+# the price table to a move with no reason.
+# --------------------------------------------------------------------------
+
+EARNINGS_MODE = "Earnings recap"
+EARNINGS_TABLES = ["Results", "Segments", "Against estimates", "Company outlook",
+                   "Management said", "Share price around the release"]
+EARNINGS_RESULTS_HEADER = ["Metric", "This quarter", "Prior quarter", "QoQ",
+                           "Year-ago quarter", "YoY"]
+EARNINGS_RESULTS_ROWS = ["Revenue", "Gross margin", "Operating income", "Operating margin",
+                         "Net income", "Diluted EPS", "Operating cash flow", "Free cash flow"]
+ADJUSTED_MARK = "(non-GAAP, company-adjusted)"
+SEGMENTS_HEADER = ["Segment", "This quarter", "Year-ago quarter", "YoY"]
+ESTIMATES_HEADER = ["Metric", "Reported", "Estimate", "Estimate source", "Difference"]
+ESTIMATES_MAX_ROWS = 6
+OUTLOOK_HEADER = ["Item", "Period", "Outlook as stated", "Previous outlook", "Change"]
+OUTLOOK_CHANGES = {"Raised", "Lowered", "Unchanged", "New", "Withdrawn", "Not comparable"}
+SAID_HEADER = ["Topic", "Speaker", "Said", "Source"]
+SAID_VERBS = ("Says ", "States ")
+SAID_MAX_ROWS = 5
+SAID_MAX_WORDS = 30
+SHARE_PRICE_HEADER = ["Instrument", "Close before release", "First close after", "Change %",
+                      "Sessions"]
+EARNINGS_TLDR = ("Results:", "Estimates:", "Outlook:")
+EARNINGS_METHOD = ["Quarter:", "Basis:", "Margins:", "Cash flow basis:", "Estimates rule:",
+                   "Outlook rule:", "Statements read:", "Price window:"]
+# The verdicts a recap never prints: the gap is a signed number.
+EARNINGS_VERDICTS = [r"\bbeat(?:s|ing)?\b", r"\bmiss(?:ed|es|ing)?\b", r"\btopped\b",
+                     r"\bfell short\b", r"\bsurprise[sd]?\b", r"\bblowout\b", r"\bcrushed\b"]
+# Judgement adjectives, allowed only inside what management said.
+EARNINGS_ADJECTIVES = [r"\bstrong(?:er)?\b", r"\bweak(?:er)?\b", r"\bdisappoint\w*\b",
+                       r"\bimpressive\b", r"\bsolid\b", r"\bstellar\b", r"\bdismal\b"]
+_SHARE_PRICE_TALK = re.compile(
+    r"\b(?:share|stock) price\b|\bvaluation\b|\bshares (?:rose|fell|jumped|dropped|rallied|sank)\b",
+    re.IGNORECASE)
+_RELEASED = re.compile(rf"released ({_ISO})")
+
+
+def is_earnings_recap(sections: dict[str, str]) -> bool:
+    return EARNINGS_MODE in (_mode_line(sections.get("RESULT", "")) or "").split(" + ")
+
+
+def earnings_tables_elsewhere(sections: dict[str, str]) -> list[str]:
+    """RULES.md rule 8 v15: the company's outlook prints in an Earnings recap only."""
+    if is_earnings_recap(sections):
+        return []
+    tables = _tables_by_prefix(sections.get("RESULT", ""))
+    return [f"{name} printed outside an Earnings recap (RULES.md rule 8)"
+            for name in ("Company outlook", "Management said", "Against estimates")
+            if name in tables]
+
+
+def earnings_recap_problems(sections: dict[str, str]) -> list[str]:
+    """An Earnings recap against references/earnings-recap.md."""
+    if not is_earnings_recap(sections):
+        return []
+    result = sections.get("RESULT", "")
+    method = sections.get("METHOD", "")
+    problems: list[str] = []
+    tables = _tables_by_prefix(result)
+
+    # Six tables, in order, nothing else.
+    names = [n.split(" (")[0].strip() for n in result_tables(result)]
+    for name in names:
+        if name not in EARNINGS_TABLES:
+            problems.append(f"{name!r} in an Earnings recap; it prints {EARNINGS_TABLES} only")
+    known = [n for n in names if n in EARNINGS_TABLES]
+    if known != [n for n in EARNINGS_TABLES if n in known]:
+        problems.append(f"Earnings recap tables out of order: {known}")
+    missing = [n for n in EARNINGS_TABLES if n not in names]
+    if missing:
+        problems.append(f"Earnings recap is missing tables: {missing}")
+
+    for label in EARNINGS_METHOD:
+        if not re.search(rf"^\s*{re.escape(label)}\s*\S", method, re.MULTILINE):
+            problems.append(f"Earnings recap METHOD has no {label} line")
+
+    released = _RELEASED.search(_context_field(sections, "Latest period"))
+    release_date = _date(released.group(1)) if released else None
+    if release_date is None:
+        problems.append("Latest period does not say `released YYYY-MM-DD`")
+
+    # Results: the eight rows in order, adjusted rows marked and after them,
+    # every change re-derived.
+    if "Results" in tables:
+        heading, rows = tables["Results"]
+        header = _table_header(result, heading)
+        if header != EARNINGS_RESULTS_HEADER:
+            problems.append(f"Results header is {header}, not {EARNINGS_RESULTS_HEADER}")
+        else:
+            metrics = [r[0] for r in rows]
+            head = metrics[: len(EARNINGS_RESULTS_ROWS)]
+            if len(head) < len(EARNINGS_RESULTS_ROWS) or not all(
+                    m == want or m.startswith(want + " (")
+                    for m, want in zip(head, EARNINGS_RESULTS_ROWS)):
+                problems.append(f"Results rows are {head}, not {EARNINGS_RESULTS_ROWS} in order")
+            for m in metrics[len(EARNINGS_RESULTS_ROWS):]:
+                if "non-GAAP, company-adjusted" not in m:
+                    problems.append(f"Results row {m!r} after the eight is not marked "
+                                    f"{ADJUSTED_MARK}")
+            for m in head:
+                if "non-GAAP" in m or "adjusted" in m.lower():
+                    problems.append(f"Results row {m!r} replaces a reported row with an "
+                                    "adjusted one")
+            for r in rows:
+                if len(r) < 6:
+                    continue
+                problems += _change_problems("Results", r[0], r[1], r[2], r[3])
+                problems += _change_problems("Results", r[0], r[1], r[4], r[5])
+                if r[0] in ("Gross margin", "Operating margin"):
+                    for cell in (r[1], r[2], r[4]):
+                        v = _num(cell)
+                        if v and (v[0] > 100 or v[0] < -100):
+                            problems.append(f"Results {r[0]} {cell} is outside ±100%: "
+                                            "a parse error")
+
+    # Segments: changes re-derived, or the one None row.
+    if "Segments" in tables:
+        heading, rows = tables["Segments"]
+        header = _table_header(result, heading)
+        if header != SEGMENTS_HEADER:
+            problems.append(f"Segments header is {header}, not {SEGMENTS_HEADER}")
+        else:
+            for r in rows:
+                if r[0].startswith("None"):
+                    continue
+                if len(r) >= 4:
+                    problems += _change_problems("Segments", r[0], r[1], r[2], r[3])
+
+    # Against estimates: provider and date named, before the release, the gap
+    # a signed number that re-derives.
+    if "Against estimates" in tables:
+        heading, rows = tables["Against estimates"]
+        header = _table_header(result, heading)
+        if header != ESTIMATES_HEADER:
+            problems.append(f"Against estimates header is {header}, not {ESTIMATES_HEADER}")
+        else:
+            real = [r for r in rows if not r[3].startswith("None found")]
+            if len(real) > ESTIMATES_MAX_ROWS:
+                problems.append(f"Against estimates has {len(real)} rows, at most "
+                                f"{ESTIMATES_MAX_ROWS}")
+            for r in rows:
+                metric, reported, estimate, source, diff = r[:5]
+                if source.startswith("None found"):
+                    if (metric, reported, estimate, diff) != ("—", "—", "—", "—"):
+                        problems.append("Against estimates None row is `| — | — | — | "
+                                        "None found — ... | — |`")
+                    continue
+                if "EPS" in metric and "Diluted" not in metric and ADJUSTED_MARK not in metric \
+                        and "GAAP" not in metric:
+                    problems.append(f"Against estimates {metric!r} does not state its basis")
+                day = re.search(_ISO, source)
+                who = source.split(",")[0].strip().lower()
+                if not day or who in NOT_A_SOURCE or who.startswith(("analyst", "consensus")):
+                    problems.append(f"Against estimates source {source!r} does not name its "
+                                    "provider or outlet and date (`LSEG via Reuters, YYYY-MM-DD`)")
+                elif release_date and _date(day.group(0)) and _date(day.group(0)) > release_date:
+                    problems.append(f"Against estimates source {source!r} is dated after the "
+                                    f"release {release_date}")
+                if diff.startswith("Not available") or estimate.startswith("Not available"):
+                    continue
+                rep, est, d = _num(reported), _num(estimate), _num(diff)
+                if not re.match(r"^[+\-−]\d+(?:\.\d+)?%$", diff) or d is None:
+                    problems.append(f"Against estimates {metric}: Difference {diff!r} is not "
+                                    "a signed %")
+                    continue
+                if rep and est and est[0] != 0:
+                    want = _pct_change(rep[0], est[0])
+                    rel = 10 ** -min(_decimals(reported), _decimals(estimate)) / abs(est[0]) * 100
+                    if abs(want - d[0]) > rel + _tolerance(diff):
+                        problems.append(f"Against estimates {metric}: ({reported} − {estimate}) "
+                                        f"÷ |{estimate}| is {want:+.2f}%, printed {diff}")
+
+    # Company outlook: the company's figures, a known Change, or None given.
+    if "Company outlook" in tables:
+        heading, rows = tables["Company outlook"]
+        header = _table_header(result, heading)
+        if header != OUTLOOK_HEADER:
+            problems.append(f"Company outlook header is {header}, not {OUTLOOK_HEADER}")
+        elif "as stated by the company" not in heading:
+            problems.append("Company outlook heading does not say `as stated by the company`")
+        else:
+            for r in rows:
+                if r[0] == "None given":
+                    if r[4] != "—":
+                        problems.append("Company outlook None row is `| None given | — | ... "
+                                        "| — | — |`")
+                    continue
+                if r[4] not in OUTLOOK_CHANGES:
+                    problems.append(f"Company outlook {r[0]}: Change {r[4]!r} is not one of "
+                                    f"{sorted(OUTLOOK_CHANGES)}")
+                if not re.search(r"\d", r[2]):
+                    problems.append(f"Company outlook {r[0]}: {r[2]!r} has no figure; words "
+                                    "without one are not an outlook row")
+
+    # Management said: paraphrased, attributed, short, nothing about the price.
+    if "Management said" in tables:
+        heading, rows = tables["Management said"]
+        header = _table_header(result, heading)
+        if header != SAID_HEADER:
+            problems.append(f"Management said header is {header}, not {SAID_HEADER}")
+        else:
+            real = [r for r in rows if not r[2].startswith("None found")]
+            if len(real) > SAID_MAX_ROWS:
+                problems.append(f"Management said has {len(real)} rows, at most {SAID_MAX_ROWS}")
+            for topic, speaker, said, source in (r[:4] for r in real):
+                if not said.startswith(SAID_VERBS):
+                    problems.append(f"Management said does not open with Says/States: {said!r}")
+                if len(said.split()) >= SAID_MAX_WORDS:
+                    problems.append(f"Management said is {len(said.split())} words; "
+                                    f"under {SAID_MAX_WORDS}")
+                if re.search(r"[\"“”]", said):
+                    problems.append(f"Management said quotes instead of paraphrasing: {said!r}")
+                if _SHARE_PRICE_TALK.search(said):
+                    problems.append(f"Management said is about the share price: {said!r}")
+                if source.strip().lower() in NOT_A_SOURCE:
+                    problems.append(f"Management said with no source document: {source!r}")
+                if speaker.strip().lower() in NOT_A_SOURCE:
+                    problems.append(f"Management said with no speaker: {speaker!r}")
+
+    # Share price around the release: the instrument, benchmarks, a move that
+    # re-derives.
+    if "Share price around the release" in tables:
+        heading, rows = tables["Share price around the release"]
+        header = _table_header(result, heading)
+        if header != SHARE_PRICE_HEADER:
+            problems.append(f"Share price around the release header is {header}, not "
+                            f"{SHARE_PRICE_HEADER}")
+        elif rows:
+            if rows[0][0].startswith("Benchmark"):
+                problems.append("Share price's first row is the benchmark; the instrument "
+                                "comes first")
+            for r in rows[1:]:
+                if not r[0].startswith("Benchmark: "):
+                    problems.append(f"Share price row {r[0]!r} is neither the instrument nor "
+                                    "a `Benchmark: ` row")
+            for r in rows:
+                before, after, change = (_num(c) for c in r[1:4])
+                if before and after and change and before[0]:
+                    want = _pct_change(after[0], before[0])
+                    if abs(want - change[0]) > _tolerance(r[3]) + 0.006:
+                        problems.append(f"Share price {r[0]}: {r[1]} to {r[2]} is "
+                                        f"{want:+.2f}%, printed {r[3]}")
+
+    # Verdicts nowhere; adjectives and causes only in what the company said.
+    scope = result + "\n" + sections.get("CONTEXT", "")
+    for pat in EARNINGS_VERDICTS:
+        for m in re.finditer(pat, scope, re.IGNORECASE):
+            snippet = scope[max(0, m.start() - 30): m.end() + 30].replace("\n", " ")
+            problems.append(f"verdict wording in an Earnings recap: {snippet!r}")
+    outside = result
+    for name in ("Management said", "Company outlook"):
+        if name in tables:
+            outside = _without_table(outside, tables[name][0])
+    for pat in EARNINGS_ADJECTIVES + CAUSAL_WORDING:
+        for m in re.finditer(pat, outside, re.IGNORECASE):
+            snippet = outside[max(0, m.start() - 30): m.end() + 30].replace("\n", " ")
+            problems.append(f"Holdnote's own judgement or cause in an Earnings recap: {snippet!r}")
+    for m in USER_POSITION.finditer(result):
+        problems.append(f"the user's position in an Earnings recap: {m.group(0)!r}")
+
+    # TL;DR: labelled, in order, figures from the tables, outlook counts true.
+    tldr = _tldr_lines(result)
+    if len(tldr) > 3:
+        problems.append(f"TL;DR has {len(tldr)} lines, at most 3 allowed")
+    labels = []
+    for line in tldr:
+        label = next((lab for lab in EARNINGS_TLDR if line.startswith(lab)), None)
+        if label is None:
+            problems.append(f"TL;DR line without a Results:/Estimates:/Outlook: label: {line!r}")
+        else:
+            labels.append(label)
+    if labels != [lab for lab in EARNINGS_TLDR if lab in labels]:
+        problems.append(f"TL;DR lines out of order: {labels}")
+    problems += _tldr_numbers_problems(result, tldr, ("Results:", "Estimates:"))
+    outlook_line = next((ln for ln in tldr if ln.startswith("Outlook:")), None)
+    if outlook_line and "Company outlook" in tables:
+        changes = [r[4] for r in tables["Company outlook"][1] if r[0] != "None given"]
+        for n, word in re.findall(r"(\d+) (raised|lowered|unchanged|new|withdrawn)",
+                                  outlook_line, re.IGNORECASE):
+            count = sum(1 for c in changes if c.lower() == word.lower())
+            if int(n) != count:
+                problems.append(f"TL;DR Outlook: says {n} {word}, the table has {count}")
+    return problems
+
+
+# --------------------------------------------------------------------------
+# Head-to-head (references/head-to-head.md, RULES.md rule 6 v15)
+#
+# Two instruments of one kind, one scorecard, one set of definitions. The
+# checks hold the comparison to arithmetic and keep any winner out of it.
+# --------------------------------------------------------------------------
+
+H2H_MODE = "Head-to-head"
+H2H_FUND_TABLES = ["Buffett scorecard", "Side by side", "Overlap", "Shared holdings",
+                   "Countries and sectors"]
+H2H_STOCK_TABLES = ["Buffett scorecard", "Side by side"]
+FUND_SCORECARD_CHECKS = {"Low cost", "Broad", "Not concentrated", "Tracks its index",
+                         "Built to last", "Quality underneath"}
+H2H_TLDR = ("Scorecard:", "Overlap:")
+H2H_METHOD = ["Instruments:", "Order:", "Difference:", "Scorecard:", "Price date:",
+              "Overlap depth:"]
+# A winner, in the words it usually takes. None of these may appear in a
+# head-to-head's RESULT or CONTEXT.
+H2H_WINNER = [r"\bbetter\b", r"\bbest\b", r"(?<!\bno )\bworse\b", r"\bworst\b", r"\bwinners?\b",
+              r"\bwins?\b", r"\bwon\b", r"\bcheaper\b", r"\bpricier\b", r"\bsuperior\b",
+              r"\binferior\b", r"\bstronger\b", r"\bweaker\b", r"\bedge\b",
+              r"\badvantages?\b", r"\bprefer(?:red|able)?\b", r"\bpicks?\b", r"\bbeats?\b",
+              r"\boutperform\w*\b", r"\bunderperform\w*\b"]
+_H2H_MARKS = re.compile(r"\*\*|🏆|👑|⭐|🥇|🥈|✔")
+_DIFF_HEADING = re.compile(r"Difference = (?P<b>.+?) [−-] (?P<a>.+?)\)?$")
+
+
+def is_head_to_head(sections: dict[str, str]) -> bool:
+    return H2H_MODE in (_mode_line(sections.get("RESULT", "")) or "").split(" + ")
+
+
+def _difference_problems(table: str, label: str, a: str, b: str, diff: str) -> list[str]:
+    """Difference = b − a: pp for percentages, units for counts, — otherwise."""
+    va, vb = _num(a), _num(b)
+    comparable = (va is not None and vb is not None and va[1] == vb[1]
+                  and va[2] == vb[2] and va[1] != "pp" or
+                  (va is not None and vb is not None and va[1] == vb[1] == "pp"))
+    if not comparable:
+        if diff not in ("—", "-") and not diff.startswith(("Not available", "Not comparable")):
+            return [f"{table} {label}: {a!r} and {b!r} are not one unit and currency, so "
+                    f"Difference is —, not {diff!r}"]
+        return []
+    if diff.startswith(("Not available", "Not comparable")):
+        return []
+    d = _num(diff)
+    if d is None:
+        return [f"{table} {label}: Difference {diff!r} is not a figure"]
+    want = vb[0] - va[0]
+    if va[1] in ("%", "pp") and not diff.endswith("pp") and table == "Side by side":
+        return [f"{table} {label}: a difference of two percentages is in pp, not {diff!r}"]
+    if want != 0 and not re.match(r"^[+\-−]", diff.strip()):
+        return [f"{table} {label}: Difference {diff!r} is unsigned"]
+    if abs(want - d[0]) > _tolerance(a, b) * 2 + _tolerance(diff):
+        return [f"{table} {label}: {b} − {a} is {want:+g}, printed {diff}"]
+    return []
+
+
+def head_to_head_problems(sections: dict[str, str]) -> list[str]:
+    """A Head-to-head against references/head-to-head.md."""
+    if not is_head_to_head(sections):
+        return []
+    result = sections.get("RESULT", "")
+    method = sections.get("METHOD", "")
+    problems: list[str] = []
+    tables = _tables_by_prefix(result)
+
+    # The scorecard decides the kind, and names the two instruments.
+    a = b = None
+    fund = False
+    if "Buffett scorecard" in tables:
+        heading, rows = tables["Buffett scorecard"]
+        header = _table_header(result, heading)
+        if len(header) != 4 or header[:2] != ["Check", "Threshold"]:
+            problems.append(f"Head-to-head scorecard header is {header}, not "
+                            "[Check, Threshold, <first>, <second>]")
+        else:
+            a, b = header[2], header[3]
+            fund = any(r[0] in FUND_SCORECARD_CHECKS for r in rows)
+            for r in rows:
+                for name, cell in zip((a, b), r[2:4]):
+                    if not cell.startswith(("Met", "Not met", "Not available")) or \
+                            cell.startswith("Met") and not re.match(r"^Met(?: \(.+\))?$", cell):
+                        problems.append(f"Buffett scorecard {r[0]} for {name}: {cell!r} does "
+                                        "not start Met / Not met / Not available")
+    want_tables = H2H_FUND_TABLES if fund else H2H_STOCK_TABLES
+    names = [n.split(" (")[0].strip() for n in result_tables(result)]
+    for name in names:
+        if name not in want_tables:
+            problems.append(f"{name!r} in a {'fund' if fund else 'stock'} Head-to-head; it "
+                            f"prints {want_tables} only")
+    known = [n for n in names if n in want_tables]
+    if known != [n for n in want_tables if n in known]:
+        problems.append(f"Head-to-head tables out of order: {known}")
+    missing = [n for n in want_tables if n not in names]
+    if missing:
+        problems.append(f"Head-to-head is missing tables: {missing}")
+
+    for label in H2H_METHOD:
+        if not re.search(rf"^\s*{re.escape(label)}\s*\S", method, re.MULTILINE):
+            problems.append(f"Head-to-head METHOD has no {label} line")
+
+    # Side by side: the same two, in the same order, every Difference b − a.
+    if "Side by side" in tables and a and b:
+        heading, rows = tables["Side by side"]
+        header = _table_header(result, heading)
+        if header != ["Fact", a, b, "Difference"]:
+            problems.append(f"Side by side header is {header}, not ['Fact', {a!r}, {b!r}, "
+                            "'Difference']")
+        else:
+            m = _DIFF_HEADING.search(heading)
+            if not m or m["a"].strip() != a or m["b"].strip() != b:
+                problems.append(f"Side by side heading does not say `(Difference = {b} − {a})`")
+            for r in rows:
+                if len(r) >= 4:
+                    problems += _difference_problems("Side by side", r[0], r[1], r[2], r[3])
+
+    if fund and a and b:
+        if "Overlap" in tables:
+            heading, rows = tables["Overlap"]
+            if _table_header(result, heading) != ["Measure", "Value"]:
+                problems.append("Overlap header is not ['Measure', 'Value']")
+            shared = next((r for r in rows if r[0].startswith("Shared weight")), None)
+            if shared is None:
+                problems.append("Overlap has no Shared weight % row: one figure for the pair")
+            else:
+                v = _num(shared[1])
+                if v and not 0 <= v[0] <= 100:
+                    problems.append(f"Overlap shared weight {shared[1]} is outside 0-100: "
+                                    "a parse error")
+            if not re.search(r"full holdings files|top-10 depth", heading):
+                problems.append("Overlap heading does not name its depth (full holdings "
+                                "files | top-10 depth, partial)")
+        if "Shared holdings" in tables:
+            heading, rows = tables["Shared holdings"]
+            want = ["Company", f"{a} %", f"{b} %", "Smaller %"]
+            if _table_header(result, heading) != want:
+                problems.append(f"Shared holdings header is {_table_header(result, heading)}, "
+                                f"not {want}")
+            else:
+                smaller: list[float] = []
+                for r in rows:
+                    if r[0].startswith("None"):
+                        continue
+                    wa, wb, ws = (_num(c) for c in r[1:4])
+                    if wa and wb and ws:
+                        if abs(min(wa[0], wb[0]) - ws[0]) > 1e-9:
+                            problems.append(f"Shared holdings {r[0]}: Smaller % is "
+                                            f"{min(wa[0], wb[0])}, printed {r[3]}")
+                        smaller.append(ws[0])
+                if smaller != sorted(smaller, reverse=True):
+                    problems.append("Shared holdings are not sorted by Smaller %, largest first")
+        if "Countries and sectors" in tables:
+            heading, rows = tables["Countries and sectors"]
+            want = ["Exposure", f"{a} %", f"{b} %", "Difference pp"]
+            if _table_header(result, heading) != want:
+                problems.append(f"Countries and sectors header is "
+                                f"{_table_header(result, heading)}, not {want}")
+            else:
+                for r in rows:
+                    if not r[0].startswith(("Country: ", "Sector: ")):
+                        problems.append(f"Countries and sectors row {r[0]!r} does not start "
+                                        "Country: or Sector:")
+                    problems += _difference_problems("Countries and sectors", r[0],
+                                                     r[1], r[2], r[3])
+
+    # No winner, in words or in marks.
+    scope = result + "\n" + sections.get("CONTEXT", "")
+    for pat in H2H_WINNER:
+        for m in re.finditer(pat, scope, re.IGNORECASE):
+            snippet = scope[max(0, m.start() - 30): m.end() + 30].replace("\n", " ")
+            problems.append(f"a winner in a Head-to-head (RULES.md rule 6): {snippet!r}")
+    for m in _H2H_MARKS.finditer(result):
+        problems.append(f"a mark on one side in a Head-to-head: {m.group(0)!r}")
+    for m in USER_POSITION.finditer(result):
+        problems.append(f"the user's position in a Head-to-head: {m.group(0)!r}")
+
+    # TL;DR: Scorecard: (and Overlap: for funds), tallies true.
+    tldr = _tldr_lines(result)
+    if len(tldr) > 2:
+        problems.append(f"Head-to-head TL;DR has {len(tldr)} lines, at most 2")
+    for line in tldr:
+        if not line.startswith(H2H_TLDR):
+            problems.append(f"TL;DR line without a Scorecard:/Overlap: label: {line!r}")
+        elif line.startswith("Overlap:") and not fund:
+            problems.append("Overlap: TL;DR line in a stock Head-to-head")
+    problems += _tldr_numbers_problems(result, [ln for ln in tldr if ln.startswith("Overlap:")],
+                                       ("Overlap:",))
+    score = next((ln for ln in tldr if ln.startswith("Scorecard:")), None)
+    if score and a and b and "Buffett scorecard" in tables:
+        rows = tables["Buffett scorecard"][1]
+        for i, name in ((2, a), (3, b)):
+            m = re.search(rf"{re.escape(name)} (\d+) of (\d+) met", score)
+            met = sum(1 for r in rows if len(r) > i and re.match(r"^Met\b", r[i]))
+            if not m:
+                problems.append(f"TL;DR Scorecard: has no `{name} n of m met`")
+            elif (int(m.group(1)), int(m.group(2))) != (met, len(rows)):
+                problems.append(f"TL;DR Scorecard: says {name} {m.group(1)} of {m.group(2)} "
+                                f"met, the table has {met} of {len(rows)}")
+    return problems
+
+
 def output_problems(text: str) -> list[str]:
     """Every contract check that applies to a composed output, in one list.
 
@@ -1728,6 +2317,7 @@ def output_problems(text: str) -> list[str]:
                   sectors_problems, currencies_problems,
                   brief_layout_problems, quick_brief_problems, sources_summary_problems,
                   lens_source_problems, buffett_notes_problems, checklist_problems,
-                  price_move_problems, reported_reasons_elsewhere, metric_table_problems):
+                  price_move_problems, reported_reasons_elsewhere, metric_table_problems,
+                  earnings_recap_problems, earnings_tables_elsewhere, head_to_head_problems):
         problems += check(sections)
     return problems

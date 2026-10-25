@@ -35,12 +35,14 @@ MODE_LABELS = {
     "Buffett checklist": "Buffett checklist", "Market-wide": "Market",
     "Index construction (Mode B)": "Index construction", "Portfolio (Mode C)": "Portfolio",
     "Demo + Portfolio (Mode C)": "Synthetic portfolio",
+    "Earnings recap": "Earnings recap", "Head-to-head": "Head-to-head",
 }
 # Tables whose rows are sentences read as a list on a phone: (lead column,
 # main column, columns after it). Every cell is kept; only the shape changes.
 LIST_TABLES = {
     "Dated events": ("Date", "Event", ["Source"]),
     "Reported reasons": ("Source", "Reason as reported", ["Premise"]),
+    "Management said": ("Topic", "Said", ["Speaker", "Source"]),
 }
 # Cells that are a result against a stated threshold or a status the spec fixes
 RESULT_CELLS = {
@@ -60,7 +62,11 @@ PREMISE_CELLS = {
 TYPE_CELLS = {"Filing risk": "📄 Filing", "Thesis": "📝 Thesis"}
 # METHOD lines a reader must see even with METHOD hidden (RULES.md Part IV v9)
 WARNING_LABELS = ("Conflict", "Source conflict", "Stale", "Stale source", "Fallback", "Fallbacks")
-TLDR_LABELS = ("Scorecard:", "Changed:", "Red flags:", "Filters:", "Position:", "Thesis:")
+TLDR_LABELS = ("Scorecard:", "Changed:", "Red flags:", "Filters:", "Position:", "Thesis:",
+               "Results:", "Estimates:", "Outlook:", "Overlap:")
+# A head-to-head scorecard cell: the result, then the value in brackets
+# (references/head-to-head.md). Only the result gets its icon; no side is marked.
+_SIDE_RESULT = re.compile(r"^(?P<result>Met|Not met|Not available)(?: \((?P<value>.+)\)|(?P<rest> — .+))?$")
 
 
 def _field(block: str, name: str) -> str:
@@ -132,13 +138,18 @@ def _table(lines: list[str]) -> list[str]:
     if header == SCORECARD_HEADER:
         header = ["Check", "Value", "Bar", "Result"]
         body = [[f"**{r[0]}** · {r[1]}", *r[2:]] if len(r) == 5 else r for r in body]
+    head_to_head = len(header) == 4 and header[:2] == ["Check", "Threshold"]
     out_header = ["" if h in RESULT_COLUMNS and h == "Result" else h for h in header]
     out = [_row(out_header), _row(["---"] * len(header))]
     for r in body:
         cells = []
         for i, c in enumerate(r):
             col = header[i] if i < len(header) else ""
-            if col in RESULT_COLUMNS and c in RESULT_CELLS:
+            if head_to_head and i >= 2 and _SIDE_RESULT.match(c):
+                m = _SIDE_RESULT.match(c)
+                c = " ".join(b for b in (RESULT_CELLS[m["result"]],
+                                         m["value"] or (m["rest"] or "").strip()) if b)
+            elif col in RESULT_COLUMNS and c in RESULT_CELLS:
                 c = RESULT_CELLS[c]
             elif col == "Type" and c in TYPE_CELLS:
                 c = TYPE_CELLS[c]

@@ -1,6 +1,6 @@
 ---
 name: holdnote
-description: Research ETFs, individual stocks, market indexes and portfolio overlap from primary sources — factsheets, KIDs, annual reports and regulatory filings — and keep a written investment thesis journal. Use it when the user wants research on a specific fund, ETF, index, stock, ticker or ISIN (a brief, its costs, holdings, valuation, filings or earnings); asks why a named stock or ETF moved (the move, its dated events and the reasons named sources reported); asks what their portfolio holds, how their holdings overlap or compare, or what changed since last time; attaches a broker export or a screenshot of their holdings; or asks for a Holdnote demo, quick brief or portfolio card. Not for general money questions or explaining an investing term when no instrument or portfolio is named.
+description: Research ETFs, individual stocks, market indexes and portfolio overlap from primary sources — factsheets, KIDs, annual reports and regulatory filings — and keep a written investment thesis journal. Use it when the user wants research on a specific fund, ETF, index, stock, ticker or ISIN (a brief, its costs, holdings, valuation, filings or earnings); asks why a named stock or ETF moved (the move, its dated events and the reasons named sources reported); asks how a company's earnings or latest quarter went (results, estimates, outlook, what management said); compares two named funds or two named stocks ("X vs Y"); asks what their portfolio holds, how their holdings overlap or compare, or what changed since last time; attaches a broker export or a screenshot of their holdings; or asks for a Holdnote demo, quick brief or portfolio card. Not for general money questions or explaining an investing term when no instrument or portfolio is named.
 ---
 
 # Holdnote
@@ -26,7 +26,8 @@ the built-in browser for the rows it cannot fill.
 `RULES.md` — the constitution. Sourced numbers only, `Not available` over
 estimates, no recommendations, no forecasts, no causal price narrative of
 its own (reported reasons, attributed, in Price move only),
-no "what this implies" section.
+no "what this implies" section, no company outlook except as the company
+stated it (Earnings recap only), and no winner in a comparison.
 
 `me/profile.md` — the user's preferences (Your files). Its settings decide
 the report length, the lenses every brief runs, whether Buffett notes print,
@@ -103,6 +104,8 @@ that fails is said plainly, with the text printed so nothing is lost.
 | Overlap, concentration, look-through, "what do I actually own", actual vs target weights | `references/etf-brief.md` → Mode C, whose Allocation table carries market weight vs target per holding (`scripts/market_weights.py`, run in the repo), whose Holdings, Look-through, Countries, Sectors and Currencies tables come from every company each fund holds (`scripts/fund_holdings.py report`, run in the repo on files a GitHub Actions job fetches daily to the `holdings-data` branch), and whose Stocks table carries each stock's next earnings date and newest SEC filings |
 | What changed in my funds' holdings — names added or dropped, weight moves week on week | `references/etf-brief.md` → Mode C → Holdings changes table (`scripts/fund_holdings.py changes`, run in Claude's workspace on the `holdings-data` and `holdings-history` branches) |
 | Why a named stock or ETF moved, or whether there is a reason — "why did NVDA drop today", "any reason VUSA is down this week", "why did my Apple shares fall" | `references/price-move.md` — one instrument per output; never opens the user's holdings |
+| How a company's latest quarter went — "how did TSLA's earnings go", "recap Netflix's Q3", "did Intel beat estimates", "what did NVDA guide" | `references/earnings-recap.md` — one company per output; reads its own release; never opens the user's holdings |
+| Two named funds or two named stocks compared — "VWCE vs IWDA", "compare AAPL and MSFT", "SPYL or CSPX?", "which is better, X or Y" | `references/head-to-head.md` — exactly two of the same kind, in the order named, no winner; three or more funds are Mode C; a stock against a fund gets one line of prose and the two quick briefs |
 | Policy rates, inflation, earnings dates, index changes affecting holdings | `references/market-context.md` |
 | Where the market, an index or a sector stands and how it moved — not scoped to holdings | `references/market-context.md` → Market-wide mode |
 | "Why did I buy this", writing or checking a thesis | `references/thesis-journal.md` |
@@ -110,7 +113,7 @@ that fails is said plainly, with the text printed so nothing is lost.
 | "Update my portfolio", "here's my T212 export", or a Trading 212 CSV path is supplied — **or a Trading 212 export is attached, whatever the question** | `references/portfolio-sync.md` — market weights are Mode M (opt-in), Step 4b. An attached export is read even when the question also routes elsewhere ("what do I own?" with an export is Portfolio sync + Mode C), because a question asked beside the user's own data is about that data |
 | Logging a completed run, or "what did the last run print / show / say" | `references/run-journal.md` |
 | "Set up Holdnote", "get started", "save my portfolio", "change my settings" | `references/setup.md` |
-| "Should I buy X", "thinking of adding X", "checklist for X" | `references/checklist.md`, with the stock or fund brief it runs |
+| "Should I buy X", "thinking of adding X", "checklist for X" | `references/checklist.md`, with the stock or fund brief it runs — one instrument; two named ("X or Y?") is a Head-to-head |
 | "Quick brief on X", "quick look at X", "just the scorecard for X" — or any brief when the profile's `Report length` is `quick` and the request does not say "full" | The stock or fund brief, as a **quick brief** (Report layout → Quick brief) |
 | "Show me a demo", "try it", "example report", "what does Holdnote do?" — with no holdings of the user's attached | `references/demo.md` |
 | "What am I really betting on?", "hidden bets", "which companies do I own through more than one holding?" | `references/etf-brief.md` → Mode C, tables Allocation, Look-through and Hidden bets |
@@ -153,6 +156,14 @@ Market-wide mode → Trigger.
 | "why did the S&P 500 fall today" | `Mode: Market-wide` | an index, not an instrument: the move, no reasons |
 | "is my portfolio diversified?" · "am I too concentrated?" | `Mode: Portfolio (Mode C)` | ownership scope; a judgement word gets the Look-through, Hidden bets, Countries and Sectors tables — shares, not a verdict, which is the user's |
 | "how much tech do I have?" · "how exposed am I to China?" | `Mode: Portfolio (Mode C)` | a sector or country of what they own: Sectors or Countries, from the look-through |
+| "how did Tesla's earnings go?" · "recap NFLX's Q3" | `Mode: Earnings recap` | a reported quarter of one named company |
+| "why did Tesla fall after earnings?" | `Mode: Price move` | a reason asked for the move; the recap's price table never carries one |
+| "how did VUSA's earnings go?" | no Mode line: plain prose | a fund reports no earnings: one sentence, and a fund brief offered |
+| "VWCE vs IWDA" · "compare AAPL and MSFT" | `Mode: Head-to-head` | two named instruments of one kind and a comparing word |
+| "VWCE or IWDA, which should I buy?" | `Mode: Head-to-head` | two named: the comparison, with the verdict left to the user — not the one-instrument checklist |
+| "compare VWCE to what I own" | `Mode: Fund brief (Mode A) + Portfolio (Mode C)` | ownership scope: the candidate beside the portfolio, not a pair |
+| "compare VWCE, IWDA and EIMI" | `Mode: Portfolio (Mode C)` | three or more funds: Mode C's Comparison and Overlap tables |
+| "AAPL vs VUSA" | no Mode line: plain prose | a stock and a fund: one sentence that their scorecards measure different things, then the two quick briefs offered |
 | "which ETF should I buy?" · "what's the best ETF?" — nothing named | no Mode line: plain prose | a general question: say Holdnote does not pick, in one sentence, then offer to brief or compare any funds they name |
 
 ## Source discipline
