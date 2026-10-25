@@ -86,6 +86,7 @@ METHOD = [
     "Margins:           gross profit ÷ revenue, operating income ÷ revenue",
     "Cash flow basis:   year-to-date less prior year-to-date, 10-Q",
     "Estimates rule:    third-party, named provider and outlet, published before the release (RULES.md rule 8)",
+    "Estimates searched: 3 queries, 4 articles read, 1 used; 3 left out (no provider named)",
     "Outlook rule:      the company's own figures, as stated (RULES.md rule 8); Raised/Lowered by range midpoint",
     "Statements read:   results release, company transcript; 1 left out as about the share price",
     "Price window:      release 2026-10-22 16:05 EDT; closes 2026-10-22 and 2026-10-23",
@@ -276,3 +277,54 @@ def test_the_spec_and_routing_name_the_mode():
     assert "references/earnings-recap.md" in skill
     assert "`Mode: Earnings recap`" in skill
     assert "Mode: Earnings recap" in rules
+
+
+# -- regressions from the 2026-10-25 review ---------------------------------
+
+
+def test_an_estimate_source_names_a_provider_not_just_an_outlet():
+    bad = swap(ESTIMATES, "LSEG via Reuters, 2026-10-21 | +2.6%", "Reuters, 2026-10-21 | +2.6%")
+    assert any("does not name its provider" in p for p in problems(output(body(estimates=bad))))
+    own = swap(ESTIMATES, "LSEG via Reuters, 2026-10-21 | +2.6%", "Zacks, 2026-10-21 | +2.6%")
+    assert not any("provider" in p for p in problems(output(body(estimates=own))))
+
+
+def test_missing_is_not_a_verdict():
+    text = output().replace("Not available:    none",
+                            "Not available:    capex row missing from the release")
+    assert not any("verdict" in p for p in problems(text))
+
+
+def test_a_short_row_is_a_problem_not_a_crash():
+    short = ESTIMATES[:3] + ["| Revenue (USD millions) | 1,200 | 1,170 |", ""]
+    found = contract.output_problems(output(body(estimates=short)))
+    assert found and not any("could not read" in p for p in found)
+
+
+def test_an_unchanged_figure_may_print_an_unsigned_zero():
+    flat = swap(RESULTS, "| Diluted EPS (USD) | 1.10 | 1.00 | +10.0% |",
+                "| Diluted EPS (USD) | 1.10 | 1.10 | 0.0% |")
+    assert not any("Diluted EPS" in p for p in problems(output(body(results=flat))))
+
+
+def test_a_change_beside_a_missing_value_is_refused():
+    bad = swap(RESULTS, "| Gross margin | 60.0% | 58.0% | +2.0pp |",
+               "| Gross margin | Not available — not reported | 58.0% | +2.0pp |")
+    assert any("not a figure" in p for p in problems(output(body(results=bad))))
+
+
+def test_the_price_sessions_straddle_the_release():
+    bad = swap(PRICE, "2026-10-22 to 2026-10-23", "2026-10-15 to 2026-10-16")
+    assert any("straddle" in p for p in problems(output(body(price=bad))))
+
+
+def test_a_tldr_figure_is_not_found_in_a_date():
+    # 23 is printed only inside the session date 2026-10-23
+    tldr = swap(TLDR, "diluted EPS 1.10", "diluted EPS 23")
+    assert any("figure 23 " in p for p in problems(output(body(tldr=tldr))))
+
+
+def test_a_buyback_in_management_said_is_not_advice():
+    said = swap(SAID, "States a new USD 500 million share repurchase authorisation",
+                "States it will buy back up to USD 500 million of shares")
+    assert not any("banned" in p for p in contract.output_problems(output(body(said=said))))

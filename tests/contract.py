@@ -76,7 +76,7 @@ _ACTION_CELL = (
     r"(?<!\| stop )(?<!- stop )"
     r"(?<!\| stop limit )(?<!- stop limit )"
 )
-_AS_NOUN = r"(?!\s*(?:\(|:\s*\d|price|rows?|side|cost|proceeds))"
+_AS_NOUN = r"(?!\s*(?:\(|:\s*\d|price|rows?|side|cost|proceeds|back\b))"
 BANNED = [
     _ACTION_CELL + r"\bbuy\b" + _AS_NOUN,
     _ACTION_CELL + r"\bsell\b" + _AS_NOUN,
@@ -1744,10 +1744,13 @@ def _change_problems(table: str, metric: str, new_cell: str, old_cell: str,
     if change in ("—", "-") or change.startswith("Not available"):
         return []
     new, old, ch = _num(new_cell), _num(old_cell), _num(change)
-    if not re.match(r"^[+\-−]\d+(?:\.\d+)?(?:%|pp)$", change):
+    if not re.match(r"^(?:[+\-−]\d+(?:\.\d+)?|0(?:\.0+)?)(?:%|pp)$", change):
         return [f"{table} {metric}: change {change!r} is not a signed % or pp, — or "
                 "`Not available — reason`"]
-    if new is None or old is None or ch is None:
+    if new is None or old is None:
+        return [f"{table} {metric}: change {change!r} printed beside a value that is not a "
+                f"figure ({new_cell!r}, {old_cell!r}); it is —"]
+    if ch is None:
         return []
     if new[1] == "%" and old[1] == "%":
         if ch[1] != "pp":
@@ -1777,10 +1780,10 @@ def _tldr_numbers_problems(result: str, lines: list[str], labels: tuple[str, ...
     """Every figure on these TL;DR lines is printed again in a table."""
     tables = result_tables(result)
     printed: set[str] = set()
-    for name, rows in tables.items():
-        printed |= _numbers_in(name)
+    for rows in tables.values():
         for row in rows:
-            printed |= _numbers_in(" ".join(row))
+            # cells only, and dates out: "2026" from a session date is not a figure
+            printed |= _numbers_in(re.sub(_ISO, " ", " ".join(row)))
     problems = []
     for line in lines:
         if not line.startswith(labels):
@@ -1791,10 +1794,23 @@ def _tldr_numbers_problems(result: str, lines: list[str], labels: tuple[str, ...
     return problems
 
 
+def _short_rows(result: str) -> list[str]:
+    """Rows with fewer cells than their table's header."""
+    out = []
+    for heading, rows in result_tables(result).items():
+        width = len(_table_header(result, heading))
+        out += [f"{heading.split(' (')[0]} row {r[0]!r} has {len(r)} cells, its header {width}"
+                for r in rows if len(r) < width]
+    return out
+
+
 def _tables_by_prefix(result: str) -> dict[str, tuple[str, list[list[str]]]]:
-    """RESULT tables keyed by the heading's name before any bracket."""
+    """RESULT tables keyed by the heading's name before any bracket, each row
+    padded to its header's width so a short row reads as empty cells."""
     out = {}
     for heading, rows in result_tables(result).items():
+        width = len(_table_header(result, heading))
+        rows = [r + [""] * (width - len(r)) for r in rows]
         out.setdefault(heading.split(" (")[0].strip(), (heading, rows))
     return out
 
@@ -1829,9 +1845,9 @@ SHARE_PRICE_HEADER = ["Instrument", "Close before release", "First close after",
                       "Sessions"]
 EARNINGS_TLDR = ("Results:", "Estimates:", "Outlook:")
 EARNINGS_METHOD = ["Quarter:", "Basis:", "Margins:", "Cash flow basis:", "Estimates rule:",
-                   "Outlook rule:", "Statements read:", "Price window:"]
+                   "Estimates searched:", "Outlook rule:", "Statements read:", "Price window:"]
 # The verdicts a recap never prints: the gap is a signed number.
-EARNINGS_VERDICTS = [r"\bbeat(?:s|ing)?\b", r"\bmiss(?:ed|es|ing)?\b", r"\btopped\b",
+EARNINGS_VERDICTS = [r"\bbeat(?:s|ing)?\b", r"\bmiss(?:ed|es)?\b", r"\btopped\b",
                      r"\bfell short\b", r"\bsurprise[sd]?\b", r"\bblowout\b", r"\bcrushed\b"]
 # Judgement adjectives, allowed only inside what management said.
 EARNINGS_ADJECTIVES = [r"\bstrong(?:er)?\b", r"\bweak(?:er)?\b", r"\bdisappoint\w*\b",
@@ -1840,6 +1856,10 @@ _SHARE_PRICE_TALK = re.compile(
     r"\b(?:share|stock) price\b|\bvaluation\b|\bshares (?:rose|fell|jumped|dropped|rallied|sank)\b",
     re.IGNORECASE)
 _RELEASED = re.compile(rf"released ({_ISO})")
+# Consensus providers that publish under their own name; any other source
+# names its provider and the outlet it was read in: `LSEG via Reuters`.
+ESTIMATE_PROVIDERS = ("lseg", "factset", "zacks", "visible alpha", "i/b/e/s", "s&p global",
+                      "bloomberg", "refinitiv")
 
 
 def is_earnings_recap(sections: dict[str, str]) -> bool:
@@ -1864,6 +1884,7 @@ def earnings_recap_problems(sections: dict[str, str]) -> list[str]:
     method = sections.get("METHOD", "")
     problems: list[str] = []
     tables = _tables_by_prefix(result)
+    problems += _short_rows(result)
 
     # Six tables, in order, nothing else.
     names = [n.split(" (")[0].strip() for n in result_tables(result)]
@@ -1957,7 +1978,9 @@ def earnings_recap_problems(sections: dict[str, str]) -> list[str]:
                     problems.append(f"Against estimates {metric!r} does not state its basis")
                 day = re.search(_ISO, source)
                 who = source.split(",")[0].strip().lower()
-                if not day or who in NOT_A_SOURCE or who.startswith(("analyst", "consensus")):
+                named = " via " in who or who.startswith(ESTIMATE_PROVIDERS)
+                if not day or not named or who in NOT_A_SOURCE or \
+                        who.startswith(("analyst", "consensus")):
                     problems.append(f"Against estimates source {source!r} does not name its "
                                     "provider or outlet and date (`LSEG via Reuters, YYYY-MM-DD`)")
                 elif release_date and _date(day.group(0)) and _date(day.group(0)) > release_date:
@@ -2041,6 +2064,12 @@ def earnings_recap_problems(sections: dict[str, str]) -> list[str]:
                     problems.append(f"Share price row {r[0]!r} is neither the instrument nor "
                                     "a `Benchmark: ` row")
             for r in rows:
+                sessions = re.findall(_ISO, r[4])
+                if len(sessions) == 2 and release_date:
+                    first, second = _date(sessions[0]), _date(sessions[1])
+                    if first and second and not (first <= release_date <= second and first < second):
+                        problems.append(f"Share price {r[0]}: sessions {r[4]} do not straddle "
+                                        f"the release on {release_date}")
                 before, after, change = (_num(c) for c in r[1:4])
                 if before and after and change and before[0]:
                     want = _pct_change(after[0], before[0])
@@ -2108,7 +2137,7 @@ H2H_METHOD = ["Instruments:", "Order:", "Difference:", "Scorecard:", "Price date
               "Overlap depth:"]
 # A winner, in the words it usually takes. None of these may appear in a
 # head-to-head's RESULT or CONTEXT.
-H2H_WINNER = [r"\bbetter\b", r"\bbest\b", r"(?<!\bno )\bworse\b", r"\bworst\b", r"\bwinners?\b",
+H2H_WINNER = [r"\bbetter\b", r"\bbest\b(?! buy)", r"(?<!\bno )\bworse\b", r"\bworst\b", r"\bwinners?\b",
               r"\bwins?\b", r"\bwon\b", r"\bcheaper\b", r"\bpricier\b", r"\bsuperior\b",
               r"\binferior\b", r"\bstronger\b", r"\bweaker\b", r"\bedge\b",
               r"\badvantages?\b", r"\bprefer(?:red|able)?\b", r"\bpicks?\b", r"\bbeats?\b",
@@ -2134,6 +2163,9 @@ def _difference_problems(table: str, label: str, a: str, b: str, diff: str) -> l
         return []
     if diff.startswith(("Not available", "Not comparable")):
         return []
+    qualifiers = [re.findall(r"\((.*?)\)", c) for c in (a, b)]
+    if diff in ("—", "-") and qualifiers[0] != qualifiers[1]:
+        return []  # different bases, regimes or dates in brackets: not differenced
     d = _num(diff)
     if d is None:
         return [f"{table} {label}: Difference {diff!r} is not a figure"]
@@ -2155,6 +2187,7 @@ def head_to_head_problems(sections: dict[str, str]) -> list[str]:
     method = sections.get("METHOD", "")
     problems: list[str] = []
     tables = _tables_by_prefix(result)
+    problems += _short_rows(result)
 
     # The scorecard decides the kind, and names the two instruments.
     a = b = None
@@ -2319,5 +2352,9 @@ def output_problems(text: str) -> list[str]:
                   lens_source_problems, buffett_notes_problems, checklist_problems,
                   price_move_problems, reported_reasons_elsewhere, metric_table_problems,
                   earnings_recap_problems, earnings_tables_elsewhere, head_to_head_problems):
-        problems += check(sections)
+        try:
+            problems += check(sections)
+        except Exception as exc:  # a malformed draft is a problem to fix, not a crash
+            problems.append(f"{check.__name__} could not read this draft "
+                            f"({type(exc).__name__}: {exc}); check its tables' shape")
     return problems

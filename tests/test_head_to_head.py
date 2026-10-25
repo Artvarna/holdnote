@@ -290,3 +290,23 @@ def test_the_spec_and_routing_name_the_mode():
     assert "references/head-to-head.md" in skill
     assert "`Mode: Head-to-head`" in skill
     assert "Mode: Head-to-head" in rules
+
+
+# -- regressions from the 2026-10-25 review ---------------------------------
+
+
+def test_two_risk_regimes_take_a_dash():
+    side = swap(FUND_SIDE, "| Risk indicator | 4/7 | 4/7 | 0 |",
+                "| Risk indicator | 6/7 (UK KIID SRRI) | 4/7 (PRIIPs SRI) | — |")
+    assert problems(funds(side=side)) == []
+
+
+def test_a_company_called_best_buy_is_not_a_winner():
+    shared = [r.replace("Company C", "Best Buy") for r in SHARED]
+    assert not any("a winner" in p for p in problems(funds(shared=shared)))
+
+
+def test_a_short_row_is_a_problem_not_a_crash():
+    short = SHARED[:3] + ["| Company A | 4.91 |", ""]
+    found = contract.output_problems(funds(shared=short))
+    assert found and not any("could not read" in p for p in found)

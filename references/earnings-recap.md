@@ -203,6 +203,9 @@ Against estimates (as published by the named sources before the release — not 
   `topped`, `fell short`, `surprise` or icon anywhere in the output.
 - **Estimate source** names the provider and the outlet the number was read
   in, and the article's publication date: `FactSet via CNBC, 2026-10-27`.
+  A provider that publishes its own consensus (Zacks, FactSet's own
+  pages) is named alone: `Zacks, 2026-10-27`. An outlet alone
+  (`Reuters, 2026-10-27`) is not enough: whose number it is stays unsaid.
   The article is a `SOURCES` row with its URL and both dates.
 - **Revenue and EPS**, on the basis the source states. Other estimates (a
   segment's revenue, a margin) may follow when the same article states
@@ -265,6 +268,10 @@ Management said (as stated by the company — not Holdnote's view)
 - **Topic** is a neutral label for what the statement is about, using the
   company's own words for its products and segments; never a judgement
   (`Cloud`, not `Cloud strength`).
+- **No bare buy, sell or hold.** The checker bans those verbs everywhere,
+  because addressed to the reader they are advice. A company's own action
+  is paraphrased without them: `divest`, `dispose of`, `keep`; a buyback
+  may be written `buy back` or `repurchase`.
 - **Speaker** is the role (`CEO`, `CFO`) or `Company release`.
 - **Source** names the document; it is a `SOURCES` row. A transcript the
   company does not publish is credited to the outlet that does (`Q3
