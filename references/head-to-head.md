@@ -60,6 +60,23 @@ The two sides are held to one footing:
   sides — the scorecard's, stock-brief's Margins, Returns and Valuation,
   etf-brief's Fund facts. A company's own "adjusted" figure never stands in
   for one side's row.
+- **Same period.** A row measured over a period — tracking difference
+  most of all — uses one period for both. The scorecard takes the last
+  full calendar year where a factsheet prints it; when **either** fund's
+  documents lack it, **both** use the trailing one-year fund − index
+  difference to the same month end, and `METHOD`'s `Tracking basis:` line
+  says so. (Live run 2026-10-25: Vanguard's factsheet prints 12-month
+  periods to 30 September, iShares' calendar years; a calendar 2025 beside
+  a year to September would have compared two different years.)
+- **Same basis for top-10 weight.** By holding line for both: two share
+  classes of one company (Alphabet A and C) are two lines. Vanguard's
+  factsheet combines them into one; the line figure is then summed from
+  its holdings data, and `METHOD`'s `Top-10 basis:` line names both
+  figures. (Live run 2026-10-25: 25.8% combined, 24.73% by line.)
+- **Same risk regime, or none.** A UK KIID SRRI and a PRIIPs SRI are
+  different scales on the same 1–7 numbers (etf-brief → Document
+  handling). Two indicators from different regimes both print, with the
+  regime named in the cell, and Difference is `—`.
 - **Currencies are labelled, never mixed.** Each column carries its own
   currency; an amount row is not differenced across two currencies
   (Difference `—`). A ratio row (a margin, a TER, a yield) is unitless and
@@ -167,7 +184,9 @@ Overlap (full holdings files, as of 2026-10-23 and 2026-10-24)
   `METHOD` names.
 - **Structural** is the index-level fact, by country lists, never labels
   (etf-brief → Overlap analysis → Across providers).
-- Companies are matched by ISIN, never by name.
+- Companies are matched by ISIN, or — where an issuer's file carries
+  none, as iShares' does — by ticker and listing country, the way
+  `scripts/fund_holdings.py` matches them; never by name.
 
 ### 4. Shared holdings (funds only)
 
@@ -208,6 +227,28 @@ Countries and sectors (Difference = IWDA − VWCE)
   the same classification; across classifications, the sector rows print
   `Not comparable — ICB vs GICS` and only countries are differenced.
   `METHOD` names the two classifications.
+
+## What the routes did, checked live 2026-10-25
+
+VWCE against IWDA, from a cloud session linked to the desktop app. A
+record of reachability, not a rank:
+
+- **Vanguard's holdings data** (`vanguard.co.uk/gpx/graphql`, the query
+  `fund_holdings.py` sends) answered from a tab on vanguard.co.uk with
+  every line, ISIN per line, as of the month end.
+- **iShares' holdings CSV**: the `….ajax?fileType=csv` address now returns
+  the product page's HTML; `latest-holdings.csv` returns the file.
+  `fund_holdings.py` already falls back to the second address when the
+  first does not parse.
+- **Factsheet PDFs** (Vanguard, iShares, MSCI) were read as text in the
+  browser by loading pdf.js from cdnjs into the page; the desktop app's
+  built-in PDF viewer exposes no text.
+- **research.ftserussell.com and data-api.ecb.europa.eu** were refused by
+  the browser's site approvals. Their rows printed `Not available` with
+  that reason; neither was worked around.
+- **Full look-through for both funds** needs the `holdings-data` branch of
+  the user's own repo or both issuer files in one workspace; without them
+  the Overlap is `top-10 depth, partial`, as above.
 
 ## Output
 
@@ -251,6 +292,10 @@ Difference:        second − first; % rows in pp; amounts only within one
                    currency
 Scorecard:         references/buffett-scorecard.md, fund | stock version,
                    same thresholds for both
+Tracking basis:    funds: calendar year [YYYY] for both | trailing one year
+                   to [date] for both, and why
+Top-10 basis:      funds: by holding line for both, and any issuer figure
+                   on another basis
 Price date:        [session] for both | not used (no price-dependent row)
 Overlap depth:     full holdings files | top-10 depth, partial — [which fund
                    and why] | not run (stocks)

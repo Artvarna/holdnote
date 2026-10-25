@@ -87,6 +87,24 @@ sources that count are price-move.md's (wires, major financial media,
 bylined financial news), and its exclusions apply: no price-target pages,
 no advice-framed pieces, no unsigned aggregators.
 
+**What the estimate search did, checked live 2026-10-25** (NFLX, Q3 2026,
+released 2026-10-20 after the close). A record, not a rank:
+
+- **Most previews name no provider.** A Benzinga preview gave both
+  consensus figures as "the consensus estimate", with no provider: a lead,
+  not a row.
+- **Most articles that name one come after the release.** The Next Web
+  named LSEG for the EPS estimate on 2026-10-21 and AAII named I/B/E/S on
+  2026-10-25 — both after the release, so neither was used.
+- **A Reuters preview, syndicated on Investing.com, named LSEG** for
+  revenue on 2026-10-19. That row printed; EPS printed `None found`.
+- **Variety** sits behind a bot wall the browser could not pass.
+
+**The prior quarter comes from this release where it prints it.**
+Netflix's release prints the quarter, the prior quarter and the year-ago
+quarter side by side; those columns are used as printed, and the prior
+release is opened only for the previous outlook.
+
 **Like with like.** Consensus EPS is usually the company's adjusted
 (non-GAAP) EPS. The row compares the company's figure on the **basis the
 estimate source states**: an adjusted EPS estimate sits beside the
@@ -156,8 +174,13 @@ Segments (Q3 FY2026 vs Q3 FY2025, revenue, USD millions)
 
 - Revenue by segment; operating income by segment as a second block of rows
   `<segment> operating income` where the release reports it.
-- A company with one reportable segment: one row, `| None — one reportable
-  segment | — | — | — |`.
+- **A company with one reportable segment** that breaks its revenue down
+  another way in the release — by region, as Netflix does — prints that
+  breakdown instead, and the heading says so: `Segments (regions, as the
+  release reports them; Q3 FY2026 vs Q3 FY2025, revenue, USD millions)`.
+  The figures are the release's own table, never re-cut. With no breakdown
+  at all: one row, `| None — one reportable segment | — | — | — |`. (Live
+  run 2026-10-25, NFLX: one segment, four regions in the release.)
 - Segments the company re-drew since the year-ago quarter take the recast
   year-ago figures the release prints; with none, the Year-ago cell is
   `Not available — segments re-drawn`.
@@ -183,7 +206,7 @@ Against estimates (as published by the named sources before the release — not 
   The article is a `SOURCES` row with its URL and both dates.
 - **Revenue and EPS**, on the basis the source states. Other estimates (a
   segment's revenue, a margin) may follow when the same article states
-  them, at most four rows in all.
+  them, at most six rows in all.
 - **Sources disagree:** both rows print, each with its source. Holdnote
   does not pick a consensus.
 - **Nothing found:** one row, `| — | — | — | None found — no named source
@@ -331,6 +354,9 @@ Estimates rule:    third-party, named provider and outlet, published before
                    the release (RULES.md rule 8); compared on the basis
                    the source states; Difference = (reported − estimate) ÷
                    |estimate|
+Estimates searched: n queries, n articles read, n used — and the articles
+                   left out and why (no provider named, published after the
+                   release, did not open)
 Outlook rule:      the company's own figures, as stated (RULES.md rule 8);
                    Raised/Lowered by range midpoint
 Statements read:   the documents read for Management said, and how many

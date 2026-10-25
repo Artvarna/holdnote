@@ -275,6 +275,9 @@ def test_the_render_keeps_both_columns_and_marks_only_results():
     assert "## FFA vs FFB · Fund A (Acc) vs Fund B (Acc)" in out
     assert "Head-to-head" in out
     assert "❌ 0.22%" in out and "✅ 0.20%" in out
+    reasoned = funds(score=swap(FUND_SCORECARD, "Met (16.9%)",
+                                "Not available — index factsheet not fetched"))
+    assert "⚪ Not available — index factsheet not fetched" in render.render(reasoned)
     for name in ("Buffett scorecard", "Side by side", "Overlap", "Shared holdings",
                  "Countries and sectors"):
         assert f"### {name}" in out

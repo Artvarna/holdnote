@@ -1270,3 +1270,75 @@ tool should have". The stock brief had gross and operating margin only.
 - The contract checks each cell is a figure or a reasoned `Not
   available`, that gross margin never exceeds 100%, and that no tax rate
   or cost ratio is negative (`tests/test_metrics.py`).
+
+## Earnings recap and Head-to-head, 2026-10-25
+
+**DECIDED 2026-10-25**, at the user's ask for "one last main feature"
+before the 1 November launch; he picked both of the two offered.
+
+### Earnings recap (`references/earnings-recap.md`, `Mode: Earnings recap`)
+
+- **The release is the document.** Every Results figure comes from the
+  company's own results release (8-K Exhibit 99.1 for a US filer), the
+  10-Q only for a line the release lacks. A recap reads one release and
+  the one before it, which keeps it far lighter on the user's plan than a
+  brief.
+- **Six fixed tables, all printed:** Results, Segments, Against estimates,
+  Company outlook, Management said, Share price around the release. An
+  empty one prints its `None` row (rule 10).
+- **No "beat" or "miss".** The two words are how earnings are reported
+  everywhere, and both are verdicts. The gap to an estimate is a signed
+  percentage beside both figures; the contract bans the words, with
+  `topped`, `fell short`, `surprise`, and the adjectives (`strong`,
+  `weak`, `disappointing`) outside what management said.
+- **Estimates are someone's, or nothing.** A consensus needs a named
+  provider and a named outlet, published before the release, and is
+  compared on the basis it states (adjusted EPS beside adjusted EPS).
+  "Analysts expected" with no provider is a lead. The live NFLX run found
+  this is usually the hard part: one of five articles qualified.
+- **Guidance is the company's.** Rule 8 (v15) gains a paragraph: the
+  issuer's own outlook may be reported as the issuer's — its units, its
+  range, its period, beside its previous outlook — never mid-pointed,
+  annualised or extended. Raised and Lowered compare midpoints, which is
+  arithmetic, and `METHOD` says so.
+- **Management said** is at most five paraphrased statements in source
+  order, starting `Says` or `States`, under 30 words, no quotation marks,
+  and nothing about the share price — the company's claims about its own
+  business, attributed, the same footing as a reported reason.
+- **The price table carries no reason.** Rule 7's first paragraph binds
+  this mode; the reasons are a Price move, which the `Next:` line offers.
+  Keeping the two apart means a recap never quietly becomes a story about
+  why the stock moved.
+- **Live run 2026-10-25 (NFLX Q3 2026)** passed the checker first time and
+  changed the spec in two places: a company with one reportable segment
+  prints the release's regional table in Segments, labelled; and a
+  release that prints the prior quarter's column is used as printed.
+  Netflix prints no gross profit line, so Gross margin is `Not
+  available`, never revenue less cost of revenues.
+
+### Head-to-head (`references/head-to-head.md`, `Mode: Head-to-head`)
+
+- **Exactly two, of one kind.** Two funds or two stocks; three or more
+  funds are Mode C, which already has a Comparison table; a stock against
+  a fund is not compared, because their scorecards measure different
+  things.
+- **No winner (rule 6, v15).** The instruments print in the order named;
+  every Difference is second minus first and signed; there is no total,
+  no bold, no trophy, and the contract bans the words a winner usually
+  takes (`better`, `best`, `cheaper`, `wins`, `edge`, `advantage`,
+  `outperform`…). "Which is better?" gets the comparison. The scorecard's
+  own icons stay: they mark a result against a threshold, the same for
+  both sides.
+- **One footing.** Same session for price rows, same definitions, same
+  period, same top-10 basis, same risk regime — or the row says it is not
+  comparable. The live VWCE vs IWDA run found three ways two factsheets
+  disagree on footing (12-month periods vs calendar years, share classes
+  combined vs by line, SRRI vs SRI), each now a spec rule and a `METHOD`
+  line.
+- **Overlap reuses Mode C's definition**: one shared-weight figure per
+  pair, the sum of the smaller weights, with its depth in the heading.
+  The live run printed it at top-10 depth (22.95%), the floor any user
+  without the GitHub option gets.
+- **Observed, not changed:** iShares' `.ajax` holdings address now serves
+  the product page's HTML; `fund_holdings.py` already falls back to
+  `latest-holdings.csv` when the first does not parse (checked).

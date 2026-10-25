@@ -147,8 +147,10 @@ def _table(lines: list[str]) -> list[str]:
             col = header[i] if i < len(header) else ""
             if head_to_head and i >= 2 and _SIDE_RESULT.match(c):
                 m = _SIDE_RESULT.match(c)
-                c = " ".join(b for b in (RESULT_CELLS[m["result"]],
-                                         m["value"] or (m["rest"] or "").strip()) if b)
+                # "Not available — reason" keeps its words; an icon alone
+                # would leave the reason reading as a sentence fragment.
+                rest = f"{m['result']}{m['rest']}" if m["rest"] else ""
+                c = " ".join(b for b in (RESULT_CELLS[m["result"]], m["value"] or rest) if b)
             elif col in RESULT_COLUMNS and c in RESULT_CELLS:
                 c = RESULT_CELLS[c]
             elif col == "Type" and c in TYPE_CELLS:
