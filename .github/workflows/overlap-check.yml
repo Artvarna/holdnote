@@ -1,0 +1,48 @@
+# Temporary (2026-10-26): computes weight overlap for a few popular ETF pairs
+# for one X post. Keeps only the aggregate figures, on the `overlap-check-log`
+# branch; the holdings files are deleted on the runner and never committed
+# (DECISIONS.md, 2026-10-15 and 2026-10-19). Delete this branch afterwards.
+
+name: Overlap check (temporary)
+
+on:
+  push:
+    branches: [overlap-check]
+
+permissions:
+  contents: write
+
+jobs:
+  overlap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Fetch the funds, keep only the overlap figures
+        run: |
+          mkdir -p "$RUNNER_TEMP/files" log
+          set +e
+          python3 scripts/fund_holdings.py fetch --funds templates/fund-catalog.md \
+            --holdings-dir "$RUNNER_TEMP/files" \
+            --only CSPX,CNDX,SWDA,SSAC,EIMI,VUSA,SPPW,VWCE,SPY5,IUSA > log/fetch.txt 2>&1
+          python3 .github/overlap/overlap_pairs.py "$RUNNER_TEMP/files" > log/overlap.txt 2>&1
+          set -e
+          rm -rf "$RUNNER_TEMP/files"
+          sed -i "s|$RUNNER_TEMP/files/||g" log/fetch.txt
+          {
+            echo "run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "ref: ${GITHUB_REF_NAME} ${GITHUB_SHA}"
+            echo "utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> log/overlap.txt
+          cat log/fetch.txt log/overlap.txt
+      - name: Publish the figures
+        run: |
+          cd log
+          git init -q -b overlap-check-log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Overlap check $(date -u +%F)"
+          git push -q --force \
+            "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" \
+            overlap-check-log
