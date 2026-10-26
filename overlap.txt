@@ -1,0 +1,24 @@
+CNDX: as of 2026-10-23, 108 rows, 101 equity, weights sum 99.96, equity sum 99.93
+CSPX: as of 2026-10-23, 510 rows, 503 equity, weights sum 100.07, equity sum 99.94
+EIMI: as of 2026-10-23, 3088 rows, 1753 equity, weights sum 98.38, equity sum 97.85
+IUSA: as of 2026-10-23, 509 rows, 503 equity, weights sum 100.04, equity sum 99.93
+SPPW: as of 2026-10-23, 1255 rows, 1236 equity, weights sum 100.00, equity sum 100.00
+SPY5: as of 2026-10-23, 510 rows, 504 equity, weights sum 100.00, equity sum 100.00
+SSAC: as of 2026-10-23, 1732 rows, 1433 equity, weights sum 99.77, equity sum 99.41
+SWDA: as of 2026-10-23, 1271 rows, 1206 equity, weights sum 99.90, equity sum 99.45
+VUSA: as of 2026-09-30, 513 rows, 503 equity, weights sum 100.00, equity sum 99.75
+VWCE: as of 2026-09-30, 4235 rows, 3704 equity, weights sum 100.00, equity sum 98.96
+
+pair | label | shared companies | overlap % (sum of min) | % of A in B | % of B in A | largest shared
+CSPX-CNDX | S&P 500 + Nasdaq 100 | 85 of 500/100 | 53.86 | 53.86 | 93.02 | NVIDIA 7.77, APPLE 7.72, MICROSOFT 5.92, ALPHABET 5.15, AMAZON.COM INC 3.70
+VUSA-SPPW | S&P 500 + MSCI World | 439 of 500/1233 | 70.94 | 98.54 | 70.99 | Apple Inc 5.68, NVIDIA Corp 5.40, Microsoft Corp 4.11, Alphabet Inc 3.74, Amazon.com Inc 2.67
+SPPW-VWCE | MSCI World + FTSE All-World | 1169 of 1233/3689 | 83.25 | 98.95 | 84.58 | NVIDIA Corporation 5.01, Apple Inc. 4.52, Microsoft Corporation 3.58, Alphabet Inc. 3.41, Amazon.com Inc. 2.27
+SWDA-SSAC | MSCI World + MSCI ACWI | 1145 of 1197/1422 | 88.00 | 98.91 | 88.43 | APPLE 5.02, NVIDIA 4.78, MICROSOFT 3.63, ALPHABET 3.30, AMAZON.COM INC 2.35
+VUSA-VWCE | S&P 500 + FTSE All-World | 427 of 500/3689 | 60.44 | 98.40 | 60.44 | NVIDIA Corp 5.01, Apple Inc 4.52, Microsoft Corp 3.58, Alphabet Inc 3.41, Amazon.com Inc 2.27
+SWDA-EIMI | MSCI World + MSCI EM IMI | 1 of 1197/1743 | 0.01 | 0.01 | 0.01 | ORION 0.01
+VUSA-SPY5 | CHECK S&P 500 Vanguard vs SPDR | 499 of 500/501 | 95.50 | 99.63 | 99.86 | NVIDIA Corp 7.78, Apple Inc 7.36, Microsoft Corp 5.77, Alphabet Inc 5.16, Amazon.com Inc 3.70
+CSPX-IUSA | CHECK S&P 500 iShares Acc vs Dist | 500 of 500/500 | 99.89 | 99.94 | 99.93 | NVIDIA 7.77, APPLE 7.72, MICROSOFT 5.92, ALPHABET 5.15, AMAZON.COM INC 3.70
+CSPX-SWDA | CROSS-CHECK S&P 500 + MSCI World (iShares) | 440 of 500/1197 | 70.64 | 98.74 | 70.65 | APPLE 5.66, NVIDIA 5.37, MICROSOFT 4.10, ALPHABET 3.72, AMAZON.COM INC 2.66
+run: https://github.com/Artvarna/holdnote/actions/runs/40335481373
+ref: overlap-check ed2a52df58d0963fad54bd5bd59067c3aecea617
+utc: 2026-10-26T13:59:39Z

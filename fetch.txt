@@ -1,0 +1,10 @@
+VWCE: VWCE-2026-10-26.json - 4235 rows, 3755 equity, as of 2026-09-30
+VUSA: VUSA-2026-10-26.json - 513 rows, 503 equity, as of 2026-09-30
+SWDA: SWDA-2026-10-26.csv - 1271 rows, 1250 equity, as of 2026-10-23
+CSPX: CSPX-2026-10-26.csv - 510 rows, 504 equity, as of 2026-10-23
+IUSA: IUSA-2026-10-26.csv - 509 rows, 504 equity, as of 2026-10-23
+SSAC: SSAC-2026-10-26.csv - 1732 rows, 1662 equity, as of 2026-10-23
+CNDX: CNDX-2026-10-26.csv - 108 rows, 101 equity, as of 2026-10-23
+EIMI: EIMI-2026-10-26.csv - 3088 rows, 2952 equity, as of 2026-10-23
+SPPW: SPPW-2026-10-26.xlsx - 1255 rows, 1237 equity, as of 2026-10-23
+SPY5: SPY5-2026-10-26.xlsx - 510 rows, 504 equity, as of 2026-10-23
