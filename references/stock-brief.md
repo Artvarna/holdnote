@@ -16,7 +16,7 @@ refused by `data.sec.gov`, and WebFetch summarises the JSON instead of
 returning it: on 2026-10-01 it dropped the form types and offered a Form 4 as
 the latest periodic report. Open a tab on `data.sec.gov` and `fetch()` the
 `submissions/CIK##########.json` and `api/xbrl/companyfacts/…` files from it
-(`references/etf-brief.md` → Stocks table, "EDGAR is browser-only"). A figure
+(`references/etf-brief.md` → Stocks table, "EDGAR's full JSON files are browser-only"). A figure
 WebFetch reports from those two large files is a lead to check against the
 JSON, never a value to print.
 

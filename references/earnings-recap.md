@@ -66,7 +66,7 @@ In this order (rule 4):
    8: third-party data, its source named and dated) and, where the company
    publishes no transcript, a named outlet's transcript of the call.
 
-**How to reach them.** EDGAR is browser-only (`references/stock-brief.md`
+**How to reach them.** With the browser (`references/stock-brief.md`
 → Step 1): open a tab on `sec.gov`, read `submissions/CIK##########.json`
 for the newest 8-K with Item 2.02, and open its Exhibit 99.1. An investor
 relations page usually opens with WebFetch or the browser; a PDF release is

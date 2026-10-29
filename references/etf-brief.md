@@ -897,7 +897,7 @@ built-in browser on the user's computer.
 | NVDA | 0001045810, `NVIDIA CORP` | *browser* — 200 | `investor.nvidia.com/events-and-presentations/events-and-presentations/default.aspx` (*browser*), `Upcoming Events` |
 | GOOGL | 0001652044, `Alphabet Inc.` | *browser* — 200 | `abc.xyz/investor/` (*browser*), a `Date of … Financial Results Conference Call` release |
 
-**EDGAR is browser-only.** `data.sec.gov` refuses both shells (the cloud
+**EDGAR's full JSON files are browser-only.** `data.sec.gov` refuses both shells (the cloud
 workspace's and the user's computer's) at the proxy, so it is fetched from a
 tab on `data.sec.gov`: open one submissions URL with `preview_start`, then one
 `fetch()` loop over the three CIKs from that tab, parsing
