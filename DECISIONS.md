@@ -2,7 +2,7 @@
 
 Follow RULES.md.
 
-Last updated: 2026-10-21
+Last updated: 2026-10-29
 
 Policies that have been decided but are not implemented. **Nothing in this
 file is read by any code, now or ever.** `scripts/t212_holdings.py` parses
@@ -1342,3 +1342,47 @@ before the 1 November launch; he picked both of the two offered.
 - **Observed, not changed:** iShares' `.ajax` holdings address now serves
   the product page's HTML; `fund_holdings.py` already falls back to
   `latest-holdings.csv` when the first does not parse (checked).
+
+## Full research without the browser: the phone route, 2026-10-29
+
+**DECIDED 2026-10-29.** On a phone (or claude.ai on the web, or with the
+computer off) a stock brief printed no EDGAR figure and a fund brief no
+factsheet figure: every cell `Not available (browser route down)`. The
+rule behind that was "WebFetch never supplies a figure", written after two
+WebFetch failures (2026-10-01, 2026-10-03). The rule is replaced by a gate
+in `references/no-browser.md`, and the research runs in full.
+
+- **Why the old failures happened.** Both were a large document read with
+  a loose question and nothing to check the answer against: the whole
+  `submissions` JSON (cut off before its `form` column), and a factsheet
+  asked for a top 10 without its printed total. Neither is a property of
+  WebFetch as such.
+- **Small documents instead of large ones.** SEC serves the same facts in
+  pieces WebFetch reads whole: one XBRL concept per figure
+  (`companyconcept`), each filing's statement pages (`R<n>.htm`, found
+  through `FilingSummary.xml`), the cover-page shares concept as the list
+  of 10-Ks and 10-Qs, EDGAR company search for the CIK and full-text search
+  for 8-Ks. All checked live on Apple, and the CIK lookup on NVIDIA.
+- **Every figure is confirmed before it prints**: by a second document
+  (concept JSON = statement page; factsheet TER = KID; ECB daily = 90-day
+  file), by the document's own totals (a top 10 adding to the printed
+  total, a statement's subtotals adding), or, with neither, by a second
+  read in different words, which is named `single source`. A failure is
+  `Not available — WebFetch reads disagree`, never a pick between readings.
+  The check is the one `SKILL.md` → Validation before output already made for weights
+  ("add them, do not trust the header figure"); it is now applied to
+  everything WebFetch returns.
+- **Ask for values, not quotes.** WebFetch refuses quotes over about 125
+  characters, so risk-factor headings are asked for as their first 12
+  words, exactly. On Apple's FY2025 10-K that gave all 28 headings in
+  order, enough for the Red flags diff's word match.
+- **The browser stays first when it is up.** These routes are not a second
+  source for a browser run, and a browser run's rules are unchanged.
+- **Still browser-only: exchange closes for funds and non-US stocks.**
+  Rechecked: the LSE page has no price in its served HTML and its API
+  refuses another origin, Deutsche Börse renders its close by script, and
+  Yahoo's chart data refuses WebFetch. Those rows stay `Not available
+  (browser route down)`; the weights still print from the export's values.
+  A later option, not built: the user's own GitHub Action fetching their
+  holdings' closes daily to `holdings-data`, as it already does for
+  holdings files.

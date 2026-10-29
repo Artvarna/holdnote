@@ -72,9 +72,13 @@ for the newest 8-K with Item 2.02, and open its Exhibit 99.1. An investor
 relations page usually opens with WebFetch or the browser; a PDF release is
 read as text in the browser. WebFetch summarises what it reads, so a figure
 it returns is a lead to check against the document's own table, never a
-value to print (stock-brief Step 1). Without the browser and with no IR
-page that opens, the Results table is `Not available (browser route down)`
-and the rest of the output still runs.
+value to print (stock-brief Step 1). Without the browser, EDGAR full-text
+search finds the 8-K with Item 2.02 and its Exhibit 99.1, and the release's
+tables are read through WebFetch and confirmed by their own totals and
+against the quarter's 10-Q concept values once filed
+(`references/no-browser.md` → SEC EDGAR). Only when neither that nor an IR
+page opens is the Results table `Not available (browser route down)`; the
+rest of the output still runs.
 
 **Estimates.** WebSearch, at most three queries, built from the company
 name, the quarter and the word "estimates". A number counts only when the

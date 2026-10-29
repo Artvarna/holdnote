@@ -410,6 +410,9 @@ not a country list: MSCI's print the top five and `Other`. The full list is
 the factsheet's footnote, `* EM countries include: …` or `* DM countries
 include: …`, read from the PDF's text in the built-in browser (the same
 pdf.js route as Fund facts below). Both shells are refused by msci.com.
+Without the browser, WebFetch reads the same PDFs: ask for the countries as
+a list, not the footnote as a quote (`references/no-browser.md` → Fund
+documents).
 
 | Index | Country list from | Reached by |
 |---|---|---|
@@ -901,8 +904,11 @@ tab on `data.sec.gov`: open one submissions URL with `preview_start`, then one
 `filings.recent` (`form`, `filingDate`, `reportDate`, `items`) in the page.
 WebFetch reached the file but summarised it: on 2026-10-01 it dropped the form
 types and offered a Form 4 dated 2026-09-29 as the latest periodic report. It
-is never a route for this table. Without the browser, the three filing columns
-read `Not available (browser route down)`, as the performance rows do.
+is never a route for this table. Without the browser, the filing columns come
+from each stock's cover-page shares concept, which lists every 10-K and 10-Q
+with its `filed` date and accession number, and 8-Ks from EDGAR full-text
+search (`references/no-browser.md` → SEC EDGAR); the CIK from EDGAR company
+search, its entity name matching `portfolio.md`'s Company.
 
 **Earnings dates come late.** On 2026-10-01 none of the three pages showed
 the coming quarter's date. Apple's page listed only FY26 Q3 results, NVIDIA's
@@ -1024,8 +1030,9 @@ history pages had VUSA with 15–24 September missing, EIMI labelled GBP
   different instrument in a different currency (above): on 2026-09-29 a
   session without the computer printed EIMI at +3.15 from its Xetra EUR
   listing where the held LSE USD listing moved +1.56.
-- Comparison, Structural and Holdings still run from factsheets over
-  WebFetch.
+- Comparison, Structural and Holdings still run from factsheets, KIDs and
+  index factsheets over WebFetch, through `references/no-browser.md`'s
+  read-back gate.
 - `STATUS` is partial, and `METHOD` says the closes need the Claude
   desktop app open on the user's computer, then a re-run.
 
@@ -1046,15 +1053,16 @@ history pages (stale by weeks).
 
 ### Fund facts: factsheet first, justETF only as a labelled fallback
 
-**A factsheet's figures are read from its text, never from a WebFetch
-summary.** Open the PDF in the built-in browser and read its text, or
-download it and extract the text in a shell. WebFetch may find the URL;
-it never supplies a figure. It summarises, and on 2026-10-03 two runs
-WebFetched the same SPDR factsheet and were given two different top-10
-totals (30.67% and 31.67%), neither printed in the document. A figure
-WebFetch reports is a lead to check against the text, the same rule as for
-EDGAR above. Without the browser or a shell that can reach the issuer, the
-cell is `Not available (browser route down)`.
+**A factsheet's figures are read from its text, never from an unchecked
+WebFetch summary.** Open the PDF in the built-in browser and read its text,
+or download it and extract the text in a shell. WebFetch summarises: on
+2026-10-03 two runs WebFetched the same SPDR factsheet and were given two
+different top-10 totals (30.67% and 31.67%), neither printed in the
+document. So with the browser up, a figure WebFetch reports is only a lead.
+Without the browser, WebFetch is the route, and a figure prints only once
+`references/no-browser.md`'s read-back gate confirms it — the top 10 adding
+to the factsheet's printed total, the TER matching the KID — which is the
+check that would have caught both 2026-10-03 readings.
 
 TER, fund AUM, holdings count and the top 10 come from the issuer's
 factsheet or KID (rule 4, rank 2), the same as in Mode A. justETF is a data

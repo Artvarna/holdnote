@@ -188,7 +188,18 @@ def test_the_spec_states_the_three_rules():
     spec = _read("references/etf-brief.md")
     assert "**Across providers, compare country lists, never labels.**" in spec
     assert "**Shared weight is one figure:**" in spec
-    assert "never from a WebFetch\nsummary.**" in spec
+    assert "never from an unchecked\nWebFetch summary.**" in spec
+
+
+def test_the_no_browser_route_has_its_gate():
+    """A phone run reads through WebFetch, so every figure passes the gate."""
+    route = _read("references/no-browser.md")
+    assert "## The read-back gate" in route
+    for confirmation in ("`two documents`", "`own totals`", "`read twice`"):
+        assert confirmation in route
+    assert "`Not available — WebFetch reads disagree`" in route
+    assert "`references/no-browser.md`" in _read("SKILL.md")
+    assert "references/no-browser.md" in _read("references/stock-brief.md")
 
 
 def test_skill_md_runs_the_check_before_printing():
