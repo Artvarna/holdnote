@@ -265,9 +265,11 @@ mode.
   the browser, a US stock takes the fallback below. Benchmark
   index closes: `references/market-context.md` → Where the closes come
   from (the AP wire route for the S&P 500 works without the browser).
-- **Filings** — SEC EDGAR submissions, browser-only
-  (`references/stock-brief.md` → Step 1); a European issuer's own news
-  page and its exchange's filing portal.
+- **Filings** — SEC EDGAR submissions in the browser
+  (`references/stock-brief.md` → Step 1), or without it the cover-page
+  shares concept and EDGAR full-text search (`references/no-browser.md` →
+  SEC EDGAR); a European issuer's own news page and its exchange's filing
+  portal.
 - **Company and fund releases, ex-dates** — the issuer's own pages, as
   `references/etf-brief.md` → Stocks table and Distributions describe.
 - **Rate decisions** — the central bank's own statement page.
@@ -297,8 +299,9 @@ mode.
   their rows print `Not available (browser route down)`. A fund trades on
   several exchanges in several currencies, and these pages have mixed
   listings up before (etf-brief → Without the built-in browser).
-- Dated events loses EDGAR and says so on its `none` row or a
-  `Fallbacks:` line, and Reported reasons runs in full. A reason table
+- Dated events keeps EDGAR through `references/no-browser.md` → SEC EDGAR
+  (8-Ks from full-text search, 10-Ks and 10-Qs from the shares concept),
+  named on a `Fallbacks:` line, and Reported reasons runs in full. A reason table
   beside an empty Move table is still an honest output: the reasons are
   dated, and the move is marked as not fetched rather than guessed.
 

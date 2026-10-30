@@ -74,7 +74,9 @@ A split the filings do not state is never inferred from a price chart.
 from a daily close history (exchange or Nasdaq history), never a quote
 endpoint's "last sale", whose timestamp can label the wrong session. The
 close and its date are a `METHOD` line, and the brief uses that one price
-for every row and lens.
+for every row and lens. Without the browser, a US-listed stock's close
+comes from two history pages agreeing (`references/no-browser.md` →
+Closes), and the price date is the newest session both state.
 
 | Check | Metric | Threshold |
 |---|---|---|

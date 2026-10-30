@@ -17,9 +17,12 @@ Trading 212 exports, `scripts/market_weights.py`, which the Allocation
 table runs, and `scripts/fund_holdings.py`, which reads each fund's full
 holdings file for the Holdings and Look-through tables. The user's own files
 live wherever they chose at setup (Your files, below). A session that cannot reach the computer
-still runs Holdnote — it never answers outside the skill "because the
-computer link is down" — and follows `references/etf-brief.md` → Without
-the built-in browser for the rows it cannot fill.
+— a phone, claude.ai on the web, a computer that is off — still runs the
+full research: it never answers outside the skill "because the computer
+link is down", and loads `references/no-browser.md`, whose WebFetch routes
+reach the same SEC filings, factsheets, KIDs, ECB rates and index
+factsheets, each figure confirmed before it prints. Only a fund's exchange
+closes still need the computer.
 
 ## Read first, every run
 
@@ -124,6 +127,10 @@ that fails is said plainly, with the text printed so nothing is lost.
 
 Load only what the request needs. Several may apply — "compare VWCE to what I
 own" needs the ETF reference for both the candidate and the portfolio view.
+Any route that fetches, when the built-in browser is not in the session or
+cannot reach the computer, also loads `references/no-browser.md`: where a
+module says a figure is browser-only or `Not available (browser route
+down)`, that file's route and its read-back gate come first.
 A stock or fund brief always also loads `references/buffett-scorecard.md`
 and `references/buffett.md` (for Buffett notes), and `references/lenses.md`
 when the request or the profile's default lenses name another investor or

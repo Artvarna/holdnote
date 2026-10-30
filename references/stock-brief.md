@@ -16,9 +16,16 @@ refused by `data.sec.gov`, and WebFetch summarises the JSON instead of
 returning it: on 2026-10-01 it dropped the form types and offered a Form 4 as
 the latest periodic report. Open a tab on `data.sec.gov` and `fetch()` the
 `submissions/CIK##########.json` and `api/xbrl/companyfacts/…` files from it
-(`references/etf-brief.md` → Stocks table, "EDGAR is browser-only"). A figure
-WebFetch reports is a lead to check against the JSON, never a value to print.
-Without the browser, EDGAR figures are `Not available (browser route down)`.
+(`references/etf-brief.md` → Stocks table, "EDGAR's full JSON files are browser-only"). A figure
+WebFetch reports from those two large files is a lead to check against the
+JSON, never a value to print.
+
+**Without the browser** (a phone, the web): `references/no-browser.md` →
+SEC EDGAR. The same figures come from smaller SEC documents WebFetch reads
+whole — one XBRL concept per figure, the filing's own statement pages, the
+cover-page shares concept for the filing list — and each figure prints only
+when the concept and the statement page agree. The brief runs in full; it
+is not `Not available (browser route down)`.
 
 **European-listed** → the company's own investor relations page. Annual and
 interim reports are published as PDFs. There is no clean API; fetch and read
@@ -300,6 +307,11 @@ else:
 4. The daily close history for the price date (Price, in
    `references/buffett-scorecard.md`).
 5. The 10-year government bond yield for the same date.
+
+Without the browser, 1 is the cover-page shares concept and 2 is one
+concept per figure plus the newest 10-K's statement pages
+(`references/no-browser.md` → SEC EDGAR); 4 is the two-page US close
+(`references/no-browser.md` → Closes).
 
 The extension-tag fallback below still applies: a scorecard year missing
 from company facts is read from the filing it names, and that filing joins

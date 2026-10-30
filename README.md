@@ -79,10 +79,15 @@ after its Action's first run, and week-on-week changes a week after that.
   limits won't cover.
 - **Skills enabled:** turn on *Code execution and file creation*, then
   upload the zip under Skills.
-- **The Claude desktop app, for today's prices.** Live closes from the
-  London Stock Exchange, Deutsche Börse and the ECB are read through the
-  desktop app's built-in browser. Without it (on the web or a phone), the
-  portfolio view uses the values in your export, as of its date.
+- **Works on your phone.** Stock and fund briefs, earnings recaps,
+  head-to-heads and price moves run in full on the web and the phone:
+  filings, factsheets, KIDs and ECB rates are read without a browser, and
+  every figure is checked against a second document or the document's own
+  totals before it prints.
+- **The Claude desktop app, for today's fund prices.** Live closes from the
+  London Stock Exchange and Deutsche Börse are read through the desktop
+  app's built-in browser. Without it, the portfolio view uses the values in
+  your export, as of its date.
 - GitHub is optional.
 
 ## Repo layout
