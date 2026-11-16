@@ -1,0 +1,28 @@
+VWCE: VWCE-2026-11-16.json - 3934 rows, 3500 equity, as of 2026-10-31
+VUSA: VUSA-2026-11-16.json - 512 rows, 503 equity, as of 2026-10-31
+VHVG: VHVG-2026-11-16.json - 1973 rows, 1908 equity, as of 2026-10-31
+VHYL: VHYL-2026-11-16.json - 2887 rows, 2376 equity, as of 2026-10-31
+SWDA: Not available - first line is not 'Fund Holdings as of' (not the English file?); then www.ishares.com returned 400
+CSPX: Not available - first line is not 'Fund Holdings as of' (not the English file?); then www.ishares.com returned 400
+IUSA: Not available - first line is not 'Fund Holdings as of' (not the English file?); then www.ishares.com returned 400
+SSAC: Not available - first line is not 'Fund Holdings as of' (not the English file?); then www.ishares.com returned 400
+CNDX: Not available - first line is not 'Fund Holdings as of' (not the English file?); then www.ishares.com returned 400
+EIMI: Not available - first line is not 'Fund Holdings as of' (not the English file?); then www.ishares.com returned 400
+SMEA: Not available - first line is not 'Fund Holdings as of' (not the English file?); then www.ishares.com returned 400
+WSML: Not available - first line is not 'Fund Holdings as of' (not the English file?); then www.ishares.com returned 400
+ISF: Not available - first line is not 'Fund Holdings as of' (not the English file?); then www.ishares.com returned 400
+IUIT: Not available - first line is not 'Fund Holdings as of' (not the English file?); then www.ishares.com returned 400
+INRG: Not available - first line is not 'Fund Holdings as of' (not the English file?); then www.ishares.com returned 400
+SPPW: SPPW-2026-11-16.xlsx - 1254 rows, 1236 equity, as of 2026-11-13
+SPYI: SPYI-2026-11-16.xlsx - 6143 rows, 6093 equity, as of 2026-11-13
+SPY5: SPY5-2026-11-16.xlsx - 510 rows, 504 equity, as of 2026-11-13
+SPYD: SPYD-2026-11-16.xlsx - 157 rows, 154 equity, as of 2026-11-13
+SPYW: SPYW-2026-11-16.xlsx - 43 rows, 40 equity, as of 2026-11-13
+MEUD: MEUD-2026-11-16.json - 614 rows, 611 equity, as of 2026-11-11
+MWRD: MWRD-2026-11-16.json - 1252 rows, 1245 equity, as of 2026-11-11
+PRAW: PRAW-2026-11-16.json - 3253 rows, 3227 equity, as of 2026-11-12
+run: https://github.com/Artvarna/holdnote/actions/runs/43917930180
+ref: main 4cd58356f7084db25ff9c7ab7463f563ca004962
+utc: 2026-11-16T17:24:26Z
+exit: 0
+ok: 16 lines, not available: 11
