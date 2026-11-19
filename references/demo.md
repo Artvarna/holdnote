@@ -72,6 +72,15 @@ together: print what it says, say the demo could not be shown, and offer a
 stock brief instead. Never build the
 demo's tables by hand or from memory.
 
+## The Mirror and the Watchdog
+
+"Demo the Mirror", "show me the lazy twin", "demo the Watchdog": those two
+have their own synthetic demo, made-up trades in made-up instruments against
+a made-up benchmark, because they need a year of dated trades the portfolio
+demo does not have. `references/decision-mirror.md` → Demo and
+`references/thesis-watchdog.md` → Demo say how to run them. A plain "show me
+a demo" stays the portfolio demo, and its `Next:` line may name the Mirror's.
+
 ## What the demo cannot show
 
 Its `METHOD` says so on the `Demo:` line: Performance, Comparison,

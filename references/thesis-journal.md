@@ -18,7 +18,7 @@ because the point is to capture what *they* believed. A blank answer is
 recorded as `not answered`, which is itself worth knowing later.
 
 The first four are Buffett's four filters (`references/buffett.md`, 2007
-letter). The last three make the thesis checkable.
+letter). The last four make the thesis checkable.
 
 1. **Do I understand this business?** What it sells, to whom, and how it
    makes money, in two or three sentences.
@@ -33,7 +33,11 @@ letter). The last three make the thesis checkable.
    price could show. If nothing could, say so; an unfalsifiable thesis is a
    fact worth recording. These lines are what `Red flags` checks on every
    later brief.
-7. **How long do I intend to hold it, and how big is the position?**
+7. **The pre-mortem:** "It's a year from now and this went badly. What is
+   the most likely reason?" People who cannot name a falsifier can almost
+   always name this; the answer is recorded under `What would prove me
+   wrong` as a second line, in their words.
+8. **How long do I intend to hold it, and how big is the position?**
 
 ## Where theses are stored
 
@@ -84,7 +88,18 @@ Scorecard on [date]: Margin of safety [value] vs [threshold], [Met | Not met | N
 
 ## What would prove me wrong
 [falsifier, or "nothing specified"]
+Pre-mortem: [the most likely reason it went badly, or "not answered"]
 ```
+
+## Make it watchable
+
+Right after a thesis is saved, offer once:
+`Want Holdnote to watch these for you? It checks every week and tells you only if one comes true.`
+On yes, each line of `What has to be true` and `What would prove me wrong`,
+the pre-mortem included, goes through `references/thesis-watchdog.md` →
+Adding a tripwire, step 2 onwards, with `--origin` set to the thesis file's
+name. The thesis file itself is not touched: the tripwires live in
+`me/watch.md`.
 
 ## Checking a thesis
 

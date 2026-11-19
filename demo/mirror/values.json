@@ -1,0 +1,11 @@
+{
+  "as_of": "2026-10-30",
+  "values": {
+    "DSOD-1": {"value": "53.4", "unit": "%", "definition": "gross margin, quarter, GrossProfit / Revenues",
+               "date": "2026-10-22", "source": "Demo Soda Co quarterly report (synthetic)",
+               "evidence": "DEMO-DSOD-2026-Q3"},
+    "DWLD-1": {"value": "0.12", "unit": "%", "definition": "ongoing charges figure, KID",
+               "date": "2026-09-30", "source": "Demo World ETF KID (synthetic)",
+               "evidence": "DEMO-DWLD-KID-2026-09"}
+  }
+}

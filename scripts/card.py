@@ -584,6 +584,130 @@ def png(ops: list[Text | Rect], fonts: Fonts, path: Path) -> None:
     img.resize((W, H), Image.LANCZOS).save(path, optimize=True)
 
 
+# --- the Decision Mirror card (references/decision-mirror.md -> Card) -------
+
+def _pct_value(text: str | None) -> Decimal | None:
+    if not text or not text.endswith("%"):
+        return None
+    try:
+        return Decimal(text.rstrip("%"))
+    except InvalidOperation:
+        return None
+
+
+def mirror_layout(summary: dict, fonts: "Fonts") -> list[Text | Rect]:
+    """Me vs my lazy twin: percentages of the money put in, and nothing else."""
+    ops: list[Text | Rect] = [Rect(0, 0, W, H, PAPER)]
+    room = W - 2 * PAD
+    right = W - PAD
+    ops.append(Rect(0, 0, W, 148, NAVY))
+    ops.append(Text(PAD, 56, "Holdnote · Decision Mirror", 20, "sans-bold", "#FFFFFF"))
+    ops.append(Text(PAD, 112, "Me vs my lazy twin", 44, "sans-bold", "#FFFFFF"))
+    ops.append(Text(right, 56, f"As of {_date(summary['as_of'])}", 18, "sans", "#FFFFFF", "end"))
+    if summary.get("demo"):
+        badge = "DEMO · SYNTHETIC"
+        bw = fonts.width(badge, 14, "sans-bold") + 28
+        ops.append(Rect(right - bw, 86, bw, 30, "#2C4B73", 4))
+        ops.append(Text(right - 14, 106, badge, 14, "sans-bold", ON_NAVY, "end"))
+
+    lazy = summary["twin"] == "lazy"
+    twin_line = (f"The twin put every deposit into {summary['benchmark']} at once and never touched it."
+                 if lazy else
+                 f"The twin made the same purchases on the same days, in {summary['benchmark']}.")
+    ops.append(Text(PAD, 196, fonts.fit(twin_line, 20, room), 20, "sans", MUTED))
+    ops.append(Text(PAD, 224, f"{_date(summary['from'])} to {_date(summary['as_of'])}",
+                    20, "sans", MUTED))
+
+    # The headline
+    y = 290
+    ops.append(Rect(PAD, y, room, 210, PANEL))
+    ops.append(Rect(PAD, y, 6, 210, NAVY))
+    ops.append(Text(PAD + 36, y + 48, "Me minus my twin", 20, "sans", MUTED))
+    ops.append(Text(PAD + 36, y + 140, summary["gap_pct"], 96, "sans-bold", INK))
+    ops.append(Text(PAD + 36, y + 182, f"of {summary['basis']}", 20, "sans", MUTED))
+    y += 210 + 40
+
+    # Where it came from
+    parts = [("What I picked", summary["picks_pct"])]
+    if lazy and summary.get("waiting_pct"):
+        parts.append(("Cash left waiting", summary["waiting_pct"]))
+    gap = 20
+    bw = (room - gap * (len(parts) - 1)) / len(parts)
+    for i, (title, value) in enumerate(parts):
+        px = PAD + i * (bw + gap)
+        ops.append(Rect(px, y, bw, 100, PANEL))
+        ops.append(Rect(px, y, 4, 100, NAVY))
+        ops.append(Text(px + 20, y + 30, title, 16, "sans", MUTED))
+        ops.append(Text(px + 20, y + 74, value or "-", 32, "sans-bold", INK))
+    y += 100 + 44
+
+    # By holding: a bar either side of zero
+    rows = [(t, v, raw) for t, raw in summary.get("holdings_pct", {}).items()
+            if (v := _pct_value(raw)) is not None]
+    rows.sort(key=lambda kv: -abs(kv[1]))
+    rows = rows[:6]
+    if rows:
+        _section(ops, PAD, y, room, "By holding, me minus my twin")
+        ry = y + 52
+        scale = max(abs(v) for _, v, _ in rows) or Decimal(1)
+        mid = PAD + 200 + (room - 320) / 2
+        half = (room - 320) / 2
+        for name, v, raw in rows:
+            ops.append(Text(PAD, ry, fonts.fit(name, 18, 180), 18, "sans", INK))
+            length = float(abs(v) / scale) * half
+            x = mid if v >= 0 else mid - length
+            ops.append(Rect(x, ry - 14, max(length, 2), 16, NAVY if v >= 0 else "#8399B3"))
+            ops.append(Text(right, ry, raw, 18, "sans-bold", INK, "end"))
+            ry += 36
+        ops.append(Rect(mid, y + 34, 1, ry - y - 46, RULE))
+        y = ry + 8
+        name, v, raw = rows[0]
+        y += 24
+        ops.append(Rect(PAD, y, room, 72, PANEL))
+        ops.append(Rect(PAD, y, 4, 72, NAVY))
+        ops.append(Text(PAD + 20, y + 30, fonts.fit(f"Largest single holding: {name}, {raw}. "
+                                                    f"Picks gap in total: {summary['picks_pct']}.",
+                                                    17, room - 40), 17, "sans-bold", INK))
+        ops.append(Text(PAD + 20, y + 56, fonts.fit("One holding's run is one holding's story, "
+                                                    "not a pattern.", 17, room - 40),
+                        17, "sans", INK))
+        y += 72 + 16
+
+    note = (f"History: {summary['months']} months, {summary['trades']} trades."
+            + (" This much history says little about skill." if summary.get("short_history") else ""))
+    ops.append(Text(PAD, y + 24, fonts.fit(note, 17, room), 17, "sans-bold" if summary.get(
+        "short_history") else "sans", INK))
+    if not summary.get("complete", True):
+        ops.append(Text(PAD, y + 52, fonts.fit("Not every holding could be included; the report "
+                                               "says which.", 16, room), 16, "sans", MUTED))
+
+    ops.append(Rect(PAD, H - 102, room, 1, RULE))
+    ops.append(Text(PAD, H - 72, fonts.fit("Percentages of the money put in. The past only: "
+                                           "it changes with every day's prices.", 14, room),
+                    14, "sans", MUTED))
+    ops.append(Text(PAD, H - 48, "For research only, not financial advice. Made with Holdnote, "
+                    "free and open source.", 14, "sans", MUTED))
+    ops.append(Text(right, H - 48, REPO, 14, "sans-bold", NAVY, "end"))
+    return ops
+
+
+def make_mirror(summary_path: Path, out: Path) -> list[Path]:
+    import json
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    if _pct_value(summary.get("gap_pct")) is None:
+        raise Missing(f"{summary_path.name} has no gap to draw ({summary.get('gap_pct')})")
+    fonts = Fonts()
+    ops = mirror_layout(summary, fonts)
+    out.mkdir(parents=True, exist_ok=True)
+    written = [out / "mirror-card.svg"]
+    written[0].write_text(svg(ops), encoding="utf-8")
+    if fonts.ok:
+        png(ops, fonts, out / "mirror-card.png")
+        written.append(out / "mirror-card.png")
+    return written
+
+
 def make(draft: Path, out: Path) -> list[Path]:
     card = read(draft.read_text(encoding="utf-8"))
     fonts = Fonts()
@@ -599,11 +723,15 @@ def make(draft: Path, out: Path) -> list[Path]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("draft", type=Path, help="a checked Mode C draft (with full SOURCES)")
+    ap.add_argument("draft", type=Path, nargs="?", help="a checked Mode C draft (with full SOURCES)")
+    ap.add_argument("--mirror", type=Path, default=None,
+                    help="a Decision Mirror summary (mirror.py report --json) instead of a draft")
     ap.add_argument("--out", type=Path, required=True, help="folder to write card.svg / card.png to")
     args = ap.parse_args(argv)
+    if (args.draft is None) == (args.mirror is None):
+        ap.error("give a Mode C draft or --mirror, one of the two")
     try:
-        written = make(args.draft, args.out)
+        written = make_mirror(args.mirror, args.out) if args.mirror else make(args.draft, args.out)
     except Missing as exc:
         print(f"No card: {exc}")
         return 1

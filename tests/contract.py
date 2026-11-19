@@ -252,7 +252,42 @@ def status_problems(sections: dict[str, str]) -> list[str]:
     return [f"STATUS is neither `Complete.` nor `Halted - ` and its check: {first!r}"]
 
 
+_YOU_WROTE = re.compile(r'You wrote: "[^"\n]*"')
+
+
+def without_user_words(text: str) -> str:
+    """The text with the user's own quoted words blanked out.
+
+    The banned list holds Holdnote's own voice to describe-never-recommend.
+    A tripwire or a thesis quotes the user verbatim (references/
+    thesis-watchdog.md, thesis-journal.md): "I'd sell if margins fall" is
+    their sentence, not Holdnote's, and rewording it to pass would be the
+    hindsight edit the verbatim rule exists to prevent. Only two places are
+    exempt: a quotation after `You wrote: `, and the quoted cells of a
+    table's `Your words` column. Everything else is checked as before.
+    """
+    text = _YOU_WROTE.sub('You wrote: ""', text)
+    out, col = [], None
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("|"):
+            cells = stripped.strip("|").split("|")
+            names = [c.strip() for c in cells]
+            if "Your words" in names:
+                col = names.index("Your words")
+            elif col is not None and col < len(cells):
+                cell = cells[col].strip()
+                if cell.startswith('"') and cell.endswith('"'):
+                    cells[col] = ' "" '
+                    line = "|" + "|".join(cells) + "|"
+        else:
+            col = None
+        out.append(line)
+    return "\n".join(out)
+
+
 def banned_hits(text: str) -> list[str]:
+    text = without_user_words(text)
     hits = []
     for pat in BANNED:
         for m in re.finditer(pat, text, re.IGNORECASE):

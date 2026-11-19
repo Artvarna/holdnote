@@ -499,7 +499,7 @@ join, in the order above.
 | How it performed ("how's my portfolio done this week") | Performance |
 | What changed in my funds' holdings | Holdings changes |
 | My stocks' earnings dates or filings | Stocks |
-| "Full report", "everything", or the scheduled weekly brief | all twelve |
+| "Full report", "everything", or the scheduled weekly brief | all twelve; the scheduled brief then runs the Thesis Watchdog (`references/thesis-watchdog.md` → The weekly run), whose `Subject:` line is the email's subject |
 
 `METHOD`'s first line after `Build:` names them:
 `Tables: Allocation, Sectors (asked: sectors)`. A table left out is left out
@@ -533,6 +533,13 @@ A Performance question that asks why ("what's driving my portfolio",
 `METHOD` ends with `Next: say "why did <ticker> move" for its dated events
 and reported reasons`, naming the row with the largest move by size, which
 opens `references/price-move.md` for that one instrument.
+
+A Performance question that names a benchmark over the user's whole
+history ("have I beaten the S&P 500 since I started?") gets the
+Performance table for the period asked, and `METHOD` ends with
+`Next: say "me vs my lazy twin" to see your own trades against it`
+(`references/decision-mirror.md`): a period's move is Performance, the
+user's decisions against doing nothing are the Mirror.
 
 ### Allocation table
 

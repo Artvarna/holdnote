@@ -20,6 +20,7 @@ settings" to pick your own.
 | Buffett notes | on | One or two principles from Buffett's letters when a finding matches one |
 | Language | English | Language of the report text |
 | Disclaimer seen | | Date you confirmed the disclaimer at setup |
+| Mirror benchmark | | The one fund your lazy twin buys in the Decision Mirror, with the date it was set (e.g. `SPYL (IE000XZSV718), set 2026-11-19`). Set before your first result, so the comparison stays honest; a change is logged |
 
 ## Circle of competence
 

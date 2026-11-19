@@ -29,7 +29,9 @@ number traceable.
 | `What am I really betting on?` | **Hidden bets:** every company you own through two or more holdings, and how much more of it you own than any one of them shows |
 | `Make a card` | A one-page factsheet of what your portfolio looks through to: composition, key figures, top 10 companies with each fund's part, countries, sectors. Percentages only, never amounts |
 | `Should I buy AAPL?` | Buffett's four filters, answered from the scorecard and two questions to you — never a recommendation |
-| `Write a thesis for GOOGL` | A dated thesis in your words, checked against later reports |
+| `Me vs my lazy twin` | **Decision Mirror:** your own trades against a twin who put the same money into the S&P 500 on the same days and never touched it. The gap, split into what you picked and cash you left waiting, holding by holding, with every sale against today's price. Locked benchmark, no annualising, no verdict. `Demo the Mirror` shows it with no setup |
+| `Watch AAPL` · `Tell me if VUSA's fee goes up` | **Thesis Watchdog:** a tripwire in your own words, checked every week against the newest filing or fund document. Silent until a condition you wrote comes true; then once, with the figure, its source and date. ETF tripwires too: fee, index, fund closure. Never a price alarm |
+| `Write a thesis for GOOGL` | A dated thesis in your words, with a pre-mortem, checked against later reports, and watchable by the Watchdog |
 
 Every report ends with one line of sources; say **"show proof"** for the
 full evidence: every source, its date, and the arithmetic behind each figure.

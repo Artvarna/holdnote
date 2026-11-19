@@ -1386,3 +1386,104 @@ in `references/no-browser.md`, and the research runs in full.
   A later option, not built: the user's own GitHub Action fetching their
   holdings' closes daily to `holdings-data`, as it already does for
   holdings files.
+
+## Decision Mirror and Thesis Watchdog: "Holdnote remembers", 2026-11-19
+
+Every other investing skill on the Agensi marketplace takes a ticker,
+returns one report and forgets the user. These two modules are built on
+what Holdnote alone keeps: the user's dated trades and the user's own
+reasons. The Mirror compares the trades with doing nothing clever; the
+Watchdog checks the reasons every week.
+
+### Decision Mirror
+
+- **Benchmark: SPYL (SPDR S&P 500 UCITS ETF (Acc), IE000XZSV718).** Chosen
+  by the owner over an all-world fund. Accumulating, so its dividends are in
+  its NAV; bought in EUR on Xetra, so the twin pays no currency fee; TER
+  0.03%. Its history starts in 2023: an older first trade is refused with
+  the date, never swapped for another fund.
+- **NAV from the issuer, not a price site.** SSGA's own NAV history file
+  (tier 2, rule 4), fetched by the user's GitHub Action and turned into a
+  dated CSV by `mirror.py nav-import`. Checked 2026-11-19: SSGA serves the
+  SPYL file (binary xlsx returned). iShares' fund-data download for CSPX
+  returned the product web page, not the file, so CSPX was not used. The
+  ECB's full reference-rate history (`eurofxref-hist.zip`) answered 200 from
+  a runner. **Not yet checked: the column layout of SSGA's EMEA NAV file.**
+  The importer finds the Date/NAV header wherever it sits, settles d/m vs
+  m/d from the column itself, refuses a currency that contradicts the file
+  and refuses a day-on-day move over 25% as a misread. The first Action run
+  either produces `bench-SPYL-<date>.csv` or logs why in `mirror.log`.
+- **Two twins, one headline.** The first draft printed the picks-twin gap
+  (+11.99%) and the deposit-twin gap (-12.00%) in two tables of equal weight
+  for the same account: two opposite percentages, no way to know which is
+  "the" answer. Now the lazy (deposit) twin is the headline and the share
+  line, and the picks twin is one of its two parts.
+- **Exact decomposition.** `lazy gap = picks + cash waiting`. Every figure a
+  table prints is rounded to the cent first and every total is the sum of
+  the printed figures, so the breakdown adds up to its own total; a 25-history
+  randomised test checks the engine against a day-by-day simulation that
+  shares no code with it.
+- **Selling sells a fraction, not an amount.** An earlier design sold the
+  sale's EUR from the twin; a holding that doubled and was sold whole would
+  then sell more twin than existed. Selling N% of a holding sells N% of that
+  holding's own twin.
+- **A weekend deposit is invested at Monday's NAV, never Friday's.** The
+  first version took the newest NAV on or before the day: a price from
+  before the money existed. Money is now filled at the first NAV on or after
+  the day it moved; valuation today still uses the newest on or before.
+- **Shared accounts get the picks twin only.** In a Trading 212 account with
+  an ownership cutoff, cash from the holder's sales can fund the user's
+  purchases; a deposit twin would count money that is not theirs. The FIFO
+  split is walked row by row (the same rule as `fifo_attribution`), each
+  dividend split by the user's share of the holding the row names, and a
+  holding whose split the export cannot settle is left out and named.
+- **No annualising, no adjectives, a luck line and a sample-size line.** A
+  ten-month percentage is not a yearly rate. The largest single holding gap
+  always prints beside the total, and under 36 months or 20 trades the run
+  says the history says little about skill.
+- **The benchmark is locked before the first result**, because a benchmark
+  picked after seeing the gap is the one the user beat. `--benchmark`
+  refuses a NAV file for any other fund.
+- **The card shows percentages of money put in, never an amount.**
+
+### Thesis Watchdog
+
+- **A script compares, not the model.** Each tripwire stores the user's
+  words verbatim and the check they confirmed: metric, exact definition,
+  test, and the baseline value with its source and date. `watchdog.py`
+  compares two numbers under the same definition; a model asked "did the
+  thesis break?" will produce an answer either way.
+- **Failure modes designed out:** a different definition or unit (`not
+  compared`, never compared anyway); a fraction read as a percentage (a 50x
+  jump is refused); the same filing checked twice (`Last evidence`); the
+  same alert every Saturday (alerts once, then `still met`, re-arms when the
+  value crosses back); a figure read from a filing (its passage must be
+  quoted); a thesis rewritten after the alert (noted with its date).
+- **Funds, not only stocks.** The owner's portfolio is mostly ETFs: TER,
+  tracking difference, top-10 and largest-holding weight, holdings count,
+  size, and text changes (index, distribution policy, domicile, closure or
+  merger notice).
+- **No price tripwires.** "Tell me when it drops below 100" is an order
+  waiting to happen (rule 11); a valuation multiple is offered instead.
+- **Not watchable is a state, not a failure.** Words no document can show
+  are kept and listed; knowing which reasons cannot be checked is useful.
+- **Theses nobody writes.** The likeliest way the Watchdog fails is an empty
+  watch file. Quick tripwires take one answer; the Mirror's Thesis column
+  shows which holdings have none, and its `Next:` line offers one for the
+  largest. The thesis journal gains a pre-mortem question, which people
+  answer more easily than "what would prove you wrong".
+- **The weekly email never goes silent on a failure.** A run that cannot
+  reach the user's files sends "Watchdog skipped" with the reason; silence
+  would read as "nothing met".
+- **The user's quoted words are exempt from the banned-word check, and only
+  they.** "I'd sell if margins fall" is the user's sentence; rewording it to
+  pass the checker is the hindsight edit the verbatim rule forbids. The
+  exemption covers a quotation after `You wrote:` and quoted cells of a
+  `Your words` column, nothing else.
+
+### Not built yet
+
+- Importers for other brokers' transaction exports (IBKR, Revolut, Degiro):
+  for now a template, and a mapping the user confirms row by row.
+- A benchmark other than SPYL fetched by the Action; any other works from
+  an attached NAV file.

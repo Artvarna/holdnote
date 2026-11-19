@@ -91,7 +91,10 @@ def _title(text: str, mode: str) -> str:
         return f"## {m['ticker']} · {m['name']}"
     names = {"Portfolio (Mode C)": "Your portfolio", "Market-wide": "The market",
              "Demo": "Demo portfolio",
-             "Portfolio sync": "Portfolio update", "Thesis journal": "Thesis journal"}
+             "Portfolio sync": "Portfolio update", "Thesis journal": "Thesis journal",
+             "Decision Mirror": "Me vs my lazy twin", "Thesis Watchdog": "Thesis Watchdog"}
+    if mode == "Demo + Decision Mirror":
+        return "## Me vs my lazy twin · demo"
     return f"## {names.get(mode.split(' + ')[0], mode or 'Holdnote')}"
 
 
