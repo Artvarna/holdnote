@@ -1,0 +1,20 @@
+name: Spike NAV history
+on:
+  push:
+    branches: [spike/nav-history]
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          mkdir out; cd out
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
+          B="https://www.ishares.com/uk/individual/en/products/253743/fund/"
+          curl -sSL -A "$UA" -o cspx_fund.xls -w "cspx %{http_code} %{size_download}\n" "${B}1506575576011.ajax?fileType=xls&fileName=CSPX_fund&dataType=fund" || true
+          curl -sSL -A "$UA" -o ecb.zip -w "ecb %{http_code} %{size_download}\n" "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.zip" || true
+          head -c 600 cspx_fund.xls; echo
+          ls -la
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spike
+          path: out
