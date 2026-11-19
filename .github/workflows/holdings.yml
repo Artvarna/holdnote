@@ -97,8 +97,53 @@ jobs:
           done
           ls -la out
 
+      # The Decision Mirror's benchmark (references/decision-mirror.md): SPYL's
+      # daily NAV from SSGA's own NAV history file, turned into the NAV CSV
+      # mirror.py reads, and the ECB's euro reference-rate history. Runs for
+      # every copy, with or without funds. A day either source fails keeps
+      # the last good file from the branch, under its own date, so the
+      # Mirror sees its age rather than losing it.
+      - name: Fetch the Decision Mirror benchmark NAV and ECB rates
+        run: |
+          mkdir -p out
+          day=$(date -u +%F)
+          now=$(date -u '+%F %H:%M UTC')
+          ua=$(python3 -c 'import sys; sys.path.insert(0, "scripts"); import fund_holdings as f; print(f.UA)')
+          nav_url="https://www.ssga.com/library-content/products/fund-data/etfs/emea/navhist-emea-en-spyl-gy.xlsx"
+          ecb_url="https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.zip"
+          : > out/mirror.log
+          if ! curl -fsSL --max-time 60 -A "$ua" -o /tmp/spyl-nav.xlsx "$nav_url"; then
+            echo "SPYL NAV: Not available - ssga.com did not return the file" >> out/mirror.log
+          elif python3 scripts/mirror.py nav-import /tmp/spyl-nav.xlsx --isin IE000XZSV718 \
+                 --ticker SPYL --currency USD --url "$nav_url" --retrieved "$now" \
+                 --source "SSGA NAV history file, SPDR S&P 500 UCITS ETF (Acc)" \
+                 > /tmp/spyl-nav.csv; then
+            mv /tmp/spyl-nav.csv "out/bench-SPYL-${day}.csv"
+            echo "SPYL NAV: ok, $(grep -c '^20' "out/bench-SPYL-${day}.csv") days" >> out/mirror.log
+          else
+            echo "SPYL NAV: Not available - $(tail -1 /tmp/spyl-nav.csv)" >> out/mirror.log
+          fi
+          if curl -fsSL --max-time 60 -o "out/ecb-${day}.zip" "$ecb_url" \
+             && python3 -c 'import sys, zipfile; zipfile.ZipFile(sys.argv[1]).testzip()' "out/ecb-${day}.zip"; then
+            echo "ECB rates: ok" >> out/mirror.log
+          else
+            rm -f "out/ecb-${day}.zip"
+            echo "ECB rates: Not available" >> out/mirror.log
+          fi
+          if grep -q "Not available" out/mirror.log && git fetch -q --depth 1 origin holdings-data; then
+            for pattern in "bench-SPYL-" "ecb-"; do
+              if ! ls out/${pattern}* >/dev/null 2>&1; then
+                prev=$(git ls-tree --name-only FETCH_HEAD | grep "^${pattern}....-..-..\." | sort | tail -1)
+                if [ -n "$prev" ]; then
+                  git show "FETCH_HEAD:${prev}" > "out/${prev}"
+                  echo "${pattern%-}: carried over ${prev} from the previous run" >> out/mirror.log
+                fi
+              fi
+            done
+          fi
+          cat out/mirror.log
+
       - name: Publish to the holdings-data branch
-        if: steps.funds.outputs.any == 'true'
         run: |
           cd out
           git init -q -b holdings-data

@@ -167,3 +167,25 @@ def test_own_shares_read_as_shares_not_a_place():
     text = svg_text(card.svg(card.layout(c, card.Fonts())))
     assert "4.00% through A and 1.00% owned directly" in text
     assert "inside your own shares" not in text
+
+
+def test_mirror_card_draws_percentages_and_no_amount(tmp_path):
+    import json as _json
+    import subprocess as _sp
+    repo = Path(__file__).resolve().parents[1]
+    summary = tmp_path / "m.json"
+    _sp.run([sys.executable, str(repo / "scripts" / "mirror.py"), "report", "--demo",
+             "--nav", str(repo / "demo/mirror/nav.csv"),
+             "--prices", str(repo / "demo/mirror/prices.json"),
+             "--transactions", str(repo / "demo/mirror/transactions.csv"),
+             "--label", "a synthetic demo index fund", "--json", str(summary)],
+            check=True, capture_output=True)
+    data = _json.loads(summary.read_text())
+    proc = _sp.run([sys.executable, str(repo / "scripts" / "card.py"), "--mirror", str(summary),
+                    "--out", str(tmp_path / "out")], capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stdout
+    drawn = (tmp_path / "out" / "mirror-card.svg").read_text()
+    assert data["gap_pct"] in drawn and "DEMO · SYNTHETIC" in drawn
+    for amount in [data["picks_eur"], data["waiting_eur"], *data["holdings"].values()]:
+        assert amount.lstrip("-") not in drawn, amount
+    assert "EUR" not in drawn and "€" not in drawn

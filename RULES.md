@@ -1,6 +1,6 @@
 # RULES.md — Research Agent Constitution
 
-Version 15 · Last edited 2026-10-25
+Version 16 · Last edited 2026-11-19
 
 Every module in this project obeys these rules. If a rule conflicts with a
 request, the rule wins. Each skill file must open with: `Follow RULES.md.`
@@ -197,6 +197,15 @@ the output is a failure, not a feature.
 No output should read as a prompt to act. If I find myself trading more
 because the agent surfaces more, the tool is working against me and gets
 narrowed.
+
+Two modules look backwards at my own decisions, and both stay on the facts
+side of this line. The Decision Mirror compares what I did with a twin that
+did nothing clever; its gaps have a sign and no adjective, and a sale
+compared with today's price is labelled hindsight, never a mistake. The
+Thesis Watchdog tells me when a condition *I* wrote has come true, in my
+words, with the figure and its source — once, and then nothing about what
+to do. Neither watches the price on its own: "tell me when it drops below
+100" is an order waiting to happen, not a thesis.
 
 ### 12. Theses are written before positions, not after
 
@@ -428,6 +437,9 @@ Mode: Demo + Portfolio (Mode C)
 Mode: Price move
 Mode: Earnings recap
 Mode: Head-to-head
+Mode: Decision Mirror
+Mode: Demo + Decision Mirror
+Mode: Thesis Watchdog
 ```
 
 Where routes combine, the line names each, joined by ` + `, in the order
@@ -624,6 +636,17 @@ If any box fails, fix it before output rather than shipping with a caveat.
 ---
 
 ## Changelog
+
+- **v16 (2026-11-19)** — Two modes. Decision Mirror (`Mode: Decision
+  Mirror`, `references/decision-mirror.md`) compares the user's own dated
+  trades with a lazy twin in one benchmark locked before the first result,
+  and splits the gap into what was picked and cash left waiting. Thesis
+  Watchdog (`Mode: Thesis Watchdog`, `references/thesis-watchdog.md`)
+  checks the conditions the user wrote against each new filing or fund
+  document, with the comparison made by a script. Rule 11 gains a paragraph
+  on looking backwards at the user's own decisions. The banned-word check
+  exempts the user's own quoted words, and only those. Rule numbers are
+  untouched.
 
 - **v15 (2026-10-25)** — Two modes. Earnings recap
   (`Mode: Earnings recap`, `references/earnings-recap.md`) reports one

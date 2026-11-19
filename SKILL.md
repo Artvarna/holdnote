@@ -65,6 +65,8 @@ in one of three places, whichever they chose at setup:
 me/profile.md      preferences, circle of competence, default lenses
 me/holdings.csv    holdings from any broker (references/any-broker.md)
 me/theses/         one file per thesis, never edited
+me/watch.md        Thesis Watchdog tripwires, written only by scripts/watchdog.py
+me/transactions.csv  dated trades from any broker, for the Decision Mirror
 me/log/            the run journal
 me/funds.md        GitHub only: the funds the Action fetches
 me/portfolio.md    Trading 212 sync only: holdings, OWN_FROM, watchlist
@@ -112,13 +114,15 @@ that fails is said plainly, with the text printed so nothing is lost.
 | Policy rates, inflation, earnings dates, index changes affecting holdings | `references/market-context.md` |
 | Where the market, an index or a sector stands and how it moved — not scoped to holdings | `references/market-context.md` → Market-wide mode |
 | "Why did I buy this", writing or checking a thesis | `references/thesis-journal.md` |
+| The user's own decisions against doing nothing clever — "did my trades beat the S&P 500?", "me vs my lazy twin", "would I have done better just buying the index?", "how good are my picks?" | `references/decision-mirror.md` — needs dated trades (a Trading 212 export or `me/transactions.csv`), never a holdings snapshot; the benchmark is locked in `profile.md` before the first result |
+| Watching a holding — "watch AAPL", "tell me if VUSA's fee goes up", "set a tripwire", "what am I watching?", "check my tripwires" — and the scheduled weekly brief's last step | `references/thesis-watchdog.md` — the user's words verbatim, a check they confirm, compared by `scripts/watchdog.py`; never a price alert |
 | Holdings from **any other broker or app** — an export (CSV, Excel), a screenshot of a holdings screen, or a typed list — attached or pasted, **whatever the question**; "update my holdings" for a user with `me/holdings.csv` | `references/any-broker.md`, then the route the question needs (attached + "what do I own?" is Any broker + Mode C) |
 | "Update my portfolio", "here's my T212 export", or a Trading 212 CSV path is supplied — **or a Trading 212 export is attached, whatever the question** | `references/portfolio-sync.md` — market weights are Mode M (opt-in), Step 4b. An attached export is read even when the question also routes elsewhere ("what do I own?" with an export is Portfolio sync + Mode C), because a question asked beside the user's own data is about that data |
 | Logging a completed run, or "what did the last run print / show / say" | `references/run-journal.md` |
 | "Set up Holdnote", "get started", "save my portfolio", "change my settings" | `references/setup.md` |
 | "Should I buy X", "thinking of adding X", "checklist for X" | `references/checklist.md`, with the stock or fund brief it runs — one instrument; two named ("X or Y?") is a Head-to-head |
 | "Quick brief on X", "quick look at X", "just the scorecard for X" — or any brief when the profile's `Report length` is `quick` and the request does not say "full" | The stock or fund brief, as a **quick brief** (Report layout → Quick brief) |
-| "Show me a demo", "try it", "example report", "what does Holdnote do?" — with no holdings of the user's attached | `references/demo.md` |
+| "Show me a demo", "try it", "example report", "what does Holdnote do?" — with no holdings of the user's attached | `references/demo.md`; "demo the Mirror" or "demo the lazy twin" is `references/decision-mirror.md` → Demo, and "demo the Watchdog" is `references/thesis-watchdog.md` → Demo |
 | "What am I really betting on?", "hidden bets", "which companies do I own through more than one holding?" | `references/etf-brief.md` → Mode C, tables Allocation, Look-through and Hidden bets |
 | "Make a card", "make my portfolio card", "something I can post", "share my portfolio" — of their portfolio or of the demo | Portfolio card, below |
 | What Buffett's ideas are, where a rule comes from, "why is it called the Buffett scorecard" | `references/buffett.md`, answered from its Principles table; never what he would think of an instrument |
@@ -172,6 +176,11 @@ Market-wide mode → Trigger.
 | "compare VWCE, IWDA and EIMI" | `Mode: Portfolio (Mode C)` | three or more funds: Mode C's Comparison and Overlap tables |
 | "AAPL vs VUSA" | no Mode line: plain prose | a stock and a fund: one sentence that their scorecards measure different things, then the two quick briefs offered |
 | "which ETF should I buy?" · "what's the best ETF?" — nothing named | no Mode line: plain prose | a general question: say Holdnote does not pick, in one sentence, then offer to brief or compare any funds they name |
+| "did my trades beat the S&P 500?" · "me vs my lazy twin" | `Mode: Decision Mirror` | the user's own dated trades against the locked benchmark; not Mode C's Performance, which is the portfolio's move over a period |
+| "how's my portfolio done vs the S&P 500 this year?" | `Mode: Portfolio (Mode C)` | a period's move against a benchmark is Performance; the Mirror is offered on `Next:` |
+| "watch AAPL" · "tell me if VUSA's fee goes up" | `Mode: Thesis Watchdog` | adding a tripwire, in the user's words |
+| "tell me when NVDA drops below 100" | no Mode line: plain prose | a price alert is an order, not a thesis: one sentence, then a valuation tripwire offered |
+| "is my Apple thesis still holding?" — no tripwire on file | `Mode: Thesis journal` | the thesis journal's on-demand check; the Watchdog is offered on `Next:` |
 
 ## Source discipline
 

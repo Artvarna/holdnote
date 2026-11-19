@@ -107,7 +107,10 @@ Should I buy [any ticker]?
 ```
 
 With GitHub, add one line: full look-through starts after the Action's first
-run, and week-on-week changes a week after that.
+run, and week-on-week changes a week after that. The same run fetches the
+Decision Mirror's benchmark history, so "me vs my lazy twin" works from then
+on for anyone with dated trades (a Trading 212 export, or
+`templates/me/transactions.csv` filled in).
 
 ## Settings, later
 
@@ -125,6 +128,10 @@ every time", "reports in full"), or offered once on a brief's `METHOD`
   note (`references/buffett.md`), and the checklist's first filter rests on
   the user's own answer alone.
 - **Name** — how reports address them.
+- **Mirror benchmark** — never in the settings screen: it is set by the
+  first Decision Mirror run, before its result, and only changed when the
+  user asks by name (`references/decision-mirror.md` → The benchmark is
+  locked before the result). A change is logged with the old value.
 
 One `AskUserQuestion` call carries the first four when they ask to change
 settings without naming one.

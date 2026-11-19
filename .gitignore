@@ -17,6 +17,12 @@ trading212/
 !me/holdings.csv
 # ...and the demo portfolio, which is synthetic and ships with the skill
 !demo/*.csv
+# ...and the Decision Mirror's synthetic demo, and the empty template
+!demo/mirror/*.csv
+!templates/me/transactions.csv
+# ...and your dated trades for the Decision Mirror, which setup commits to
+# your private copy beside holdings.csv
+!me/transactions.csv
 
 # Python
 __pycache__/
