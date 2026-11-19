@@ -416,6 +416,10 @@ def render(results: list[Result], wires: list[Wire], as_of: date) -> list[str]:
         out.append(f"None of your {len(results)} tripwires could be checked this week - "
                    "this is not an all-clear. The table says why for each.")
         out.append("")
+    elif still_met(results):
+        out.append("No new condition was met this week. Still met: " + "; ".join(
+            f"{r.wire.holding} (since {r.wire.met_on})" for r in still_met(results)) + ".")
+        out.append("")
     else:
         out.append("No condition you wrote was met this week.")
         out.append("")
@@ -431,8 +435,8 @@ def render(results: list[Result], wires: list[Wire], as_of: date) -> list[str]:
         out.append("")
     idle = [w for w in wires if w.state == "not watchable"]
     if idle:
-        out.append("Not watchable (no document can show these): "
-                   + "; ".join(f"{w.holding} \"{w.words}\"" for w in idle) + ".")
+        out.append("Not watchable (no document can show these):")
+        out += [f"- {w.holding} ({w.id}). You wrote: \"{w.words}\"" for w in idle]
     out.append(f"Subject: {subject(results)}")
     return out
 
@@ -443,13 +447,85 @@ UNCHECKED = ("not available", "not compared")
 def subject(results: list[Result]) -> str:
     """The email subject. It never reads as an all-clear when nothing was checked."""
     n = sum(r.outcome == "met" for r in results)
+    still = sum(r.outcome == "still met" or (r.outcome in ("no new information", *UNCHECKED)
+                                             and bool(r.wire.met_on)) for r in results)
     gaps = sum(r.outcome in UNCHECKED for r in results)
-    tail = f" ({gaps} of {len(results)} not checked)" if gaps else ""
+    notes = ([f"{still} still met"] if still else []) + (
+        [f"{gaps} of {len(results)} not checked"] if gaps else [])
+    tail = f" ({', '.join(notes)})" if notes else ""
     if n:
         return f"Holdnote weekly: {n} condition{'s' if n > 1 else ''} you wrote met{tail}"
     if results and gaps == len(results):
         return f"Holdnote weekly: Watchdog could not check any of your {len(results)} tripwires"
+    if still:
+        return f"Holdnote weekly: nothing new met{tail}"
     return f"Holdnote weekly: no condition you wrote was met{tail}"
+
+
+def still_met(results: list[Result]) -> list[Result]:
+    """Tripwires met on an earlier run that have not crossed back."""
+    return [r for r in results if r.outcome != "met" and r.outcome != "no longer met"
+            and r.wire.met_on]
+
+
+def email(results: list[Result], wires: list[Wire], as_of: date) -> dict:
+    """The weekly email, exactly: plain text, alerts first, nothing to do.
+
+    The scheduled run sends this file as it is (references/thesis-watchdog.md
+    -> The weekly run), so what reaches the inbox is what the tests check.
+    """
+    met = [r for r in results if r.outcome == "met"]
+    lines: list[str] = []
+    if met:
+        for r in met:
+            w = r.wire
+            lines += [f"{w.holding}: a condition you wrote has been met.",
+                      f"You wrote: \"{w.words}\"",
+                      f"Check: {w.definition} {w.test}. Baseline {w.baseline} ({w.baseline_date}, "
+                      f"{w.baseline_source}).",
+                      f"Now: {r.value} ({r.date}, {r.source})."]
+            if r.quote:
+                lines.append(f"Passage: \"{r.quote}\"")
+            if r.why:
+                lines.append(f"Note: {r.why}.")
+            lines.append("")
+    elif results and all(r.outcome in UNCHECKED for r in results):
+        lines += [f"None of your {len(results)} tripwires could be checked this week. This is not "
+                  "an all-clear.", ""]
+    elif still_met(results):
+        lines += ["No new condition was met this week.", ""]
+    else:
+        lines += ["No condition you wrote was met this week.", ""]
+    held = still_met(results)
+    if held:
+        lines.append("Still met: " + "; ".join(
+            f"{r.wire.holding} ({r.wire.id}, since {r.wire.met_on})" for r in held))
+        lines.append("")
+    if results:
+        lines.append("Every tripwire this week:")
+        for r in results:
+            w = r.wire
+            now = f"{r.value} ({r.date})" if r.value else "no value"
+            why = f" - {r.why}" if r.why and r.outcome != "met" else ""
+            lines.append(f"- {w.holding} ({w.id}) {w.metric} {w.test}: {r.outcome}, {now}{why}")
+        lines.append("")
+    idle = [w for w in wires if w.state == "not watchable"]
+    if idle:
+        lines.append("Kept, not watchable:")
+        lines += [f"- {w.holding} ({w.id}). You wrote: \"{w.words}\"" for w in idle]
+        lines.append("")
+    lines.append(f"Checked {as_of} by Holdnote's Thesis Watchdog. Your words, the figure, its "
+                 "source and date; what it means is yours to decide.")
+    return {"subject": subject(results), "body": "\n".join(lines) + "\n"}
+
+
+def skipped_email(reason: str, as_of: date) -> dict:
+    """The email a run that could not reach the user's files still sends."""
+    return {"subject": "Holdnote weekly: Watchdog skipped - couldn't reach your files",
+            "body": (f"The weekly check on {as_of} could not reach your Holdnote files, so no "
+                     f"tripwire was checked. This is not an all-clear.\n\nWhy: {reason}\n\n"
+                     "Your tripwires are unchanged and will be checked on the next run that "
+                     "reaches them.\n")}
 
 
 # --------------------------------------------------------------------------
@@ -503,8 +579,21 @@ def cmd_check(args) -> int:
     if stray:
         lines.insert(-1, "Values for no tripwire on file (a mistyped ID?): " + ", ".join(stray) + ".")
     print("\n".join(lines))
+    if args.email:
+        mail = email(results, updated, as_of)
+        if stray:
+            mail["body"] += ("Values for no tripwire on file (a mistyped ID?): "
+                             + ", ".join(stray) + ".\n")
+        args.email.write_text(json.dumps(mail, indent=2) + "\n", encoding="utf-8")
     if args.write:
         save(args.watch, updated)
+    return 0
+
+
+def cmd_skipped(args) -> int:
+    mail = skipped_email(args.reason, date.fromisoformat(args.as_of))
+    args.email.write_text(json.dumps(mail, indent=2) + "\n", encoding="utf-8")
+    print(f"Subject: {mail['subject']}")
     return 0
 
 
@@ -543,13 +632,21 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--values", type=Path, required=True)
     c.add_argument("--theses", type=Path, default=None)
     c.add_argument("--write", action="store_true", help="save the new states to the watch file")
+    c.add_argument("--email", type=Path, default=None,
+                   help="also write the weekly email (subject + plain-text body) as JSON")
+
+    sk = sub.add_parser("skipped", help="the email for a run that could not reach the files")
+    sk.add_argument("--reason", required=True)
+    sk.add_argument("--as-of", required=True)
+    sk.add_argument("--email", type=Path, required=True)
 
     li = sub.add_parser("list", help="the tripwires on file")
     li.add_argument("--watch", type=Path, default=Path("me/watch.md"))
 
     args = parser.parse_args(argv)
     try:
-        return {"add": cmd_add, "check": cmd_check, "list": cmd_list}[args.cmd](args)
+        return {"add": cmd_add, "check": cmd_check, "list": cmd_list,
+                "skipped": cmd_skipped}[args.cmd](args)
     except Refused as exc:
         print(f"Thesis Watchdog: Not available - {exc}")
         return 1

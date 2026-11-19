@@ -71,7 +71,7 @@ def test_met_alerts_once_then_still_met_then_rearms(tmp_path):
 
     values(tmp_path, {"AAPL-1": v("43.9", evidence="ACC-3", date="2027-01-30")})
     _, out = check(tmp_path)
-    assert "No condition you wrote was met this week." in out and "still met" in out
+    assert "No new condition was met this week. Still met: AAPL" in out and "still met" in out
     assert state(tmp_path) == "met 2026-10-31"
 
     values(tmp_path, {"AAPL-1": v("47.0", evidence="ACC-4", date="2027-05-01")})
@@ -174,7 +174,7 @@ def test_not_watchable_is_kept_and_listed(tmp_path):
     add(tmp_path)
     values(tmp_path, {"AAPL-1": v("50")})
     _, out = check(tmp_path)
-    assert 'Not watchable (no document can show these): NVDA "If Jensen stops caring".' in out
+    assert 'Not watchable (no document can show these):\n- NVDA (NVDA-1). You wrote: "If Jensen stops caring"' in out
 
 
 def test_a_newer_thesis_after_the_tripwire_is_noted(tmp_path):
@@ -262,3 +262,95 @@ def test_a_period_instead_of_a_date_refuses_before_it_reaches_the_file(tmp_path)
 def test_words_on_two_lines_refuse_rather_than_being_reworded(tmp_path):
     code, out = add(tmp_path, words="line one\nline two")
     assert code == 1 and "more than one line" in out
+
+
+# --------------------------------------------------------------------------
+# Notifications: eight Saturdays, state saved between them, every email read
+# --------------------------------------------------------------------------
+
+def _week(cwd, n, vals):
+    values(cwd, vals, as_of=f"2027-01-{n + 1:02d}")
+    code, out = run(["check", "--watch", "watch.md", "--values", "v.json", "--write",
+                     "--email", f"mail{n}.json"], cwd)
+    assert code == 0, out
+    return json.loads((cwd / f"mail{n}.json").read_text())
+
+
+def test_eight_weeks_of_emails_alert_exactly_when_a_condition_is_crossed(tmp_path):
+    sys.path.insert(0, str(REPO / "tests"))
+    import contract
+
+    add(tmp_path, words="I'd sell if gross margin drops under 45")
+    run(["add", "--watch", "watch.md", "--holding", "SPPW", "--kind", "fund",
+         "--words", "Cheap is the point; tell me if the fee rises", "--metric", "ter",
+         "--definition", "ongoing charges, KID", "--test", "> 0.20", "--baseline", "0.12",
+         "--baseline-date", "2026-09-01", "--baseline-source", "SSGA KID"], tmp_path)
+    ter = lambda ev, val="0.12": {"value": val, "unit": "%", "definition": "ongoing charges, KID",
+                                   "date": "2026-12-01", "source": "SSGA KID", "evidence": ev}
+    weeks = [
+        # (AAPL value, SPPW value, expected AAPL outcome, alert?, subject)
+        ({"AAPL-1": v("46.0", "A1"), "SPPW-1": ter("K1")}, "not met", False,
+         "Holdnote weekly: no condition you wrote was met"),
+        ({"AAPL-1": v("44.1", "A2"), "SPPW-1": ter("K1")}, "met", True,
+         "Holdnote weekly: 1 condition you wrote met"),
+        ({"AAPL-1": v("44.1", "A2"), "SPPW-1": ter("K1")}, "no new information", False,
+         "Holdnote weekly: nothing new met (1 still met)"),
+        ({"AAPL-1": v("43.0", "A3"), "SPPW-1": ter("K1")}, "still met", False,
+         "Holdnote weekly: nothing new met (1 still met)"),
+        ({"SPPW-1": ter("K1")}, "not available", False,
+         "Holdnote weekly: nothing new met (1 still met, 1 of 2 not checked)"),
+        ({"AAPL-1": v("0.43", "A4"), "SPPW-1": ter("K1")}, "not compared", False,
+         "Holdnote weekly: nothing new met (1 still met, 1 of 2 not checked)"),
+        ({"AAPL-1": v("47.0", "A5"), "SPPW-1": ter("K2", "0.25")}, "no longer met", True,
+         "Holdnote weekly: 1 condition you wrote met"),  # the fee tripwire fires this week
+        ({"AAPL-1": v("44.0", "A6"), "SPPW-1": ter("K2", "0.25")}, "met", True,
+         "Holdnote weekly: 1 condition you wrote met (1 still met)"),  # AAPL crossed again
+    ]
+    alerts = []
+    for n, (vals, outcome, alert, subj) in enumerate(weeks, 1):
+        mail = _week(tmp_path, n, vals)
+        assert mail["subject"] == subj, (n, mail["subject"])
+        line = next(l for l in mail["body"].splitlines() if l.startswith("- AAPL"))
+        assert f": {outcome}" in line, (n, line)
+        assert ("has been met" in mail["body"]) is alert, (n, mail["body"])
+        if 3 <= n <= 6:  # Apple stays true from week 2 to week 6: every email says so
+            assert "Still met: AAPL" in mail["body"] and "No condition you wrote" not in mail["body"]
+        assert contract.banned_hits(mail["body"]) == [], (n, contract.banned_hits(mail["body"]))
+        alerts += [l.split(":")[0] for l in mail["body"].splitlines() if "has been met" in l]
+    # AAPL alerted in weeks 2 and 8 only, SPPW in week 7 only - never twice in a row
+    assert alerts == ["AAPL", "SPPW", "AAPL"]
+    assert state(tmp_path) == "met 2026-10-31" and state(tmp_path, "SPPW-1") == "met 2026-12-01"
+
+
+def test_a_week_where_nothing_could_be_checked_never_reads_as_all_clear(tmp_path):
+    add(tmp_path)
+    mail = _week(tmp_path, 1, {})
+    assert mail["subject"] == "Holdnote weekly: Watchdog could not check any of your 1 tripwires"
+    assert "This is not an all-clear." in mail["body"]
+    assert "No condition you wrote was met" not in mail["body"]
+
+
+def test_the_skipped_email_when_the_files_cannot_be_reached(tmp_path):
+    code, out = run(["skipped", "--reason", "the computer did not answer", "--as-of",
+                     "2027-01-02", "--email", "s.json"], tmp_path)
+    assert code == 0, out
+    mail = json.loads((tmp_path / "s.json").read_text())
+    assert mail["subject"] == "Holdnote weekly: Watchdog skipped - couldn't reach your files"
+    assert "not an all-clear" in mail["body"] and "the computer did not answer" in mail["body"]
+
+
+def test_the_email_is_plain_text(tmp_path):
+    add(tmp_path)
+    mail = _week(tmp_path, 1, {"AAPL-1": v("44.1")})
+    assert not re.search(r"^\s*(#|\|)|\*\*", mail["body"], re.M)
+
+
+def test_not_watchable_words_with_sell_in_them_pass_the_contract(tmp_path):
+    sys.path.insert(0, str(REPO / "tests"))
+    import contract
+    run(["add", "--watch", "watch.md", "--holding", "NVDA", "--words",
+         "I'd sell if the founder leaves", "--not-watchable"], tmp_path)
+    add(tmp_path)
+    mail = _week(tmp_path, 1, {"AAPL-1": v("50")})
+    _, out = check(tmp_path)
+    assert contract.banned_hits(mail["body"]) == [] and contract.banned_hits(out) == []

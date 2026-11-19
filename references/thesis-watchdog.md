@@ -152,11 +152,17 @@ no "consider", no reading of what it means.
 ## The weekly run
 
 The scheduled weekly brief (Mode C, `references/etf-brief.md`, all tables)
-runs the Watchdog after it, in the same email:
+runs the Watchdog after it, in the same email. The email is the script's,
+not the model's: `check ... --write --email watchdog-email.json` writes the
+exact subject and plain-text body, and the run sends that subject as it is
+and puts that body first, above the portfolio summary. When the files
+cannot be reached, `watchdog.py skipped --reason "<why>" --as-of <date>
+--email watchdog-email.json` writes the email instead.
 
-- The email's subject is the script's `Subject:` line —
-  `Holdnote weekly: 1 condition you wrote met`, or
-  `Holdnote weekly: no condition you wrote was met`. A run that could not
+- The email's subject is the script's subject —
+  `Holdnote weekly: 1 condition you wrote met`,
+  `Holdnote weekly: nothing new met (1 still met)` while an earlier alert
+  is still true, or `Holdnote weekly: no condition you wrote was met`. A run that could not
   check some tripwires says how many (`(2 of 5 not checked)`), and one that
   could check none says exactly that: a Watchdog that failed must never
   read as an all-clear.
