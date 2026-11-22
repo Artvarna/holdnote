@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" fill="#C2A284"/>
+  <defs>
+    <path id="lens" d="M142,432 L464,432 C467,526 452,600 410,640 C380,668 344,674 303,674
+                        C262,674 226,668 196,640 C154,600 139,526 142,432 Z"/>
+    <path id="brow" d="M100,398 C100,378 114,366 136,366 L446,368 C468,369 481,382 487,402
+                        L492,450 L176,450 C156,450 142,460 136,480 C114,466 100,440 100,412 Z"/>
+    <g id="rivets" fill="#C2A284">
+      <circle cx="146" cy="406" r="10"/>
+      <circle cx="186" cy="406" r="10"/>
+    </g>
+  </defs>
+  <!-- wire bridge, under the brows -->
+  <path d="M466,470 C484,424 540,424 558,470" fill="none" stroke="#161616" stroke-width="14" stroke-linecap="butt"/>
+  <!-- thin metal rims -->
+  <g fill="none" stroke="#161616" stroke-width="15" stroke-linejoin="round">
+    <use href="#lens"/>
+    <use href="#lens" transform="translate(1024,0) scale(-1,1)"/>
+  </g>
+  <!-- glint -->
+  <path d="M196,520 C200,492 214,474 238,464" fill="none" stroke="#D8C1A6" stroke-width="12" stroke-linecap="round"/>
+  <!-- heavy brows with rivets -->
+  <g fill="#161616">
+    <use href="#brow"/>
+    <use href="#brow" transform="translate(1024,0) scale(-1,1)"/>
+  </g>
+  <use href="#rivets"/>
+  <use href="#rivets" transform="translate(1024,0) scale(-1,1)"/>
+</svg>
