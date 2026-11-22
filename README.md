@@ -1,9 +1,33 @@
 # Holdnote
 
-A Claude skill that researches ETFs, stocks and your own portfolio, from
+A free Claude skill that researches ETFs, stocks and your own portfolio, from
 **any broker**, using **primary sources**: SEC filings, issuer factsheets,
 KIDs and full fund holdings files. It reports what they say, with every
 number traceable.
+
+<p align="center">
+  <img src="assets/readme/demo-card.png" width="520" alt="Holdnote portfolio card from the built-in demo: what a sample portfolio looks through to, top 10 companies across all holdings, countries and sectors">
+</p>
+
+## Install in one minute
+
+**Claude Code**
+
+```
+/plugin install holdnote --marketplace Artvarna/holdnote
+```
+
+On an older Claude Code: `/plugin marketplace add Artvarna/holdnote`, then
+`/plugin install holdnote@holdnote`.
+
+**Claude app (web, desktop, phone)**: download
+[`holdnote.zip`](../../releases/latest/download/holdnote.zip), then in
+Claude turn on *Code execution and file creation* and upload the zip under
+*Skills*. Needs a paid plan (see [Needs](#get-started), below).
+
+**Agensi**: [agensi.io/skills/holdnote](https://agensi.io/skills/holdnote)
+
+Then say **"show me a demo"**. No account, no files, no setup.
 
 > Holdnote is a research tool, not a financial adviser. It describes what
 > filings and fund documents say; it never says buy, sell or hold. It can be
@@ -61,8 +85,7 @@ full evidence: every source, its date, and the arithmetic behind each figure.
 
 ## Get started
 
-1. Get `holdnote.zip` from the [latest release](../../releases/latest)
-   and add it to Claude as a skill (needs a paid Claude plan, see below).
+1. Install it ([Install in one minute](#install-in-one-minute), above).
 2. Say **"show me a demo"** to see a full report on a sample portfolio.
    Then ask anything: **"Brief me on NVDA"** works straight away, with no
    setup.
@@ -96,6 +119,7 @@ after its Action's first run, and week-on-week changes a week after that.
 
 ```
 SKILL.md, RULES.md      what the skill does and the rules every report follows
+.claude-plugin/         Claude Code plugin + marketplace manifests (one-command install)
 references/             one file per mode (stock brief, fund brief, portfolio, ...)
 scripts/                any-broker importer, Trading 212 sync, market weights, fund holdings, checker, renderer
 templates/me/           the blank files setup copies into me/
