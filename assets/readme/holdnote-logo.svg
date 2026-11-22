@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" fill="#C2A284"/>
+  <defs>
+    <path id="lens" d="M228,430 L458,430 C462,562 418,636 343,636 C268,636 224,562 228,430 Z"/>
+    <path id="brow" d="M200,440 C200,416 218,402 248,402 L446,402 C472,402 488,414 494,432
+                        L496,454 L214,454 C205,452 200,448 200,440 Z"/>
+    <path id="bridge" d="M476,436 C490,404 534,404 548,436 L548,450 C536,428 488,428 476,450 Z"/>
+  </defs>
+  <g transform="translate(512,520) scale(1.3) translate(-512,-520)">
+    <g fill="none" stroke="#161616" stroke-width="18" stroke-linejoin="round">
+      <use href="#lens"/>
+      <use href="#lens" transform="translate(1024,0) scale(-1,1)"/>
+    </g>
+    <g fill="#161616">
+      <use href="#bridge"/>
+      <use href="#brow"/>
+      <use href="#brow" transform="translate(1024,0) scale(-1,1)"/>
+    </g>
+  </g>
+</svg>
