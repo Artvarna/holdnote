@@ -83,6 +83,29 @@ full evidence: every source, its date, and the arithmetic behind each figure.
 - **A checker holds every report to its rules** before you see it: no
   recommendations, no forecasts, no number without a source and a date.
 
+## What it connects to
+
+Holdnote only **reads public documents**. It never sends your holdings,
+amounts or account data anywhere: a request names at most the fund, ticker
+or ISIN being researched. Your own files stay in the `me/` folder you chose.
+
+- **SEC EDGAR** (sec.gov, data.sec.gov, efts.sec.gov): company filings and
+  financial data
+- **Fund issuers** (ssga.com, ishares.com, vanguard.co.uk, amundietf.de):
+  factsheets, KIDs and full holdings files
+- **Exchanges and prices**: London Stock Exchange (londonstockexchange.com),
+  Deutsche Börse through the Claude desktop app's built-in browser, and
+  Yahoo Finance's public chart data for price history
+- **ECB** (ecb.europa.eu): exchange rates and policy rate decisions
+- **Index providers and companies**: index methodology documents (e.g.
+  spglobal.com) and companies' own investor-relations pages
+- **News outlets**, through Claude's web search, only in "why did X move"
+  questions, where every reason is quoted with its outlet and date
+- **GitHub**, only if you pick the GitHub option at setup: the daily Action
+  in *your own* copy downloads fund holdings files and commits them to your
+  repo. The demo-data workflow in this repo (maintainer only) also reads
+  Nasdaq's public price data to refresh the demo snapshot.
+
 ## Get started
 
 1. Install it ([Install in one minute](#install-in-one-minute), above).
