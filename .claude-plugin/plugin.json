@@ -1,0 +1,20 @@
+{
+  "name": "holdnote",
+  "description": "Research ETFs, stocks and your portfolio from SEC filings, factsheets, KIDs and full fund holdings files. Decision Mirror, Thesis Watchdog, Buffett scorecard. Not financial advice.",
+  "author": {
+    "name": "Artvarna",
+    "url": "https://github.com/Artvarna"
+  },
+  "homepage": "https://github.com/Artvarna/holdnote",
+  "repository": "https://github.com/Artvarna/holdnote",
+  "license": "MIT",
+  "keywords": [
+    "etf",
+    "stocks",
+    "portfolio",
+    "investing",
+    "research",
+    "sec-filings",
+    "buffett"
+  ]
+}
