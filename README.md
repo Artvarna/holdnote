@@ -138,6 +138,23 @@ after its Action's first run, and week-on-week changes a week after that.
   your export, as of its date.
 - GitHub is optional.
 
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Claude answers without Holdnote | Check *Code execution and file creation* is on and the skill is enabled, then mention Holdnote by name in your message |
+| Runs stop early or hit limits | Ask for a **quick brief** ("quick brief on KO"), which fetches only what the scorecard needs. Holdnote needs a paid Claude plan |
+| Fund prices show `Not available` | Today's closes need the Claude desktop app's built-in browser. Without it, the portfolio view uses the values in your export |
+| Look-through only covers each fund's top 10 | Full holdings need the GitHub option at setup; without it, funds are looked through from their factsheet top 10 |
+| My broker's export isn't recognised | Attach it anyway: Holdnote asks rather than guesses. If it still fails, open an issue with the column headers (no amounts) |
+| Something looks wrong | Say **"show proof"** for every source and calculation, and **"which build is this?"** for the version to quote in an issue |
+
+## Support, privacy and security
+
+- **Help and bug reports:** [GitHub issues](https://github.com/Artvarna/holdnote/issues)
+- **Privacy:** Holdnote collects nothing. See [PRIVACY.md](PRIVACY.md)
+- **Security problems:** report them privately, see [SECURITY.md](SECURITY.md)
+
 ## Repo layout
 
 ```
