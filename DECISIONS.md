@@ -1011,6 +1011,14 @@ plan's usage when the user only wants the scorecard.
   a close is used from the exchange alone and said so on the Confirmation
   line, never filled from another day. Two sources that disagree by more
   than 0.10% stop the refresh.
+- **When the exchange refuses, Yahoo alone, said so (2026-11-24).** The
+  London Stock Exchange's API has answered GitHub's runners with 403 since
+  November 2026. That is the exchange's choice about who it serves, so the
+  snapshot does not get around it (no browser disguise, no scraping its
+  pages). The London closes then come from Yahoo Finance alone, for the
+  newest session both funds have that London has finished, each marked as
+  one source on the Confirmation line. Nasdaq still answers for the stocks,
+  and they keep two sources.
 - **Earnings dates only from the company's page.** Coca-Cola's events page
   lists dated event links; Amazon's renders its events by script, which the
   runner does not run, so its cell says that rather than `not announced`.

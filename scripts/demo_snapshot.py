@@ -33,8 +33,13 @@ portfolio. See DECISIONS.md, 2026-10-15.
 
 Every close is read from two sources -- the exchange (London Stock Exchange
 or Nasdaq) and Yahoo Finance -- and the exchange's figure is the one used.
-Nothing is estimated: a source that fails stops the run with exit 1 and the
-committed snapshot stays as it was.
+The London Stock Exchange refuses some networks, GitHub's runners among them
+(403 since November 2026). When it does, the London closes come from Yahoo
+Finance alone, for the newest finished session both funds have, and each is
+marked as one source: the demo prints that on its Confirmation line. The
+exchange's refusal is not worked around. Nothing is estimated: any other
+source that fails stops the run with exit 1 and the committed snapshot stays
+as it was.
 """
 
 from __future__ import annotations
@@ -121,6 +126,28 @@ def yahoo_closes(symbol: str) -> tuple[dict[str, Decimal], str, str]:
                     day = datetime.fromtimestamp(ts, tz).date().isoformat()
                     closes.setdefault(day, Decimal(str(close)).quantize(Decimal("0.0001")))
     return closes, ccy, first_url
+
+
+def finished(day: str, at: datetime) -> bool:
+    """A Yahoo session is a close only once London has shut (16:30 London
+    time, 16:30 UTC at the latest); before that its last point is a live
+    price."""
+    today = at.date().isoformat()
+    return day < today or (day == today and at.hour >= 17)
+
+
+def london_from_yahoo(yahoo: dict[str, tuple[dict[str, Decimal], str, str]],
+                      at: datetime) -> tuple[str, dict[str, tuple[Decimal, str, str]]]:
+    """The newest finished session every London fund has a Yahoo close for,
+    and each fund's close, currency and URL on it."""
+    common = None
+    for closes, _, _ in yahoo.values():
+        days = {d for d in closes if finished(d, at)}
+        common = days if common is None else common & days
+    if not common:
+        raise Failed("Yahoo Finance has no finished session common to the London funds")
+    day = max(common)
+    return day, {isin: (closes[day], ccy, url) for isin, (closes, ccy, url) in yahoo.items()}
 
 
 def lse_close(tidm: str) -> tuple[str, Decimal, str, str, str]:
@@ -218,15 +245,29 @@ def main() -> int:
 
     try:
         # 1. Closes: the exchange's latest session for the funds fixes as_of.
-        lse = {}
-        for r in rows:
-            kind, _, code = r["exchange"].partition(":")
-            if kind == "lse":
+        yahoo = {r["isin"]: yahoo_closes(r["yahoo"]) for r in rows}
+        london = [r for r in rows if r["exchange"].startswith("lse:")]
+        lse, lse_refused = {}, ""
+        for r in london:
+            code = r["exchange"].partition(":")[2]
+            try:
                 day, close, ccy, isin, url = lse_close(code)
-                if isin and isin != r["isin"]:
-                    raise Failed(f"LSE {code} is {isin}, not {r['isin']}")
-                lse[r["isin"]] = (day, close, ccy, url, code)
-                log.append(f"LSE {code}: {ccy} {close} on {day}")
+            except Failed as exc:
+                lse_refused = str(exc)
+                break
+            if isin and isin != r["isin"]:
+                raise Failed(f"LSE {code} is {isin}, not {r['isin']}")
+            lse[r["isin"]] = (day, close, ccy, url, code)
+            log.append(f"LSE {code}: {ccy} {close} on {day}")
+        if lse_refused:
+            log.append(f"LSE did not answer ({lse_refused}); London closes from Yahoo Finance alone")
+            day, closes = london_from_yahoo({r["isin"]: yahoo[r["isin"]] for r in london},
+                                            datetime.now(timezone.utc))
+            lse = {}
+            for r in london:
+                close, ccy, url = closes[r["isin"]]
+                lse[r["isin"]] = (day, close, ccy, url, r["exchange"].partition(":")[2])
+                log.append(f"Yahoo {r['yahoo']}: {ccy} {close} on {day}")
         days = {v[0] for v in lse.values()}
         if len(days) != 1:
             raise Failed(f"LSE closes are for different sessions: {sorted(days)}")
@@ -241,7 +282,19 @@ def main() -> int:
         currencies: set[str] = set()
         for r in rows:
             kind, _, code = r["exchange"].partition(":")
-            yclose, yccy, yurl = yahoo_closes(r["yahoo"])
+            yclose, yccy, yurl = yahoo[r["isin"]]
+            if kind == "lse" and lse_refused:
+                close, ccy = lse[r["isin"]][1], lse[r["isin"]][2]
+                exch = f"Yahoo Finance chart, {r['yahoo']} close"
+                source(f"Yahoo Finance chart, {r['yahoo']}", yurl, as_of.isoformat())
+                prices[r["isin"]] = {
+                    "price": str(close), "currency": ccy, "date": as_of.isoformat(),
+                    "source": exch, "confirmed_by": None,
+                    "unconfirmed": "the London Stock Exchange did not answer the snapshot job, "
+                                   "so Yahoo Finance is the only source"}
+                currencies.add(ccy)
+                log.append(f"{r['ticker']}: {ccy} {close} ({exch}); one source")
+                continue
             if kind == "lse":
                 day, close, ccy, url, tidm = lse[r["isin"]]
                 exch = f"London Stock Exchange, {tidm} last close"

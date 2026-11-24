@@ -3,9 +3,10 @@
 # runs with no fetch at all (scripts/demo.py).
 #
 # Why here: Claude's workspace and the user's computer reach only package
-# registries and GitHub; GitHub's runners reach SSGA, the London Stock
-# Exchange, Nasdaq, Yahoo, the ECB and SEC EDGAR. See DECISIONS.md,
-# 2026-10-15.
+# registries and GitHub; GitHub's runners reach SSGA, Nasdaq, Yahoo, the
+# ECB and SEC EDGAR. The London Stock Exchange refuses them (403), so the
+# London closes come from Yahoo alone, marked as one source. See
+# DECISIONS.md, 2026-10-15.
 #
 # Runs monthly, by hand (Actions -> Demo data -> Run workflow), and when the
 # demo's own definition changes. Only in the public Holdnote repo: users'
