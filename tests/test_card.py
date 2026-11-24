@@ -50,7 +50,7 @@ def test_demo_card_draws_the_drafts_own_figures(demo_draft, tmp_path):
     assert f"United States {us[-1]}%" in text
     pair = t["Holdings"][1]
     n = pair[1].split()[0]
-    assert f"Fund overlap {pair[-1]}% SPYI and SPY5 share {n} companies" in text
+    assert f"FUND OVERLAP {pair[-1]}% SPYI and SPY5 share {n} companies" in text  # labels are set in caps
     # The top 10 table prints Look-through's own cells
     first = sorted(t["Look-through"][1:], key=lambda r: -card.Decimal(r[-1]))[0]
     assert f"1 {first[0]} " + " ".join(f"{c}%" if c != "-" else "–" for c in first[1:]) in text
@@ -122,7 +122,7 @@ def test_without_pillow_the_svg_is_still_written(demo_draft, tmp_path, monkeypat
     monkeypatch.setattr(card.Fonts, "__init__", lambda self: (setattr(self, "ok", False),
                                                               setattr(self, "cache", {}))[0])
     written = card.make(demo_draft, tmp_path)
-    assert [p.name for p in written] == ["card.svg"]
+    assert [p.name for p in written] == ["card.svg", "story.svg", "wide.svg"]
 
 
 def test_a_partial_lookthrough_is_said_on_the_card(demo_draft, tmp_path):
@@ -185,7 +185,99 @@ def test_mirror_card_draws_percentages_and_no_amount(tmp_path):
                     "--out", str(tmp_path / "out")], capture_output=True, text=True)
     assert proc.returncode == 0, proc.stdout
     drawn = (tmp_path / "out" / "mirror-card.svg").read_text()
-    assert data["gap_pct"] in drawn and "DEMO · SYNTHETIC" in drawn
+    assert data["gap_pct"].replace("-", "\u2212", 1) in drawn and "DEMO · SYNTHETIC" in drawn  # a true minus sign
     for amount in [data["picks_eur"], data["waiting_eur"], *data["holdings"].values()]:
         assert amount.lstrip("-") not in drawn, amount
     assert "EUR" not in drawn and "€" not in drawn
+
+
+def test_wide_mirror_card_is_x_shaped_with_percentages_only(tmp_path):
+    import json as _json
+    import re as _re
+    import subprocess as _sp
+    repo = Path(__file__).resolve().parents[1]
+    summary = tmp_path / "m.json"
+    _sp.run([sys.executable, str(repo / "scripts" / "mirror.py"), "report", "--demo",
+             "--nav", str(repo / "demo/mirror/nav.csv"),
+             "--prices", str(repo / "demo/mirror/prices.json"),
+             "--transactions", str(repo / "demo/mirror/transactions.csv"),
+             "--label", "a synthetic demo index fund", "--json", str(summary)],
+            check=True, capture_output=True)
+    data = _json.loads(summary.read_text())
+    _sp.run([sys.executable, str(repo / "scripts" / "card.py"), "--mirror", str(summary),
+             "--out", str(tmp_path / "out")], check=True, capture_output=True)
+    drawn = (tmp_path / "out" / "mirror-wide.svg").read_text()
+    assert 'width="1200" height="675"' in drawn
+    assert "beat me by" in drawn and data["gap_pct"].lstrip("-") in drawn and data["picks_pct"] in drawn  # the sign is in the words
+    text = " ".join(_re.findall(r">([^<]+)</text>", drawn))
+    for amount in [data["picks_eur"], data["waiting_eur"], *data["holdings"].values()]:
+        assert amount.lstrip("-") not in text, amount
+    assert "EUR" not in text and "€" not in text
+
+
+
+def _mirror_summary(tmp_path):
+    import json as _json
+    import subprocess as _sp
+    repo = Path(__file__).resolve().parents[1]
+    summary = tmp_path / "m.json"
+    _sp.run([sys.executable, str(repo / "scripts" / "mirror.py"), "report", "--demo",
+             "--nav", str(repo / "demo/mirror/nav.csv"),
+             "--prices", str(repo / "demo/mirror/prices.json"),
+             "--transactions", str(repo / "demo/mirror/transactions.csv"),
+             "--label", "a synthetic demo index fund", "--json", str(summary)],
+            check=True, capture_output=True)
+    return _json.loads(summary.read_text())
+
+
+def _drawn_text(svg_text):
+    import re as _re
+    return " ".join(_re.findall(r">([^<]+)</text>", svg_text))
+
+
+def test_mirror_story_says_who_won_in_words_and_carries_no_amount(tmp_path):
+    import card
+    data = _mirror_summary(tmp_path)
+    fonts = card.Fonts()
+    for gap, words in [("-5.70%", "My lazy twin beat me by 5.70%"),
+                       ("+0.61%", "I beat my lazy twin by 0.61%"),
+                       ("0.00%", "My lazy twin and I tied at 0.00%")]:
+        text = _drawn_text(card.svg(card.mirror_story_layout({**data, "gap_pct": gap}, fonts)))
+        assert words in text, (gap, text[:200])
+        for amount in [data["picks_eur"], data["waiting_eur"], *data["holdings"].values()]:
+            assert amount.lstrip("-") not in text, amount
+        assert "EUR" not in text and "€" not in text
+    picks = _drawn_text(card.svg(card.mirror_story_layout({**data, "twin": "picks"}, fonts)))
+    assert "The index beat my picks by" in picks and "Best:" in picks
+
+
+def test_share_images_fit_their_formats(tmp_path):
+    import card
+    data = _mirror_summary(tmp_path)
+    fonts = card.Fonts()
+    story = card.svg(card.mirror_story_layout(data, fonts))
+    wide = card.svg(card.mirror_wide_layout(data, fonts))
+    assert 'width="1080" height="1920"' in story and 'width="1200" height="675"' in wide
+    # a story keeps its text clear of the apps' own buttons: y 250 to 1650
+    import re as _re
+    ys = [float(y) for y in _re.findall(r'<text x="[^"]+" y="([^"]+)"', story)]
+    assert min(ys) >= 250 and max(ys) <= 1650, (min(ys), max(ys))
+
+
+def test_portfolio_story_from_the_demo(tmp_path):
+    import card
+    draft = _demo_draft(tmp_path) if "_demo_draft" in globals() else None
+    if draft is None:
+        import subprocess as _sp
+        repo = Path(__file__).resolve().parents[1]
+        draft = tmp_path / "d.md"
+        _sp.run([sys.executable, str(repo / "scripts" / "demo.py"), "--draft", str(draft), "--tables",
+                 "Allocation,Holdings,Look-through,Hidden bets,Countries,Sectors"],
+                check=True, capture_output=True)
+    c = card.read(draft.read_text())
+    text = _drawn_text(card.svg(card.portfolio_story_layout(c, card.Fonts())))
+    held = len(c.funds) + c.direct
+    assert f"I bought {held} things." in text and f"{c.companies:,}" in text
+    name, routes, total, _ = c.hero
+    assert f"{card.short_name(name)}: {card.pct(total)} of everything," in text
+    assert f"through {len(routes)} holdings." in text
