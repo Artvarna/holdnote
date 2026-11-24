@@ -151,10 +151,13 @@ changes.`
 "Make a card" after a Mirror: `scripts/card.py --mirror mirror.json`,
 percentages only, the benchmark and both dates on it, and the
 `This much history says little about skill` line when the run printed it.
-It writes two sizes: `mirror-card.png` (1080 x 1350, for Instagram and
-LinkedIn) and `mirror-card-wide.png` (1200 x 675, the shape X shows in full
-in a timeline). Give the user both PNGs as files, with one line saying which
-is for where.
+It writes three images. Two are share images that lead with one sentence in
+big type, worded by the sign of the gap ("My lazy twin beat me by 5.70%",
+"I beat my lazy twin by 0.61%", a tie said as a tie), then what the gap is
+made of: `mirror-story.png` (1080 x 1920, Instagram and TikTok stories) and
+`mirror-wide.png` (1200 x 675, the shape X shows in full). The third is the
+detailed `mirror-card.png` (1080 x 1350). Give the user the PNGs as files,
+the two share images first, with one line saying which is for where.
 
 ## Demo
 
