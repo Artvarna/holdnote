@@ -127,6 +127,7 @@ that fails is said plainly, with the text printed so nothing is lost.
 | "Make a card", "make my portfolio card", "something I can post", "share my portfolio" — of their portfolio or of the demo | Portfolio card, below |
 | What Buffett's ideas are, where a rule comes from, "why is it called the Buffett scorecard" | `references/buffett.md`, answered from its Principles table; never what he would think of an instrument |
 | A general question with no instrument or portfolio in it — what a TER is, how ETFs or index funds work, what diversification means | Answer in plain prose, without the output contract, fetches or the scorecard; a figure that is given still names its source (rule 1). Offer a brief in one line when an instrument comes up |
+| "Report a problem", "this is broken", "file a bug", "my broker's export wasn't read", "I have an idea for Holdnote" | `references/report-problem.md`: a pre-filled GitHub issue as one link, with no amounts, quantities or account numbers in it |
 | "Which build / version is this?" | Answer with the text of the `BUILD` file in this skill's folder and nothing else; with no `BUILD` file (a Claude Code plugin install), the line `python3 <skill>/scripts/build_info.py` prints |
 
 Load only what the request needs. Several may apply — "compare VWCE to what I

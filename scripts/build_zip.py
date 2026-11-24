@@ -43,6 +43,7 @@ FILES = {
     "scripts/check_output.py": "scripts/check_output.py",
     "scripts/demo.py": "scripts/demo.py",
     "scripts/build_info.py": "scripts/build_info.py",
+    "scripts/report_problem.py": "scripts/report_problem.py",
     "demo/holdings.csv": "demo/holdings.csv",
     "demo/funds.md": "demo/funds.md",
     "demo/mirror/transactions.csv": "demo/mirror/transactions.csv",
@@ -80,6 +81,7 @@ FILES = {
     "references/thesis-journal.md": "references/thesis-journal.md",
     "references/decision-mirror.md": "references/decision-mirror.md",
     "references/thesis-watchdog.md": "references/thesis-watchdog.md",
+    "references/report-problem.md": "references/report-problem.md",
     # Named by portfolio-sync.md, ownership.md and t212_holdings.py's messages
     "docs/t212-csv-schema.md": "docs/t212-csv-schema.md",
     "docs/fifo-attribution.md": "docs/fifo-attribution.md",
