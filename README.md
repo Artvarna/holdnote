@@ -6,7 +6,7 @@ KIDs and full fund holdings files. It reports what they say, with every
 number traceable.
 
 <p align="center">
-  <img src="assets/readme/demo-card.png" width="520" alt="Holdnote portfolio card from the built-in demo: what a sample portfolio looks through to, top 10 companies across all holdings, countries and sectors">
+  <img src="assets/readme/holdnote-overview.png" width="760" alt="Holdnote on its built-in demo portfolio: 5,965 companies looked through across 2 funds and 2 stocks, Amazon at 9.41% through 3 holdings, and the Decision Mirror at -5.70% against a lazy twin">
 </p>
 
 ## Install in one minute
