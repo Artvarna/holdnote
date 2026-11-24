@@ -500,8 +500,11 @@ def test_a_catalogue_fund_needs_only_ticker_and_isin(tmp_path):
     out = fh.load_funds(funds)
     cspx, vwrl = out["IE00B5BMR087"], out["IE00B3RBWM25"]
     assert (cspx.ticker, cspx.issuer) == ("CSPX", "ishares")
-    assert "/products/253743/" in cspx.url and cspx.url.endswith("dataType=fund")
-    assert cspx.alts and cspx.alts[0].endswith("/products/253743/fund/latest-holdings.csv")
+    # since 2026-11-16: iShares' product-data JSON first, the two older CSV addresses after
+    assert "portfolioId=253743" in cspx.url and "component=holdings.all" in cspx.url
+    assert cspx.ext == "json"
+    assert cspx.alts[0].endswith("dataType=fund")
+    assert cspx.alts[1].endswith("/products/253743/fund/latest-holdings.csv")
     # VWRL is the distributing share class of VWCE: same holdings, its own ticker and ISIN.
     assert (vwrl.ticker, vwrl.isin, vwrl.issuer) == ("VWRL", "IE00B3RBWM25", "vanguard")
     assert vwrl.body["variables"]["portIds"] == ["9679"]
@@ -522,15 +525,15 @@ def test_fetch_tries_the_alternate_link(tmp_path, monkeypatch, capsys):
 
     def fake(source, timeout=60):
         tried.append(source.url)
-        if "ajax" in source.url:
-            raise fh.Refused("www.ishares.com returned 404")
+        if "varnish-api" in source.url or "ajax" in source.url:
+            raise fh.Refused("www.ishares.com returned 400")
         return ishares_bytes()
     monkeypatch.setattr(fh, "fetch", fake)
     url, alts = fh.ishares_urls("264659", "EIMI")
     monkeypatch.setattr(fh, "SOURCES", {"IE00BKM4GZ66": fh.Source(
         "EIMI", "IE00BKM4GZ66", "ishares", url, "csv", alts=alts)})
     assert fh.cmd_fetch(tmp_path, date(2026, 10, 9)) == 0
-    assert len(tried) == 2 and tried[1].endswith("latest-holdings.csv")
+    assert len(tried) == 3 and tried[-1].endswith("latest-holdings.csv")
     assert "EIMI: " in capsys.readouterr().out and (tmp_path / "EIMI-2026-10-09.csv").exists()
 
 
@@ -949,3 +952,64 @@ def test_vanguard_pages_are_joined(monkeypatch):
     as_of, rows = fh.parse_vanguard(data, src)
     assert len(rows) == 200 and as_of == date(2026, 9, 30)
     assert src.body["variables"]["lastItemKey"] is None  # the catalogue's source is untouched
+
+
+
+def ishares_json_bytes(n: int = 30, as_of: str = "20261123") -> bytes:
+    """A made-up file in the shape of iShares' product-data JSON (holdings.all):
+    one array per column. Synthetic rows only; real issuer files are never committed."""
+    names = [f"COMPANY {i}" for i in range(n)] + ["USD CASH"]
+    weights = [round(99.0 / n, 5)] * n + [1.0]
+    isins = [f"US{i:09d}0" for i in range(n)] + [""]
+    cols = {
+        "asOfDate": {"value": int(as_of)},
+        "issueName": {"value": names},
+        "assetClass": {"value": ["Equity"] * n + ["Cash"]},
+        "holdingPercent": {"value": weights},
+        "ticker": {"value": [f"T{i}" for i in range(n)] + ["USD"]},
+        "exchange": {"value": ["NASDAQ"] * n + ["-"]},
+        "isin": {"value": isins},
+        "countryOfRisk": {"value": ["United States"] * n + ["United States"]},
+        "sectorName": {"value": ["Information Technology"] * n + ["Cash and/or Derivatives"]},
+        "marketCurrencyCode": {"value": ["USD"] * (n + 1)},
+    }
+    return json.dumps({"productId": 251882, "componentsByNameMap": {"holdings": {
+        "containersByNameMap": {"all": {"dataPointsByNameMap": cols}}}}}).encode()
+
+
+def test_ishares_json_is_read_with_isins_and_five_decimals(tmp_path):
+    src = fh.make_source("SWDA", "IE00B4L5Y983", "ishares", "251882")
+    path = tmp_path / "SWDA-2026-11-24.json"
+    path.write_bytes(ishares_json_bytes())
+    fund = fh.load_fund(src, path)
+    assert fund.as_of == date(2026, 11, 23)
+    equity = [r for r in fund.rows if r.equity]
+    assert len(equity) == 30 and not [r for r in fund.rows if not r.equity][0].equity
+    first = equity[0]
+    assert first.isin == "US0000000000" and first.weight == Decimal("3.3")
+    assert first.country and first.sector and first.currency == "USD"
+    assert first.local == "T0 @ NASDAQ"
+
+
+def test_ishares_json_that_changed_shape_is_refused(tmp_path):
+    src = fh.make_source("SWDA", "IE00B4L5Y983", "ishares", "251882")
+    path = tmp_path / "SWDA-2026-11-24.json"
+    path.write_bytes(b'{"productId": 251882, "componentsByNameMap": {}}')
+    with pytest.raises(fh.Refused, match="no holdings.all"):
+        fh.load_fund(src, path)
+
+
+def test_an_old_ishares_csv_link_becomes_the_json_source():
+    old = ("https://www.ishares.com/uk/individual/en/products/264659/"
+           "ishares-core-msci-em-imi-ucits-etf/latest-holdings.csv")
+    src = fh.make_source("EIMI", "IE00BKM4GZ66", "ishares", old)
+    assert src.ext == "json" and "portfolioId=264659" in src.url
+
+
+def test_a_csv_fallback_saved_under_json_is_still_read(tmp_path):
+    """If iShares restores its CSV and the JSON fails, the CSV lands in a .json
+    file; the reader goes by the content, not the name."""
+    src = fh.make_source("EIMI", "IE00BKM4GZ66", "ishares", "264659")
+    path = tmp_path / "EIMI-2026-11-24.json"
+    path.write_bytes(ishares_bytes())
+    assert fh.load_fund(src, path).rows

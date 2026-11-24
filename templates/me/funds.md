@@ -10,7 +10,7 @@ Four issuers are supported. `Holdings file` is what each one needs:
 | Issuer | Holdings file |
 |---|---|
 | `ssga` | the daily holdings `.xlsx` link from the fund's SSGA page |
-| `ishares` | the product ID (the number in its iShares UK page address), or the `latest-holdings.csv` link |
+| `ishares` | the product ID (the number in its iShares UK page address, e.g. 251882), or any link to that page or its holdings file |
 | `vanguard` | the fund's port ID, the number in its vanguard.co.uk page address |
 | `amundi` | nothing: the ISIN is enough |
 
