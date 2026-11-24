@@ -258,7 +258,7 @@ to 2026-10-20). A record of reachability, not a rank:
 The routes the other modules already use; nothing new is fetched for this
 mode.
 
-- **Closes** — a fund's listing: `references/etf-brief.md` → Where fund
+- **Closes** — a fund's listing: `references/portfolio-view.md` → Where fund
   prices come from. A US stock: Yahoo's chart data (*browser*), the same
   JSON route; a second source for the close makes the row checked, and
   without one it is `single source` on the `Confirmation` line. Without

@@ -320,7 +320,7 @@ def main() -> int:
         for t, meta in funds_meta.items():
             # The METHOD lines name the raw file's path; the file is not kept.
             text = re.sub(rf"\S*/{t}-{meta['as_of']}\.\w+",
-                          f"SSGA daily holdings file (read by the snapshot job, not kept)", text)
+                          "SSGA daily holdings file (read by the snapshot job, not kept)", text)
         (work / "fund_report.txt").write_text(text)
         (work / "funds.json").write_text(json.dumps({
             "funds": funds_meta,

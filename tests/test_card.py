@@ -264,17 +264,9 @@ def test_share_images_fit_their_formats(tmp_path):
     assert min(ys) >= 250 and max(ys) <= 1650, (min(ys), max(ys))
 
 
-def test_portfolio_story_from_the_demo(tmp_path):
+def test_portfolio_story_from_the_demo(demo_draft):
     import card
-    draft = _demo_draft(tmp_path) if "_demo_draft" in globals() else None
-    if draft is None:
-        import subprocess as _sp
-        repo = Path(__file__).resolve().parents[1]
-        draft = tmp_path / "d.md"
-        _sp.run([sys.executable, str(repo / "scripts" / "demo.py"), "--draft", str(draft), "--tables",
-                 "Allocation,Holdings,Look-through,Hidden bets,Countries,Sectors"],
-                check=True, capture_output=True)
-    c = card.read(draft.read_text())
+    c = card.read(demo_draft.read_text())
     text = _drawn_text(card.svg(card.portfolio_story_layout(c, card.Fonts())))
     held = len(c.funds) + c.direct
     assert f"I bought {held} things." in text and f"{c.companies:,}" in text
