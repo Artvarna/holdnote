@@ -151,7 +151,7 @@ after its Action's first run, and week-on-week changes a week after that.
 
 ## Support, privacy and security
 
-- **Help and bug reports:** [GitHub issues](https://github.com/Artvarna/holdnote/issues)
+- **Help and bug reports:** say **"Holdnote, report a problem"** and it fills in a GitHub issue for you, or open one yourself: [GitHub issues](https://github.com/Artvarna/holdnote/issues/new/choose)
 - **Privacy:** Holdnote collects nothing. See [PRIVACY.md](PRIVACY.md)
 - **Security problems:** report them privately, see [SECURITY.md](SECURITY.md)
 

@@ -1,0 +1,46 @@
+name: Something went wrong
+description: A report that looks wrong, a run that stopped, or a feature that didn't work.
+title: "Bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. Tip: in Claude, say **"Holdnote, report a problem"** and it fills this form in for you.
+        **Please don't paste money amounts, quantities or account numbers.** Percentages, tickers and ISINs are fine.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw. Copy any error message.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: input
+    id: asked
+    attributes:
+      label: What you asked Holdnote
+      placeholder: e.g. "quick brief on VWCE", "me vs my lazy twin"
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: The "Build" line at the bottom of a report, or ask Holdnote "which build is this?"
+      placeholder: e.g. d1cfa92 2026-11-24
+  - type: dropdown
+    id: install
+    attributes:
+      label: How you installed Holdnote
+      options:
+        - Claude app (zip from GitHub releases)
+        - Claude Code plugin
+        - Agensi
+        - Other
+  - type: textarea
+    id: error
+    attributes:
+      label: Error text or details
+      render: text

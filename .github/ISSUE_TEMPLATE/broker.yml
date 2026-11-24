@@ -1,0 +1,41 @@
+name: My broker's export isn't recognised
+description: Holdnote couldn't read the export or screenshot from your broker or app.
+title: "Broker export: "
+labels: [broker-import]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Holdnote reads exports from any broker, but every broker formats them differently. The column headers are usually all it takes to add yours.
+        **Please paste only the header row, never the rows with your holdings, amounts or account numbers.**
+  - type: input
+    id: broker
+    attributes:
+      label: Broker or app
+      placeholder: e.g. Degiro, Revolut, IBKR, eToro
+    validations:
+      required: true
+  - type: dropdown
+    id: filetype
+    attributes:
+      label: What you gave Holdnote
+      options:
+        - CSV export
+        - Excel export (.xlsx)
+        - Screenshot
+        - PDF statement
+        - Other
+  - type: textarea
+    id: headers
+    attributes:
+      label: Column headers (first line of the file only)
+      render: text
+  - type: textarea
+    id: what
+    attributes:
+      label: What Holdnote said
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      placeholder: e.g. d1cfa92 2026-11-24
