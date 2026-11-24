@@ -291,6 +291,29 @@ def build(tables_wanted: list[str], proof: bool) -> tuple[str, str]:
     return draft, report
 
 
+CARD_TABLES = ["Allocation", "Holdings", "Look-through", "Hidden bets", "Countries", "Sectors"]
+MIRROR = ROOT / "demo" / "mirror"
+
+
+def share(out: Path) -> list[Path]:
+    """The demo's share images, the first thing a new user sees: the portfolio
+    story and the lazy-twin story (scripts/card.py), each also wide for X."""
+    import card
+
+    out.mkdir(parents=True, exist_ok=True)
+    draft, _ = build(CARD_TABLES, False)
+    problems = contract.output_problems(draft)
+    if problems:
+        raise SystemExit("the card draft failed its checks:\n" + "\n".join(problems))
+    (out / "card-draft.md").write_text(draft, encoding="utf-8")
+    run("mirror.py", "report", "--demo", "--nav", str(MIRROR / "nav.csv"),
+        "--prices", str(MIRROR / "prices.json"), "--transactions", str(MIRROR / "transactions.csv"),
+        "--watch", str(MIRROR / "watch.md"), "--label", "a demo index fund (synthetic)",
+        "--json", str(out / "mirror.json"))
+    written = card.make(out / "card-draft.md", out) + card.make_mirror(out / "mirror.json", out)
+    return [p for p in written if p.suffix == ".png"] or [p for p in written if p.suffix == ".svg"]
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--draft", type=Path, required=True, help="where to write the full draft")
@@ -298,6 +321,8 @@ def main(argv: list[str] | None = None) -> int:
                     help=f"comma-separated, from {', '.join(ORDER)}; 'all', or the default "
                          f"{', '.join(DEFAULT)}")
     ap.add_argument("--proof", action="store_true", help="print PROOF and the full SOURCES")
+    ap.add_argument("--share", type=Path, default=None,
+                    help="also write the demo's share images to this folder (paths go to stderr)")
     args = ap.parse_args(argv)
     if args.tables == "default":
         wanted = DEFAULT
@@ -320,6 +345,9 @@ def main(argv: list[str] | None = None) -> int:
     if problems:
         print("\n".join(dict.fromkeys(problems)))
         return 1
+    if args.share:
+        for path in share(args.share):
+            print(f"share image: {path}", file=sys.stderr)
     print(render.render(report), end="")
     return 0
 

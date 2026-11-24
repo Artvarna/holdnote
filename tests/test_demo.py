@@ -248,3 +248,16 @@ def test_zip_ships_the_demo(tmp_path):
     assert "holdnote/demo/data/prices.json" in listed
     assert "holdnote/scripts/demo.py" in listed
     assert not [n for n in listed if n.endswith((".xlsx", ".xls"))]
+
+
+def test_demo_share_makes_both_stories_first(tmp_path):
+    import subprocess as _sp
+    repo = Path(__file__).resolve().parents[1]
+    out = _sp.run([sys.executable, str(repo / "scripts" / "demo.py"), "--draft", str(tmp_path / "d.md"),
+                   "--share", str(tmp_path / "share")], capture_output=True, text=True)
+    assert out.returncode == 0, out.stdout + out.stderr
+    for name in ("story", "mirror-story", "wide", "mirror-wide"):
+        assert (tmp_path / "share" / f"{name}.svg").exists(), name
+    assert "share image:" in out.stderr and "share image:" not in out.stdout  # the report stays clean
+    story = (tmp_path / "share" / "mirror-story.svg").read_text()
+    assert "My lazy twin" in story and "DEMO · SYNTHETIC" in story

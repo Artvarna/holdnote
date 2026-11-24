@@ -41,15 +41,30 @@ folder the run can write to (the skill's own folder is read-only). In
 Claude's workspace:
 
 ```
-python3 <skill>/scripts/demo.py --draft <scratch>/demo-draft.md
+python3 <skill>/scripts/demo.py --draft <scratch>/demo-draft.md --share <scratch>/share
 ```
 
 It writes the full draft (RULES.md Part IV, with `PROOF` and every
 `SOURCES` row) to `--draft`, checks it against the same contract as
-`scripts/check_output.py`, and prints the rendered report. **Print its
-output as it is** — that is the whole answer — then one line inviting the
-user to try their own:
-`Want to see yours? Attach your broker's export or a screenshot and ask "what do I own?" — or say "make a card" for an image of this one.`
+`scripts/check_output.py`, makes the demo's share images in `--share`
+(their paths are printed to stderr as `share image: ...`), and prints the
+rendered report.
+
+The answer is in this order, because the first thing a new user sees decides
+whether they read on:
+
+1. **The two stories, as files**: `story.png` ("I bought 4 things. I own
+   5,965 companies") and `mirror-story.png` ("My lazy twin beat me by
+   5.70%"), sent the way this environment hands files to the user (its
+   file-sending tool, else its outputs folder). One line with them:
+   `This is a made-up demo portfolio. Here's what Holdnote found, and how it did against a lazy twin who just bought an index fund:`
+2. **The report**: print the script's output as it is.
+3. **One closing line**:
+   `Want yours? Attach your broker's export or a screenshot and ask "what do I own?" or "me vs my lazy twin". Say "make a card" to get these images for your own portfolio.`
+
+The other four images (`wide.png` and `mirror-wide.png` for X, and the two
+detailed cards) are sent only when asked for. Without a way to send files,
+skip step 1 and say in the closing line that "make a card" makes the images.
 
 Follow-up questions about the demo pick tables with `--tables`
 (comma-separated: `Allocation`, `Holdings`, `Look-through`, `Hidden bets`,
@@ -79,7 +94,8 @@ have their own synthetic demo, made-up trades in made-up instruments against
 a made-up benchmark, because they need a year of dated trades the portfolio
 demo does not have. `references/decision-mirror.md` → Demo and
 `references/thesis-watchdog.md` → Demo say how to run them. A plain "show me
-a demo" stays the portfolio demo, and its `Next:` line may name the Mirror's.
+a demo" stays the portfolio demo; it shows the Mirror only as its
+`mirror-story.png` share image, and "demo the Mirror" gives the full Mirror report.
 
 ## What the demo cannot show
 
