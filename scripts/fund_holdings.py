@@ -23,8 +23,9 @@ look-through is ``Not available``.
 What the files carry, as found on 2026-10-09:
 
     SPPW  SSGA       daily xlsx   ISIN per row
-    EIMI  iShares    daily CSV    no ISIN: local ticker and exchange only;
-                                  weights rounded to 0.01 by the issuer
+    EIMI  iShares    daily JSON   ISIN per row, weights to 5 decimals (since
+                                  2026-11-16; the old CSV: no ISIN, weights
+                                  rounded to 0.01, kept as a fallback)
     VUSA  Vanguard   monthly JSON ISIN per row (month-end portfolio)
     MEUD  Amundi     daily JSON   ISIN and Bloomberg ticker per row; sector and
                                   currency when the request asks for them
@@ -98,17 +99,24 @@ ISSUERS = ("ssga", "ishares", "vanguard", "amundi")
 
 
 ISHARES_PRODUCT = "https://www.ishares.com/uk/individual/en/products/{id}/fund/"
+# Since 2026-11-16 iShares' UK product pages load holdings from this JSON
+# address and its CSV addresses answer 400 ("Unknown site: uk"). The JSON has
+# every row with its ISIN and weights to five decimals (the CSV rounded to
+# 0.01). The CSV addresses stay as fallbacks, in case iShares restores them.
+ISHARES_JSON = ("https://www.ishares.com/varnish-api/uk-retail01-product-data/product-data/"
+                "api/v2/get-product-data?appSubType=ISHARES&appType=PRODUCT_PAGE"
+                "&component=holdings.all&locale=en_GB&portfolioId={id}&targetSite=ishares-uk"
+                "&userType=individual&excludeContent=true&includeConfig=true")
+ISHARES_ID = re.compile(r"/products/(\d+)/")
 
 
 def ishares_urls(product_id: str, ticker: str) -> tuple[str, tuple[str, ...]]:
-    """The holdings CSV of an iShares UK product page, from its product ID.
-
-    iShares serves the same CSV at two addresses; the page's own "download
-    holdings" link is the .ajax one. Both are tried, in this order.
-    """
+    """The holdings of an iShares UK fund, from its product ID: the JSON the
+    product page reads, then the two older CSV addresses, tried in that order."""
     base = ISHARES_PRODUCT.format(id=product_id)
-    return (base + f"1506575576011.ajax?fileType=csv&fileName={ticker}_holdings&dataType=fund",
-            (base + "latest-holdings.csv",))
+    return (ISHARES_JSON.format(id=product_id),
+            (base + f"1506575576011.ajax?fileType=csv&fileName={ticker}_holdings&dataType=fund",
+             base + "latest-holdings.csv"))
 
 
 def make_source(ticker: str, isin: str, issuer: str, holdings: str = "") -> Source:
@@ -120,9 +128,11 @@ def make_source(ticker: str, isin: str, issuer: str, holdings: str = "") -> Sour
     """
     issuer = issuer.strip().lower()
     holdings = holdings.strip()
+    if issuer == "ishares" and not holdings.isdigit() and ISHARES_ID.search(holdings):
+        holdings = ISHARES_ID.search(holdings).group(1)  # an old CSV link: its product ID
     if issuer == "ishares" and holdings.isdigit():
         url, alts = ishares_urls(holdings, ticker)
-        return Source(ticker, isin, issuer, url, "csv", alts=alts)
+        return Source(ticker, isin, issuer, url, "json", alts=alts)
     if issuer in ("ssga", "ishares"):
         if not holdings.startswith("https://"):
             raise Refused(f"{ticker}: {issuer} needs the holdings file's https:// link"
@@ -296,7 +306,8 @@ EXCHANGES = {
 
 ISIN = re.compile(r"^[A-Z]{2}[A-Z0-9]{9}[0-9]$")
 # A fund file's weights, all rows together, must land in this band (% of fund).
-# iShares rounds every row to 0.01, so ~3,000 rows lose up to ~1.7pp.
+# iShares' old CSV rounded every row to 0.01, so ~3,000 rows could lose up to
+# ~1.7pp; its JSON (since 2026-11-16) has five decimals.
 WEIGHT_BAND = (Decimal(97), Decimal(102))
 MIN_EQUITY_ROWS = 20
 
@@ -454,7 +465,62 @@ def parse_ssga(data: bytes, source: Source) -> tuple[date, list[Holding]]:
     return as_of, out
 
 
+def parse_ishares_json(data: bytes, source: Source) -> tuple[date, list[Holding], int]:
+    """iShares' product-data JSON: one array per column under
+    componentsByNameMap.holdings.containersByNameMap.all.dataPointsByNameMap."""
+    try:
+        payload = json.loads(data)
+        cols = (payload["componentsByNameMap"]["holdings"]["containersByNameMap"]["all"]
+                ["dataPointsByNameMap"])
+    except (ValueError, KeyError, TypeError):
+        raise Refused("iShares JSON has no holdings.all table (the page's data changed?)")
+    raw_date = str((cols.get("asOfDate") or {}).get("value") or "")
+    try:
+        as_of = date(int(raw_date[:4]), int(raw_date[4:6]), int(raw_date[6:8]))
+    except ValueError:
+        raise Refused(f"unreadable as-of date {raw_date!r} in the iShares JSON")
+
+    def col(name: str) -> list:
+        v = (cols.get(name) or {}).get("value")
+        return v if isinstance(v, list) else []
+
+    need = {k: col(k) for k in ("issueName", "assetClass", "holdingPercent", "ticker", "exchange")}
+    n = len(need["issueName"])
+    if not n or any(len(v) != n for v in need.values()):
+        raise Refused("iShares JSON columns missing or of different lengths: "
+                      + ", ".join(f"{k} {len(v)}" for k, v in need.items()))
+    extra = {k: col(k) for k in ("isin", "countryOfRisk", "sectorName", "marketCurrencyCode")}
+
+    def at(values: list, i: int) -> str:
+        return str(values[i]).strip() if i < len(values) and values[i] is not None else ""
+
+    out: list[Holding] = []
+    unmatched = 0
+    for i in range(n):
+        weight = _dec(need["holdingPercent"][i])
+        equity = at(need["assetClass"], i) == "Equity" and weight is not None
+        ticker, exch = at(need["ticker"], i), at(need["exchange"], i)
+        code = EXCHANGES.get(exch, "")
+        if equity and not code:
+            unmatched += 1
+        isin = at(extra["isin"], i).upper()
+        out.append(Holding(
+            name=at(need["issueName"], i),
+            weight=weight if weight is not None else Decimal(0),
+            equity=equity,
+            isin=isin if re.fullmatch(r"[A-Z]{2}[A-Z0-9]{9}\d", isin) else "",
+            bbg=f"{ticker} {code}" if code and ticker else "",
+            country=canonical_country(at(extra["countryOfRisk"], i)),
+            sector=canonical_sector(at(extra["sectorName"], i)),
+            currency=canonical_currency(at(extra["marketCurrencyCode"], i)),
+            local=f"{ticker} @ {exch}" if ticker else "",
+        ))
+    return as_of, out, unmatched
+
+
 def parse_ishares(data: bytes, source: Source) -> tuple[date, list[Holding], int]:
+    if data.lstrip()[:1] == b"{":
+        return parse_ishares_json(data, source)
     text = data.decode("utf-8-sig", errors="replace")
     lines = text.splitlines()
     if not lines or not lines[0].startswith("Fund Holdings as of"):

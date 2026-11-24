@@ -236,10 +236,11 @@ record of reachability, not a rank:
 - **Vanguard's holdings data** (`vanguard.co.uk/gpx/graphql`, the query
   `fund_holdings.py` sends) answered from a tab on vanguard.co.uk with
   every line, ISIN per line, as of the month end.
-- **iShares' holdings CSV**: the `….ajax?fileType=csv` address now returns
-  the product page's HTML; `latest-holdings.csv` returns the file.
-  `fund_holdings.py` already falls back to the second address when the
-  first does not parse.
+- **iShares' holdings**: since 2026-11-16 both CSV addresses answer 400.
+  The product page reads its holdings from a JSON address
+  (`/varnish-api/.../get-product-data`, `component=holdings.all`), with an
+  ISIN per row and weights to five decimals; `fund_holdings.py` fetches that
+  first and keeps the CSV addresses as fallbacks.
 - **Factsheet PDFs** (Vanguard, iShares, MSCI) were read as text in the
   browser by loading pdf.js from cdnjs into the page; the desktop app's
   built-in PDF viewer exposes no text.

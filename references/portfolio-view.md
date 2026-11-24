@@ -322,15 +322,16 @@ dated by its file's own as-of.
 |---|---|---|---|
 | SPPW | SSGA daily holdings xlsx | daily | ISIN |
 | MEUD | Amundi product API (`/mapi/ProductAPI/getProductsData`) | daily | ISIN, Bloomberg ticker |
-| EIMI | iShares UK `latest-holdings.csv` | daily | ticker + exchange only; weights to 0.01 |
+| EIMI | iShares UK product-data JSON (`/varnish-api/.../get-product-data`, `holdings.all`), the CSV addresses as fallback | daily | ISIN (since 2026-11-16); ticker + exchange from a CSV fallback, weights to 0.01 there |
 | VUSA | Vanguard UK holdings API (`/gpx/graphql`) | **month-end** | ISIN |
 
 **One company, not one share class.** US and Canadian ISINs contain the
 CUSIP, whose first six characters name the issuer, so Alphabet A and C are
-one company in every column. Other ISINs match exactly. EIMI's file has no
-ISINs: its rows match MEUD's through ticker and exchange (`PKO` on Warsaw is
-`PKO PW`), which is how the Polish and Greek companies both funds hold are
-found — at top-10 depth MEUD · EIMI read `0`.
+one company in every column. Other ISINs match exactly. EIMI's file now
+carries ISINs too (iShares' JSON, since 2026-11-16); from its older CSV
+fallback, which has none, its rows match MEUD's through ticker and exchange
+(`PKO` on Warsaw is `PKO PW`), which is how the Polish and Greek companies
+both funds hold are found — at top-10 depth MEUD · EIMI read `0`.
 
 **The files carry different dates.** Each is the issuer's latest; Vanguard
 publishes month-end only. The `Holdings` heading prints each fund's as-of,
