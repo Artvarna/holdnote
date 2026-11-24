@@ -41,7 +41,7 @@ import argparse
 import json
 import re
 import sys
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path

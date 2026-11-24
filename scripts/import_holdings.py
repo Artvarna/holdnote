@@ -870,6 +870,19 @@ def _last_date(values: list[str]) -> date | None:
     return max(found) if found else None
 
 
+def is_holdnote_file(path: Path) -> bool:
+    """A file already in Holdnote's own format (me/holdings.csv, or a copy of it)."""
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeDecodeError):
+        return False
+    for line in text.splitlines():
+        if line.strip() and not line.lstrip().startswith("#"):
+            head = [c.strip().lower() for c in line.split(",")]
+            return head[:7] == FIELDS[:7]
+    return False
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("files", nargs="+", type=Path, help="one or more exports (CSV/TSV/TXT/XLSX)")
@@ -897,11 +910,16 @@ def main(argv: list[str] | None = None) -> int:
     try:
         parsed: list[Parsed] = []
         infos = []
+        own: HoldingsFile | None = None  # an input already in Holdnote's format
         for f in args.files:
+            if own is None and is_holdnote_file(f):
+                own = load_holdings(f)
             rows, info = parse_export(f, overrides, args.decimal)
             parsed.extend(rows)
             infos.append(info)
-        existing = load_holdings(args.out) if args.out.exists() else None
+        # what the user already decided (kind, group, target_pct): the file being
+        # updated, else a Holdnote-format input, which carries those decisions itself
+        existing = load_holdings(args.out) if args.out.exists() else own
         holdings, guessed, dropped, filled = build(parsed, existing, _pairs(args.isin, "--isin"),
                                                    _pairs(args.kind, "--kind"))
         if args.value_currency:
@@ -919,7 +937,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     dates = [d for i in infos for d in i["dates"]]
-    as_of = args.as_of or (_last_date(dates) if dates else None) or date.today()
+    as_of = (args.as_of or (_last_date(dates) if dates else None)
+             or (own.as_of if own else None) or date.today())
     source = "; ".join(f"{i['label']} ({i['mode']})" for i in infos)
     for i in infos:
         cols = ", ".join(f'{f} from "{h}"' for f, h in i["came_from"].items()

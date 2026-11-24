@@ -6,8 +6,6 @@ import sys
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-import yaml
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
@@ -24,11 +22,25 @@ def test_scrub_keeps_what_a_report_needs():
     assert rp.scrub(s) == s
 
 
+def _form(template: str) -> dict:
+    """The ids and dropdown options of an issue form, read without PyYAML
+    (the release workflow installs pytest only)."""
+    import re
+    text = (ROOT / ".github" / "ISSUE_TEMPLATE" / template).read_text()
+    ids = re.findall(r"(?m)^\s*id:\s*(\w+)", text)
+    options = {}
+    for block in re.split(r"(?m)^\s*- type:", text)[1:]:
+        m = re.search(r"(?m)^\s*id:\s*(\w+)", block)
+        if m and block.lstrip().startswith("dropdown"):
+            opts = block.split("options:", 1)[1].split("validations:", 1)[0]
+            options[m.group(1)] = [o.strip() for o in re.findall(r"(?m)^\s*-\s*(.+)$", opts)]
+    return {"ids": set(ids), "options": options}
+
+
 def test_link_fields_match_the_issue_forms():
     """Every field the script fills is an id in the form it opens, so GitHub prefills it."""
     for kind, template in rp.TEMPLATES.items():
-        form = yaml.safe_load((ROOT / ".github" / "ISSUE_TEMPLATE" / template).read_text())
-        ids = {b["id"] for b in form["body"] if "id" in b} | {"title", "template"}
+        ids = _form(template)["ids"] | {"title", "template"}
         out = subprocess.run([sys.executable, str(ROOT / "scripts" / "report_problem.py"),
                               "--kind", kind, "--title", "t", "--what", "w", "--broker", "Degiro",
                               "--headers", "A,B,C\nsecret,row", "--expected", "e", "--asked", "a",
@@ -42,9 +54,6 @@ def test_link_fields_match_the_issue_forms():
 
 
 def test_dropdown_values_are_options_of_their_forms():
-    bug = yaml.safe_load((ROOT / ".github/ISSUE_TEMPLATE/bug.yml").read_text())
-    broker = yaml.safe_load((ROOT / ".github/ISSUE_TEMPLATE/broker.yml").read_text())
-    options = {b["id"]: b["attributes"]["options"] for f in (bug, broker) for b in f["body"]
-               if b.get("type") == "dropdown"}
+    options = {**_form("bug.yml")["options"], **_form("broker.yml")["options"]}
     assert set(rp.INSTALL.values()) <= set(options["install"])
     assert set(rp.FILETYPE.values()) <= set(options["filetype"])

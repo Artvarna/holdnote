@@ -370,3 +370,21 @@ def test_a_mistyped_isin_is_named(tmp_path, capsys):
     assert ih.main([str(g), "--dry-run", "-o", str(tmp_path / "h.csv")]) == 2
     out = capsys.readouterr().out
     assert "US0378331006" in out and "typo" in out
+
+
+def test_a_holdnote_format_file_keeps_its_own_decisions(tmp_path):
+    """Importing a file already in Holdnote's format (me/holdings.csv, the demo's)
+    keeps its kind, group and target_pct and its as_of, instead of guessing."""
+    import subprocess as _sp
+    repo = Path(__file__).resolve().parents[1]
+    out = tmp_path / "holdings.csv"
+    proc = _sp.run([sys.executable, str(repo / "scripts" / "import_holdings.py"),
+                    str(repo / "demo" / "holdings.csv"), "-o", str(out)],
+                   capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stdout
+    assert "guessed" not in proc.stdout
+    text = out.read_text()
+    assert "# as_of: 2026-10-16" in text
+    rows = {r.split(",")[1]: r.split(",") for r in text.splitlines() if r and not r.startswith("#")}
+    assert rows["SPYI"][3] == "fund" and rows["SPYI"][6] == "60"
+    assert rows["KO"][3] == "stock" and rows["KO"][6] == "8"

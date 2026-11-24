@@ -342,10 +342,14 @@ def render(text: str) -> str:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
+    if len(argv) != 2 or argv[1] in ("-h", "--help"):
         print("usage: python3 scripts/render.py <draft file>")
         return 2
-    print(render(Path(argv[1]).read_text(encoding="utf-8")), end="")
+    path = Path(argv[1])
+    if not path.is_file():
+        print(f"no such file: {path} (write the draft first, then render it)")
+        return 2
+    print(render(path.read_text(encoding="utf-8")), end="")
     return 0
 
 

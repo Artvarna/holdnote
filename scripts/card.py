@@ -430,7 +430,7 @@ def _figure(ops: list, fonts: "Fonts", x: float, y: float, w: float, h: float,
                     "sans-bold", ON_SAND, spacing=1.2))
     ops.append(Text(x + 22, y + 32 + value_size + 14, value, value_size, "display", ON_SAND))
     if caption:
-        ops.append(Text(x + 22, y + h - 18, fonts.fit(caption, 15, w - 40), 15, "sans", ON_SAND))
+        ops.append(Text(x + 22, y + h - 18, fonts.fit(caption, 15, w - 28), 15, "sans", ON_SAND))
 
 
 def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
