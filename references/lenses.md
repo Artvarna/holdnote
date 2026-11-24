@@ -3,7 +3,7 @@
 Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
 Optional tables a stock or fund brief adds after the Buffett scorecard
-(`SKILL.md` → Report layout) when the request names them: "Buffett +
+(`references/brief-layout.md`) when the request names them: "Buffett +
 Graham + Lynch", "run the magic formula on GOOGL", "all lenses". Buffett is
 never one of them — the scorecard always prints, whatever is asked.
 

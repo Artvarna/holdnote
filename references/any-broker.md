@@ -112,7 +112,7 @@ IE00BK5BQT80,VWCE,Vanguard FTSE All-World UCITS ETF,fund,12,Portfolio,
   with nothing fetched. The same holds for `fund_holdings.py report` below:
   without `--prices` it takes these weights for the look-through.
 - **Look-through** with a GitHub copy: clone its `holdings-data` branch in the
-  workspace (etf-brief → Holdings and Look-through tables, step 1) and run
+  workspace (`references/portfolio-view.md` → Holdings and Look-through tables, step 1) and run
   `report` there on the same files, with no copying to the computer:
   ```
   python3 <skill>/scripts/fund_holdings.py report --funds <me/funds.md> \

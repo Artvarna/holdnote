@@ -108,7 +108,7 @@ FY2024 with its accession number.
   Item 1A heading's first 12 words, in order, with the sub-section titles.
   On 2026-10-29 Apple's FY2025 10-K gave all 28, in five sub-sections, and
   said the text read reached Item 1B. Do the same for the prior 10-K and
-  diff them as `SKILL.md` → Red flags says, matching on the words given.
+  diff them as `references/brief-layout.md` → Red flags says, matching on the words given.
   A heading list that does not reach Item 1B is read on with `offset`.
 - **`Understandable`** (the scorecard) takes Item 1's first description of
   what the company sells, asked for as its first 12 words.
@@ -136,7 +136,7 @@ holdings and a top 10 that added to its printed `Total of Portfolio
 - **A factsheet WebFetch cannot open** (SSGA's returned a client error on
   2026-10-29): WebSearch for `<fund name> factsheet pdf` and try the
   address found; failing that, justETF as the labelled rank-3 fallback
-  `references/etf-brief.md` → Fund facts describes, then `Not available`.
+  `references/portfolio-view.md` → Fund facts describes, then `Not available`.
 
 ## ECB reference rates
 

@@ -25,7 +25,7 @@ up against Y".
 
 - **Exactly two, of the same kind.** Two funds (ETFs, index funds) or two
   stocks. Three or more funds are Mode C's Comparison and Overlap tables
-  (`references/etf-brief.md` → Mode C), which this mode's `Next:` line
+  (`references/portfolio-view.md`, Mode C), which this mode's `Next:` line
   offers; three or more stocks get one head-to-head per pair the user
   names, never a ranking of the set.
 - **A stock and a fund** are not compared side by side: their scorecards
@@ -58,7 +58,7 @@ The two sides are held to one footing:
   print on `Latest period` and `METHOD` names the gap.
 - **Same definitions.** Every row is computed by one definition for both
   sides — the scorecard's, stock-brief's Margins, Returns and Valuation,
-  etf-brief's Fund facts. A company's own "adjusted" figure never stands in
+  `references/portfolio-view.md` → Fund facts. A company's own "adjusted" figure never stands in
   for one side's row.
 - **Same period.** A row measured over a period — tracking difference
   most of all — uses one period for both. The scorecard takes the last

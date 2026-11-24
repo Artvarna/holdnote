@@ -2,7 +2,7 @@
 
 Reference for Holdnote (`holdnote`). Follow `RULES.md`.
 
-The first table of every stock and fund brief (`SKILL.md` → Report layout).
+The first table of every stock and fund brief (`references/brief-layout.md`).
 It is never dropped, and a request for other lenses adds to it.
 
 The scorecard measures; it does not judge. Each row is a metric taken from

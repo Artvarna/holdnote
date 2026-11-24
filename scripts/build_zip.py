@@ -82,6 +82,9 @@ FILES = {
     "references/decision-mirror.md": "references/decision-mirror.md",
     "references/thesis-watchdog.md": "references/thesis-watchdog.md",
     "references/report-problem.md": "references/report-problem.md",
+    "references/portfolio-view.md": "references/portfolio-view.md",
+    "references/brief-layout.md": "references/brief-layout.md",
+    "references/cards.md": "references/cards.md",
     # Named by portfolio-sync.md, ownership.md and t212_holdings.py's messages
     "docs/t212-csv-schema.md": "docs/t212-csv-schema.md",
     "docs/fifo-attribution.md": "docs/fifo-attribution.md",

@@ -16,7 +16,7 @@ refused by `data.sec.gov`, and WebFetch summarises the JSON instead of
 returning it: on 2026-10-01 it dropped the form types and offered a Form 4 as
 the latest periodic report. Open a tab on `data.sec.gov` and `fetch()` the
 `submissions/CIK##########.json` and `api/xbrl/companyfacts/…` files from it
-(`references/etf-brief.md` → Stocks table, "EDGAR's full JSON files are browser-only"). A figure
+(`references/portfolio-view.md` → Stocks table, "EDGAR's full JSON files are browser-only"). A figure
 WebFetch reports from those two large files is a lead to check against the
 JSON, never a value to print.
 
@@ -251,7 +251,7 @@ and cannot read a margin without knowing which standard produced it. They
 are reader-critical, so they fold into a mandated line rather than adding a
 sixth.
 
-`RESULT` follows `SKILL.md` → Report layout: the Mode line
+`RESULT` follows `references/brief-layout.md`: the Mode line
 (`Mode: Stock brief`), the TL;DR, then `Buffett scorecard` (stock version,
 `references/buffett-scorecard.md`), any extra lens tables, `Key numbers`,
 `What changed` and `Red flags`. The scorecard's `Understandable` row
@@ -290,10 +290,10 @@ Risks stated   risk as the filing states it, in the filing's order
 
 `Red flags` takes its `Filing risk` rows from a diff of `Risks stated`
 against the prior year's filing — risk factors added, removed or reworded
-(`SKILL.md` → Red flags) — so the prior filing is fetched whenever the
+(`references/brief-layout.md` → Red flags) — so the prior filing is fetched whenever the
 current one is.
 
-**Quick brief** (`SKILL.md` → Report layout → Quick brief). Only the
+**Quick brief** (`references/brief-layout.md` → Quick brief). Only the
 documents the stock scorecard needs are opened, in this order, and nothing
 else:
 
