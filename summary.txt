@@ -1,0 +1,28 @@
+VWCE: VWCE-2026-11-24.json - 3934 rows, 3500 equity, as of 2026-10-31
+VUSA: VUSA-2026-11-24.json - 512 rows, 503 equity, as of 2026-10-31
+VHVG: VHVG-2026-11-24.json - 1973 rows, 1908 equity, as of 2026-10-31
+VHYL: VHYL-2026-11-24.json - 2887 rows, 2376 equity, as of 2026-10-31
+SWDA: SWDA-2026-11-24.json - 1273 rows, 1250 equity, as of 2026-11-23
+CSPX: CSPX-2026-11-24.json - 510 rows, 504 equity, as of 2026-11-23
+IUSA: IUSA-2026-11-24.json - 509 rows, 504 equity, as of 2026-11-23
+SSAC: SSAC-2026-11-24.json - 1741 rows, 1660 equity, as of 2026-11-23
+CNDX: CNDX-2026-11-24.json - 107 rows, 101 equity, as of 2026-11-23
+EIMI: EIMI-2026-11-24.json - 3278 rows, 2910 equity, as of 2026-11-23
+SMEA: SMEA-2026-11-24.json - 396 rows, 384 equity, as of 2026-11-23
+WSML: WSML-2026-11-24.json - 3608 rows, 3589 equity, as of 2026-11-23
+ISF: ISF-2026-11-24.json - 106 rows, 101 equity, as of 2026-11-23
+IUIT: IUIT-2026-11-24.json - 83 rows, 76 equity, as of 2026-11-23
+INRG: INRG-2026-11-24.json - 132 rows, 103 equity, as of 2026-11-23
+SPPW: SPPW-2026-11-24.xlsx - 1255 rows, 1237 equity, as of 2026-11-23
+SPYI: SPYI-2026-11-24.xlsx - 6109 rows, 6060 equity, as of 2026-11-23
+SPY5: SPY5-2026-11-24.xlsx - 510 rows, 504 equity, as of 2026-11-23
+SPYD: SPYD-2026-11-24.xlsx - 157 rows, 154 equity, as of 2026-11-23
+SPYW: SPYW-2026-11-24.xlsx - 43 rows, 40 equity, as of 2026-11-23
+MEUD: MEUD-2026-11-24.json - 614 rows, 611 equity, as of 2026-11-20
+MWRD: MWRD-2026-11-24.json - 1252 rows, 1245 equity, as of 2026-11-20
+PRAW: PRAW-2026-11-24.json - 3250 rows, 3226 equity, as of 2026-11-20
+run: https://github.com/Artvarna/holdnote/actions/runs/45485487454
+ref: main 5caa416f6629a96cbb014a3e1e2a680f2c324d04
+utc: 2026-11-24T20:54:02Z
+exit: 0
+ok: 27 lines, not available: 0
