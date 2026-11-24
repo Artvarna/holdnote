@@ -265,3 +265,19 @@ def test_every_reference_file_ships_in_the_zip():
 def test_every_reference_skill_md_names_exists():
     missing = sorted(r for r in _skill_references() if not (REPO / r).exists())
     assert missing == []
+
+
+def test_build_info_reads_each_install_kind(tmp_path):
+    import build_info
+
+    zipped = tmp_path / "zip"; zipped.mkdir()
+    (zipped / "BUILD").write_text("6138ce0 2026-10-03\n")
+    assert build_info.build_stamp(zipped) == "6138ce0 2026-10-03"
+
+    plugin = tmp_path / "a5e925efa5b2"; plugin.mkdir()
+    assert build_info.build_stamp(plugin) == "a5e925e (plugin)"
+
+    bare = tmp_path / "holdnote"; bare.mkdir()
+    assert build_info.build_stamp(bare) == "unknown"
+
+    assert build_info.build_stamp().endswith("(repo)")

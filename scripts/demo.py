@@ -66,14 +66,9 @@ class Stale(Exception):
 
 
 def build_stamp() -> str:
-    f = ROOT / "BUILD"
-    if f.is_file():
-        return f.read_text(encoding="utf-8").strip()
-    try:
-        return subprocess.run(["git", "log", "-1", "--format=%h %cs"], cwd=ROOT,
-                              capture_output=True, text=True, check=True).stdout.strip() + " (repo)"
-    except (OSError, subprocess.CalledProcessError):
-        return "unknown"
+    sys.path.insert(0, str(HERE))
+    from build_info import build_stamp as stamp
+    return stamp(ROOT)
 
 
 def run(script: str, *args: str) -> str:

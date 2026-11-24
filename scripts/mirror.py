@@ -965,18 +965,11 @@ ECB_URL = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.zip"
 
 
 def build_stamp() -> str:
-    root = Path(__file__).resolve().parent.parent
-    f = Path(__file__).resolve().parent / "BUILD"
-    for candidate in (f, root / "BUILD"):
-        if candidate.is_file():
-            return candidate.read_text(encoding="utf-8").strip()
-    import subprocess
-
-    try:
-        return subprocess.run(["git", "log", "-1", "--format=%h %cs"], cwd=root,
-                              capture_output=True, text=True, check=True).stdout.strip() + " (repo)"
-    except (OSError, subprocess.CalledProcessError):
-        return "unknown"
+    import sys
+    here = Path(__file__).resolve().parent
+    sys.path.insert(0, str(here))
+    from build_info import build_stamp as stamp
+    return stamp(here.parent)
 
 
 def compose(m: Mirror, flows: Flows, nav: Nav, label: str, theses: dict[str, str],

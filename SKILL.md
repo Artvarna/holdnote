@@ -127,7 +127,7 @@ that fails is said plainly, with the text printed so nothing is lost.
 | "Make a card", "make my portfolio card", "something I can post", "share my portfolio" — of their portfolio or of the demo | Portfolio card, below |
 | What Buffett's ideas are, where a rule comes from, "why is it called the Buffett scorecard" | `references/buffett.md`, answered from its Principles table; never what he would think of an instrument |
 | A general question with no instrument or portfolio in it — what a TER is, how ETFs or index funds work, what diversification means | Answer in plain prose, without the output contract, fetches or the scorecard; a figure that is given still names its source (rule 1). Offer a brief in one line when an instrument comes up |
-| "Which build / version is this?" | Answer with the text of the `BUILD` file in this skill's folder and nothing else |
+| "Which build / version is this?" | Answer with the text of the `BUILD` file in this skill's folder and nothing else; with no `BUILD` file (a Claude Code plugin install), the line `python3 <skill>/scripts/build_info.py` prints |
 
 Load only what the request needs. Several may apply — "compare VWCE to what I
 own" needs the ETF reference for both the candidate and the portfolio view.
@@ -240,8 +240,11 @@ that run's own listing from the draft or journal, never a fresh fetch.
 `RULES.md` Part IV → SOURCES has the line's exact shape.
 
 **Name the build.** `METHOD`'s first line is `Build:` and the text of the
-`BUILD` file in this skill's folder, as written there. It says which version
-of the skill produced the output, so a run can be traced to its rules.
+`BUILD` file in this skill's folder, as written there. A Claude Code plugin
+install has no `BUILD` file: there, the line is what `python3
+<skill>/scripts/build_info.py` prints (the installed commit, marked
+`(plugin)`). It says which version of the skill produced the output, so a
+run can be traced to its rules.
 
 **Check the draft before printing it.** Write the whole output to a file
 — with the full `SOURCES` listing, whatever will print — and run `python3 scripts/check_output.py <file>` from this skill's folder.

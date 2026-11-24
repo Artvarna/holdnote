@@ -42,6 +42,7 @@ FILES = {
     "templates/me/theses/README.md": "templates/me/theses/README.md",
     "scripts/check_output.py": "scripts/check_output.py",
     "scripts/demo.py": "scripts/demo.py",
+    "scripts/build_info.py": "scripts/build_info.py",
     "demo/holdings.csv": "demo/holdings.csv",
     "demo/funds.md": "demo/funds.md",
     "demo/mirror/transactions.csv": "demo/mirror/transactions.csv",
