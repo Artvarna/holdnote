@@ -138,7 +138,7 @@ def test_the_proof_check_name_is_not_the_method_label():
 
 
 def test_the_stocks_section_names_both_method_labels():
-    spec = (REPO / "references" / "etf-brief.md").read_text(encoding="utf-8")
+    spec = (REPO / "references" / "etf-brief.md").read_text(encoding="utf-8") + (REPO / "references" / "portfolio-view.md").read_text(encoding="utf-8")  # Mode C is its own file
     section = spec.split("### Stocks table", 1)[1].split("\n### ", 1)[0]
     assert "Stocks window:     8-Ks filed in the 30 days to [Data as of]" in section
     assert "Earnings dates:    company-announced only, never estimated" in section

@@ -691,8 +691,7 @@ close now comes from the exchange; Yahoo confirms where it has a number.
 
 ## Stocks table in Mode C: earnings dates and newest filings
 
-**DECIDED 2026-10-01.** In force in `references/etf-brief.md` → Mode C →
-Stocks table, checked by `tests/contract.py` → `stocks_table_problems` and
+**DECIDED 2026-10-01.** In force in `references/portfolio-view.md` → Stocks table, checked by `tests/contract.py` → `stocks_table_problems` and
 `tests/test_stocks_table.py`.
 
 Mode C's Performance table already prints a row for each stock in the set,
@@ -728,7 +727,7 @@ browser tab on `data.sec.gov`; both shells are refused at the proxy, and
 WebFetch summarised the JSON wrongly (a Form 4 offered as the latest periodic
 report), so it is ruled out as a route. All three company pages loaded and none
 had announced its next date. The route table is in
-`references/etf-brief.md` → Stocks table.
+`references/portfolio-view.md` → Stocks table.
 
 ## STATUS is `Complete.` alone; the Stocks table names its METHOD lines
 

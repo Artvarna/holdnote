@@ -77,7 +77,7 @@ tables a question gets picks them:
 | "how much do these ETFs overlap?" | `Holdings` |
 | "how much Amazon is in there really?" | `Allocation,Look-through,Hidden bets` |
 | "what is this portfolio really betting on?" | `Allocation,Look-through,Hidden bets` |
-| "make a card" | `Allocation,Holdings,Look-through,Hidden bets,Countries,Sectors`, then `SKILL.md` → Portfolio card on the draft |
+| "make a card" | `Allocation,Holdings,Look-through,Hidden bets,Countries,Sectors`, then `references/cards.md` on the draft |
 | "currencies?" | `Allocation,Currencies` |
 | "everything" | `all` |
 | "show proof" | the same tables, plus `--proof` |

@@ -245,7 +245,7 @@ def test_no_cell_carries_interpretation():
 
 
 def _spec() -> str:
-    return (REPO / "references" / "etf-brief.md").read_text(encoding="utf-8")
+    return (REPO / "references" / "etf-brief.md").read_text(encoding="utf-8") + (REPO / "references" / "portfolio-view.md").read_text(encoding="utf-8")  # Mode C is its own file
 
 
 def test_the_spec_counts_twelve_mode_c_tables_everywhere():

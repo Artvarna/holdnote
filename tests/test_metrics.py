@@ -124,7 +124,7 @@ def test_the_spec_defines_every_margin_and_its_source():
                  "CAGR", "interest coverage", "current ratio", "EV/Sales", "payout ratio"):
         assert line in spec, line
     assert "`ShareBasedCompensation`" in spec and "`GrossProfit`" in spec
-    skill = (REPO / "SKILL.md").read_text(encoding="utf-8")
+    skill = (REPO / "references" / "brief-layout.md").read_text(encoding="utf-8")  # Report layout moved here
     assert "net\nmargin" in skill or "net margin" in skill
 
 

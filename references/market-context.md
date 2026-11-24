@@ -82,7 +82,7 @@ question for the module being routed to, not an input to the routing.
    move without reasons.
 1. **Possessive or first-person ownership scope** — "my portfolio", "my
    S&P 500 tracker", "my direct stock pie", "what I own", "what I bought" →
-   portfolio view (`references/etf-brief.md` → Mode C). This test fires
+   portfolio view (`references/portfolio-view.md`, Mode C). This test fires
    before any index-name match: "how's my S&P 500 tracker doing" names an
    index and is still a question about a position.
 2. **A specific instrument named** — ticker, ISIN or fund name, held or not
@@ -401,7 +401,7 @@ levels in their HTML — the endpoint above is where the data is.
 ### Period resolution
 
 The one parser for "since Monday", "this month" and their kind. This mode
-and `references/etf-brief.md` → Mode C both use it; neither keeps its own.
+and `references/portfolio-view.md` (Mode C) both use it; neither keeps its own.
 
 A period resolves to a **base close** and an **end close**, and
 

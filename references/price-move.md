@@ -41,7 +41,7 @@ drop", "any reason X jumped this week", "is there news on X".
 A stock is read on its primary listing. An ETF is the listing the ticker
 names (VUSA is the LSE, GBP); a fund named by ISIN or by name with several
 listings is asked about once — which exchange or currency — never resolved
-from the ticker alone (`references/etf-brief.md` → Where fund prices come
+from the ticker alone (`references/portfolio-view.md` → Where fund prices come
 from). Resolve the entity by ISIN or CIK, never by name.
 
 ## What it reports
@@ -271,7 +271,7 @@ mode.
   SEC EDGAR); a European issuer's own news page and its exchange's filing
   portal.
 - **Company and fund releases, ex-dates** — the issuer's own pages, as
-  `references/etf-brief.md` → Stocks table and Distributions describe.
+  `references/portfolio-view.md` → Stocks table and Distributions describe.
 - **Rate decisions** — the central bank's own statement page.
 - **Reported reasons** — WebSearch and WebFetch, which work everywhere,
   the web and the phone included.

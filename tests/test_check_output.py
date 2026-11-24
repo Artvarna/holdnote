@@ -185,7 +185,7 @@ def _read(path: str) -> str:
 
 
 def test_the_spec_states_the_three_rules():
-    spec = _read("references/etf-brief.md")
+    spec = _read("references/etf-brief.md") + _read("references/portfolio-view.md")
     assert "**Across providers, compare country lists, never labels.**" in spec
     assert "**Shared weight is one figure:**" in spec
     assert "never from an unchecked\nWebFetch summary.**" in spec

@@ -23,7 +23,7 @@ fetches nothing, recalls nothing, and ends at the table.
   measured allocation and stops. A difference in percentage points printed
   as a number (`Diff (pp)` in etf-brief → Allocation table) is arithmetic,
   not a reading; a word about it is. Comparing it against target is the user's
-  read, and an overlap question goes to `references/etf-brief.md` → Mode C.
+  read, and an overlap question goes to `references/portfolio-view.md` (Mode C).
 - **No editing of prose.** The Look-through and Watchlist sections and every
   sourced note in `portfolio.md` are carried across unchanged. This module
   owns quantities, cost bases, weights and the `Last updated` stamp. Nothing
@@ -470,7 +470,7 @@ position at the last price it happened to trade at dates every position
 differently — one at last week, one at four months ago — and a column of
 figures with N different as-of dates is not a snapshot of anything. It has
 no date to put in `CONTEXT`, it cannot be reproduced by a reader, and it
-must never be fed to `references/etf-brief.md` → Mode C, where a look-through
+must never be fed to `references/portfolio-view.md` (Mode C), where a look-through
 multiplies those weights by issuer holdings to produce single-company
 exposure. Stale weights there yield a confidently wrong concentration
 figure.

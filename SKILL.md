@@ -106,8 +106,8 @@ that fails is said plainly, with the text printed so nothing is lost.
 | Any ETF, fund or tracker, owned or not | `references/etf-brief.md` |
 | How an index is built — universe, constituents, weighting (MSCI World, STOXX 600, S&P 500) | `references/etf-brief.md` → Mode B |
 | An individual company or stock | `references/stock-brief.md` |
-| Overlap, concentration, look-through, "what do I actually own", actual vs target weights | `references/etf-brief.md` → Mode C, whose Allocation table carries market weight vs target per holding (`scripts/market_weights.py`, run in the repo), whose Holdings, Look-through, Countries, Sectors and Currencies tables come from every company each fund holds (`scripts/fund_holdings.py report`, run in the repo on files a GitHub Actions job fetches daily to the `holdings-data` branch), and whose Stocks table carries each stock's next earnings date and newest SEC filings |
-| What changed in my funds' holdings — names added or dropped, weight moves week on week | `references/etf-brief.md` → Mode C → Holdings changes table (`scripts/fund_holdings.py changes`, run in Claude's workspace on the `holdings-data` and `holdings-history` branches) |
+| Overlap, concentration, look-through, "what do I actually own", actual vs target weights | `references/portfolio-view.md` (Mode C, with `references/etf-brief.md`), whose Allocation table carries market weight vs target per holding (`scripts/market_weights.py`, run in the repo), whose Holdings, Look-through, Countries, Sectors and Currencies tables come from every company each fund holds (`scripts/fund_holdings.py report`, run in the repo on files a GitHub Actions job fetches daily to the `holdings-data` branch), and whose Stocks table carries each stock's next earnings date and newest SEC filings |
+| What changed in my funds' holdings — names added or dropped, weight moves week on week | `references/portfolio-view.md` (Mode C, with `references/etf-brief.md`) → Holdings changes table (`scripts/fund_holdings.py changes`, run in Claude's workspace on the `holdings-data` and `holdings-history` branches) |
 | Why a named stock or ETF moved, or whether there is a reason — "why did NVDA drop today", "any reason VUSA is down this week", "why did my Apple shares fall" | `references/price-move.md` — one instrument per output; never opens the user's holdings |
 | How a company's latest quarter went — "how did TSLA's earnings go", "recap Netflix's Q3", "did Intel beat estimates", "what did NVDA guide" | `references/earnings-recap.md` — one company per output; reads its own release; never opens the user's holdings |
 | Two named funds or two named stocks compared — "VWCE vs IWDA", "compare AAPL and MSFT", "SPYL or CSPX?", "which is better, X or Y" | `references/head-to-head.md` — exactly two of the same kind, in the order named, no winner; three or more funds are Mode C; a stock against a fund gets one line of prose and the two quick briefs |
@@ -123,8 +123,8 @@ that fails is said plainly, with the text printed so nothing is lost.
 | "Should I buy X", "thinking of adding X", "checklist for X" | `references/checklist.md`, with the stock or fund brief it runs — one instrument; two named ("X or Y?") is a Head-to-head |
 | "Quick brief on X", "quick look at X", "just the scorecard for X" — or any brief when the profile's `Report length` is `quick` and the request does not say "full" | The stock or fund brief, as a **quick brief** (Report layout → Quick brief) |
 | "Show me a demo", "try it", "example report", "what does Holdnote do?" — with no holdings of the user's attached | `references/demo.md`; "demo the Mirror" or "demo the lazy twin" is `references/decision-mirror.md` → Demo, and "demo the Watchdog" is `references/thesis-watchdog.md` → Demo |
-| "What am I really betting on?", "hidden bets", "which companies do I own through more than one holding?" | `references/etf-brief.md` → Mode C, tables Allocation, Look-through and Hidden bets |
-| "Make a card", "make my portfolio card", "something I can post", "share my portfolio" — of their portfolio or of the demo | Portfolio card, below |
+| "What am I really betting on?", "hidden bets", "which companies do I own through more than one holding?" | `references/portfolio-view.md` (Mode C, with `references/etf-brief.md`), tables Allocation, Look-through and Hidden bets |
+| "Make a card", "make my portfolio card", "something I can post", "share my portfolio" — of their portfolio or of the demo | `references/cards.md`, on a Mode C draft (`references/portfolio-view.md`) |
 | What Buffett's ideas are, where a rule comes from, "why is it called the Buffett scorecard" | `references/buffett.md`, answered from its Principles table; never what he would think of an instrument |
 | A general question with no instrument or portfolio in it — what a TER is, how ETFs or index funds work, what diversification means | Answer in plain prose, without the output contract, fetches or the scorecard; a figure that is given still names its source (rule 1). Offer a brief in one line when an instrument comes up |
 | "Report a problem", "this is broken", "file a bug", "my broker's export wasn't read", "I have an idea for Holdnote" | `references/report-problem.md`: a pre-filled GitHub issue as one link, with no amounts, quantities or account numbers in it |
@@ -139,7 +139,12 @@ down)`, that file's route and its read-back gate come first.
 A stock or fund brief always also loads `references/buffett-scorecard.md`
 and `references/buffett.md` (for Buffett notes), and `references/lenses.md`
 when the request or the profile's default lenses name another investor or
-formula. Its layout is under Output contract → Report layout.
+formula. Its layout is `references/brief-layout.md`, which every brief, full or quick, also loads.
+
+**Mode C lives in its own file.** Any portfolio, overlap, look-through,
+allocation, holdings-changes or "what do I own" route loads
+`references/portfolio-view.md` (Mode C) together with
+`references/etf-brief.md`. A fund or index brief loads `etf-brief.md` alone.
 
 ### Routing test vectors
 
@@ -275,144 +280,10 @@ adds nothing.
 
 ### Report layout — stock and fund briefs
 
-A stock brief (`Mode: Stock brief`) and a fund brief
-(`Mode: Fund brief (Mode A)`) print `RESULT` in this fixed order. Every
-other mode keeps the tables its own reference specifies; where a brief
-combines with another mode, the brief's layout prints first.
-
-```
-RESULT
-Mode: Stock brief
-TL;DR              three lines at most, facts only, no table
-Buffett scorecard  always, first table
-<Name> lens        one table per extra lens asked for, in the order asked
-Key numbers        one compact table
-What changed       against the last logged run of the same instrument
-Red flags          filing risks new since the prior filing + thesis checks
-Buffett notes      only when a trigger fires (references/buffett.md)
-<detail tables>    only when asked for
-```
-
-**TL;DR.** Up to three lines between the Mode line and the first table,
-in this order, each starting with its label:
-
-```
-Scorecard: 4 of 6 met · 1 not met · 1 not available
-Changed:   diluted EPS 6.08 → 6.75 (+11.0%) since 2026-09-27
-Red flags: 2 new filing risks · thesis criteria 0 of 3 reached
-```
-
-`Changed:` prints `nothing since <date>` when nothing moved (rule 10) and
-`no earlier run logged` when there is no run to compare. Every figure on
-these lines is printed again in a table below; a TL;DR line never carries a
-number the tables do not, and never an adjective of judgement. It is a
-restatement, which is what keeps it inside rule 6.
-
-**Buffett scorecard.** Always printed, always first; a request for other
-lenses adds to it and never replaces it. Columns:
-
-| Check | Metric | Value | Threshold | Result |
-
-`Result` is `Met`, `Not met` or `Not available` — arithmetic against the
-threshold, never a verdict on the instrument. Checks, metrics and
-thresholds come from `references/buffett-scorecard.md`: the stock version
-for a company, the fund version for an ETF. The thresholds are the user's
-stated tests, printed in the table so a reader sees exactly what was
-measured against what.
-
-**Extra lenses.** "Buffett + Graham + Lynch" adds a `Graham lens` and a
-`Lynch lens` table, same columns, in the order asked, from
-`references/lenses.md`. A lens that file does not define is named in
-`CONTEXT` → `Not available`, never improvised.
-
-**Key numbers.** One table carrying the figures a reader needs beside the
-scorecard. For a stock: revenue, gross margin, operating margin, net
-margin, free cash flow, FCF margin, ROIC, net debt, diluted EPS and the
-valuation multiple with its price date, each with the value five years
-earlier where the filings provide it, then revenue's five-year CAGR, which
-has one value only. Definitions are `references/stock-brief.md` → Margins,
-Returns and Growth. For a fund: the
-Fund facts rows from `references/etf-brief.md` → Mode A.
-
-**What changed.** Against the most recent logged run of the same ISIN or
-ticker in `log/` (`references/run-journal.md`), quoted from that run's
-file, never reconstructed (rule 15). A logged quick brief carries only its
-scorecard, so a metric it did not print is compared with the most recent
-logged run that did. Columns:
-
-| Metric | Last run (date) | Now | Change |
-
-Nothing moved: one row, `No change since <date>`. No earlier run: one row,
-`No earlier run logged`. No access to `log/`: one row, `Not available —
-<reason>`. The table is never dropped.
-
-**Red flags.** Two kinds of row, both sourced, neither invented, neither
-ranked:
-
-| Type | Item | Source | Status |
-
-- `Filing risk` — risk factors added or removed in the latest filing
-  against the one before it, in the filing's own order and wording (rule
-  6). For a fund: changes to the KID's risk section or its risk indicator.
-  Status: `New`, `Removed` or `Reworded`; `Not checkable` with the reason
-  when the earlier filing or KID could not be fetched. Compare the filing's
-  risk factor summary where it has one (else its risk factor headings), and
-  match each factor to last year's by words in common: two lines sharing
-  60% or more of their words are one factor `Reworded`, printed in this
-  year's words, never a `New` and a `Removed`. Only `New` and `Removed`
-  count as changes on the TL;DR's `Red flags:` line.
-- `Thesis` — each "what would prove me wrong" criterion from the
-  instrument's thesis (`references/thesis-journal.md`), quoted verbatim,
-  with the current sourced figure that bears on it. Status: `Reached`,
-  `Not reached` or `Not checkable`.
-
-A filing with nothing added or removed gets one `Filing risk` row with
-status `None`; an instrument with no thesis on file gets one `Thesis` row
-with status `None on file`, so an empty side is a statement, not a gap.
-Holdnote never writes failure scenarios of its own: a red flag is
-something a filing states or a criterion the user wrote.
-
-**Detail tables.** The module's other tables — for a stock, Business,
-Segments, Geography, Financials, Margins, Expense ratios, Returns, Growth,
-Balance sheet, Valuation, Peers, Capital return and Risks stated; for a fund, Top 10, Sectors and Countries — are
-still built on every run, because the scorecard and Key numbers draw on
-them. They print after `Red flags` only when asked for: "full detail",
-"show everything", a question about one of them ("what are Apple's
-segments?" prints Segments, "what are its margins?" prints Margins and
-Expense ratios), or the profile's `Report length` set to `full`. `METHOD` names the ones held back on a
-`Detail tables:` line.
-
-`scripts/check_output.py` holds a brief to this order.
-
-### Quick brief
-
-"Quick brief on NVDA" — or any brief when the profile's `Report length` is
-`quick` — prints the TL;DR's `Scorecard:` line and the Buffett scorecard,
-plus a lens table only when the request names one. Nothing else: no Key
-numbers, What changed, Red flags, Buffett notes or detail tables. The Mode
-line says so: `Mode: Stock brief (quick)` or `Mode: Fund brief (Mode A,
-quick)`.
-
-**It fetches only what the scorecard needs**, which is what makes it quick
-and light on the user's plan limits. `references/stock-brief.md` → Quick
-brief and `references/etf-brief.md` → Mode A → Quick brief list those
-documents; a document not on the list is not opened. The run journal is not
-read, because What changed is not printed.
-
-The scorecard itself is unchanged: the same checks, thresholds, sources and
-`Not available` rules as a full brief, so a quick `Met` is the same `Met`.
-
-`METHOD` carries one line naming what was skipped, and its `Next:` line
-offers the rest:
-
-```
-Quick brief:       Key numbers, What changed, Red flags and detail tables not built
-Next:              say "full brief on NVDA" for the rest
-```
-
-"Full brief", "full report" or "everything" in the request overrides a
-`quick` profile setting. A checklist ("should I buy X") always runs the full
-brief, because its tables need Key numbers and Red flags.
+A stock or fund brief, full or quick, prints `RESULT` in the fixed order
+set in `references/brief-layout.md` (TL;DR, Buffett scorecard, lenses, Key
+numbers, What changed, Red flags, Buffett notes, detail tables), which every
+brief loads. `scripts/check_output.py` holds a brief to that order.
 
 Two slips the live runs of 2026-09-28 made, which the contract already
 forbids: an output that opened at `CONTEXT` with no `STATUS`, and a
@@ -425,44 +296,10 @@ is a `METHOD` line, so nothing withheld or unconfirmed goes unsaid.
 
 ## Portfolio card
 
-Three images of what a portfolio looks through to, made to be posted. Two are
-**share images** that lead with one sentence about the poster, in big type:
-
-- `story.png` (1080 x 1920, Instagram and TikTok stories): "I bought 4
-  things." and "I own 5,965 companies", then the company reached through most
-  holdings and how. At factsheet top-10 depth, where no company count exists,
-  the five biggest companies replace the count.
-- `wide.png` (1200 x 675, the shape X shows in full in a timeline): the same
-  sentence and figure side by side.
-- `card.png` (1080 x 1350): the detailed card, set like a fund factsheet:
-  composition, three key figures, the top 10 companies with each fund's part,
-  countries and sectors.
-
-1. **Get a checked Mode C draft** with the tables Allocation, Holdings,
-   Look-through, Hidden bets, Countries and Sectors — the user's portfolio
-   (`references/etf-brief.md` → Mode C), or the demo with
-   `--tables "Allocation,Holdings,Look-through,Hidden bets,Countries,Sectors"`
-   (`references/demo.md`). A draft from earlier in the conversation is used
-   when it has them; never rebuild one from the rendered report.
-2. Run `python3 <skill>/scripts/card.py <draft> --out <scratch>/card`. It
-   checks the draft against the contract first and writes each image as SVG,
-   plus PNG when Pillow is installed.
-3. **Give the user the PNGs as files** (the SVGs when no PNG was made),
-   `story.png` and `wide.png` first, then `card.png`, the way this
-   environment hands files to the user: its file-sending tool when it has
-   one, else its outputs folder (`/mnt/user-data/outputs/` where that
-   exists). Never a bare path or a description of the image instead. Add one
-   line: which is for where, and that they carry percentages only.
-
-**Percentages only.** The images draw cells of the draft's tables — shares of
-the portfolio's market value — and never a quantity, close, value or amount,
-so the user can post it without showing what they have. It says nothing the
-tables do not: no rating, no verdict. A demo card is labelled `DEMO ·
-SYNTHETIC PORTFOLIO`. Without GitHub the card is made from a look-through
-at factsheet top-10 depth (`references/any-broker.md` → Look-through without
-GitHub) and says `PARTIAL · TOP-10 DEPTH`. Exit 1 means the draft cannot
-make a card (most often Look-through is `Not available`): say why in one
-line and offer what would fix it — attach an export, or run the demo card.
+"Make a card", "something I can post", "share my portfolio": the share
+images and the detailed card, made by `scripts/card.py` from a checked Mode C
+draft. How, and what to hand over, is `references/cards.md`; after a Mirror,
+`references/decision-mirror.md` → Card.
 
 ## Scope
 
