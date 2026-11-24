@@ -151,6 +151,10 @@ changes.`
 "Make a card" after a Mirror: `scripts/card.py --mirror mirror.json`,
 percentages only, the benchmark and both dates on it, and the
 `This much history says little about skill` line when the run printed it.
+It writes two sizes: `mirror-card.png` (1080 x 1350, for Instagram and
+LinkedIn) and `mirror-card-wide.png` (1200 x 675, the shape X shows in full
+in a timeline). Give the user both PNGs as files, with one line saying which
+is for where.
 
 ## Demo
 

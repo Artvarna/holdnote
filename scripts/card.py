@@ -41,28 +41,34 @@ W, H = 1080, 1350
 PAD = 64
 REPO = "github.com/Artvarna/holdnote"
 
-# Art direction: an issuer's fund factsheet. White page, a navy header band,
-# one typeface (Inter) in two weights, hairline rules, figures right-aligned
-# in tables, and one accent colour with tints of it for the parts of a bar.
-PAPER = "#FFFFFF"
-INK = "#14171C"
-MUTED = "#5F6670"
-RULE = "#DADDE2"
-PANEL = "#F2F4F6"
-NAVY = "#1F3A5F"
-ON_NAVY = "#C9D5E4"
-TRACK = "#E4E8ED"
+# Art direction: Holdnote's brand. Obsidian page, sand ink, the browline
+# glasses in the header; Outfit for headlines and the big figures, Inter for
+# the small type and tables; one accent (sand) with darker steps of it for
+# the parts of a bar. Sand on obsidian is 7.9:1, MUTED on obsidian 4.6:1.
+PAPER = "#161616"
+INK = "#C2A284"
+MUTED = "#8C7863"
+RULE = "#38322C"
+PANEL = "#221F1C"
+SAND = "#C2A284"
+ON_SAND = "#161616"
+TRACK = "#2C2824"
 # Parts of a bar, largest first; the folded Other is REST
-SEGMENTS = ["#1F3A5F", "#4F6D8F", "#8399B3", "#B4C2D3", "#D5DEE8"]
-REST = "#E4E8ED"
+SEGMENTS = ["#C2A284", "#9C8269", "#77644F", "#5A4D3F", "#433A31"]
+REST = "#2C2824"
+LOGO = HERE.parent / "assets" / "card" / "glasses.png"
+LOGO_RATIO = 480 / 184  # width / height of glasses.png
 
 FONTS = HERE.parent / "assets" / "fonts"
 # key -> (file, SVG family, weight, style)
 FACES = {
     "sans": ("Inter_400Regular.ttf", "BB Sans", 400, "normal"),
     "sans-bold": ("Inter_600SemiBold.ttf", "BB Sans", 600, "normal"),
+    "display": ("Outfit_700Bold.ttf", "BB Display", 700, "normal"),
+    "display-semi": ("Outfit_600SemiBold.ttf", "BB Display", 600, "normal"),
 }
 FALLBACK = {"BB Serif": "Georgia, 'Times New Roman', serif",
+            "BB Display": "'Helvetica Neue', Arial, sans-serif",
             "BB Sans": "'Helvetica Neue', Arial, sans-serif"}
 
 
@@ -292,6 +298,15 @@ class Rect:
     r: float = 0
 
 
+@dataclass
+class Picture:
+    x: float
+    y: float
+    w: float
+    h: float
+    path: Path
+
+
 class Fonts:
     """The bundled faces through Pillow: they draw the PNG and measure text, so
     long names are cut to fit in both files the same way. Without Pillow,
@@ -343,7 +358,7 @@ def _date(iso: str) -> str:
 def _section(ops: list, x: float, y: float, w: float, title: str) -> None:
     """A section heading as factsheets set them: bold, sentence case, a rule under."""
     ops.append(Text(x, y, title, 19, "sans-bold", INK))
-    ops.append(Rect(x, y + 12, w, 1.5, NAVY))
+    ops.append(Rect(x, y + 12, w, 1.5, SAND))
 
 
 def _bucket_column(ops: list, x: float, y: float, w: float, title: str,
@@ -359,7 +374,7 @@ def _bucket_column(ops: list, x: float, y: float, w: float, title: str,
         bar_x, bar_w = x + w * 0.64, w * 0.36 - fonts.width("00.00%", 17, "sans-bold") - 14
         ops.append(Rect(bar_x, ry - 9, bar_w, 6, TRACK))
         ops.append(Rect(bar_x, ry - 9, max(float(value / biggest) * bar_w, 2), 6,
-                        REST if label == "Other" else NAVY))
+                        REST if label == "Other" else SAND))
         ops.append(Rect(x, ry + 10, w, 1, RULE))
         ry += 30
     return ry
@@ -387,23 +402,42 @@ def _hero_lines(card: Card) -> tuple[str, str] | None:
             f"{len(routes)} holdings", _and(parts).capitalize()[0] + _and(parts)[1:])
 
 
+def _header(ops: list, fonts: "Fonts", title: str, as_of: str, badge: str | None) -> None:
+    """The brand line (glasses + Holdnote), the date, an optional badge, and
+    the card's title in large type."""
+    right = W - PAD
+    gh = 26
+    if LOGO.exists():
+        ops.append(Picture(PAD, 44, gh * LOGO_RATIO, gh, LOGO))
+    ops.append(Text(PAD + gh * LOGO_RATIO + 14, 66, "Holdnote", 26, "display-semi", SAND))
+    ops.append(Text(right, 64, f"As of {as_of}", 18, "sans", MUTED, "end"))
+    if badge:
+        bw = fonts.width(badge, 13, "sans-bold", 1.2) + 28
+        ops.append(Rect(right - bw, 84, bw, 30, SAND, 15))
+        ops.append(Text(right - 14, 104, badge, 13, "sans-bold", ON_SAND, "end", 1.2))
+    ops.append(Text(PAD, 172, title, 58, "display", SAND, spacing=-1))
+
+
+def _figure(ops: list, fonts: "Fonts", x: float, y: float, w: float, h: float,
+            title: str, value: str, caption: str = "", value_size: int = 34) -> None:
+    """A sand panel with a big figure: the numbers people screenshot."""
+    ops.append(Rect(x, y, w, h, SAND, 18))
+    ops.append(Text(x + 22, y + 32, fonts.fit(title.upper(), 13, w - 40, "sans-bold"), 13,
+                    "sans-bold", ON_SAND, spacing=1.2))
+    ops.append(Text(x + 22, y + 32 + value_size + 14, value, value_size, "display", ON_SAND))
+    if caption:
+        ops.append(Text(x + 22, y + h - 18, fonts.fit(caption, 15, w - 40), 15, "sans", ON_SAND))
+
+
 def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
     ops: list[Text | Rect] = [Rect(0, 0, W, H, PAPER)]
     room = W - 2 * PAD
     right = W - PAD
 
-    # Header band
-    ops.append(Rect(0, 0, W, 148, NAVY))
-    ops.append(Text(PAD, 56, "Holdnote", 20, "sans-bold", "#FFFFFF"))
-    ops.append(Text(PAD, 112, "Portfolio look-through", 44, "sans-bold", "#FFFFFF"))
-    if card.as_of:
-        ops.append(Text(right, 56, f"As of {_date(card.as_of)}", 18, "sans", "#FFFFFF", "end"))
     badge = ("DEMO · SYNTHETIC PORTFOLIO" if card.demo
              else card.partial_label if card.partial else "")
-    if badge:
-        bw = fonts.width(badge, 14, "sans-bold") + 28
-        ops.append(Rect(right - bw, 86, bw, 30, "#2C4B73", 4))
-        ops.append(Text(right - 14, 106, badge, 14, "sans-bold", ON_NAVY, "end"))
+    _header(ops, fonts, "What this portfolio owns", _date(card.as_of) if card.as_of else "",
+            badge or None)
 
     parts = []
     if card.companies:
@@ -413,10 +447,10 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
         holds.append(f"{card.direct} stock{'s' if card.direct != 1 else ''}")
     deck = (" ".join(parts + ["inside " + " and ".join(holds)]) if parts
             else "Holdings: " + " and ".join(holds))
-    ops.append(Text(PAD, 192, fonts.fit(deck, 20, room), 20, "sans", MUTED))
+    ops.append(Text(PAD, 214, fonts.fit(deck, 21, room), 21, "sans", MUTED))
 
     # Portfolio composition: one bar, the Allocation weights
-    y = 252
+    y = 262
     if card.holdings:
         _section(ops, PAD, y, room, "Portfolio composition")
         held = sorted(card.holdings, key=lambda kv: -kv[1])
@@ -459,13 +493,8 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
     else:
         panels.append(("Look-through depth", "Full", "every holding of each fund"))
     for i, (title, value, caption) in enumerate(panels):
-        px = PAD + i * (bw + gap)
-        ops.append(Rect(px, y, bw, 100, PANEL))
-        ops.append(Rect(px, y, 4, 100, NAVY))
-        ops.append(Text(px + 20, y + 28, fonts.fit(title, 15, bw - 32), 15, "sans", MUTED))
-        ops.append(Text(px + 20, y + 64, value, 30, "sans-bold", INK))
-        ops.append(Text(px + 20, y + 88, fonts.fit(caption, 15, bw - 32), 15, "sans", MUTED))
-    y += 100 + 42
+        _figure(ops, fonts, PAD + i * (bw + gap), y, bw, 128, title, value, caption)
+    y += 128 + 36
 
     # Top 10 companies: a table, a column per Look-through cell as the draft prints it
     _section(ops, PAD, y, room, "Top 10 companies, all holdings combined")
@@ -495,8 +524,8 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
     # The company held through most routes, in one sentence
     lines = _hero_lines(card)
     if lines:
-        ops.append(Rect(PAD, y, room, 72, PANEL))
-        ops.append(Rect(PAD, y, 4, 72, NAVY))
+        ops.append(Rect(PAD, y, room, 72, PANEL, 14))
+        ops.append(Rect(PAD, y + 14, 4, 44, SAND, 2))
         ops.append(Text(PAD + 20, y + 30, fonts.fit(lines[0], 17, room - 40), 17, "sans-bold", INK))
         ops.append(Text(PAD + 20, y + 56, fonts.fit(lines[1], 17, room - 40), 17, "sans", INK))
         y += 72 + 40
@@ -521,7 +550,7 @@ def layout(card: Card, fonts: Fonts) -> list[Text | Rect]:
                                            14, room), 14, "sans", MUTED))
     ops.append(Text(PAD, H - 48, "For research only, not financial advice. Made with Holdnote, "
                     "free and open source.", 14, "sans", MUTED))
-    ops.append(Text(right, H - 48, REPO, 14, "sans-bold", NAVY, "end"))
+    ops.append(Text(right, H - 48, REPO, 14, "sans-bold", SAND, "end"))
     return ops
 
 
@@ -540,9 +569,16 @@ def _font_faces() -> str:
 
 
 def svg(ops: list[Text | Rect]) -> str:
-    out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
-           f'viewBox="0 0 {W} {H}">', f"<style>{_font_faces()}</style>"]
+    w, h = int(ops[0].w), int(ops[0].h)  # the page: the first op is always its background
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" '
+           f'viewBox="0 0 {w} {h}">', f"<style>{_font_faces()}</style>"]
+    import base64
     for op in ops:
+        if isinstance(op, Picture):
+            data = base64.b64encode(op.path.read_bytes()).decode("ascii")
+            out.append(f'<image x="{op.x:.1f}" y="{op.y:.1f}" width="{op.w:.1f}" height="{op.h:.1f}" '
+                       f'href="data:image/png;base64,{data}"/>')
+            continue
         if isinstance(op, Rect):
             out.append(f'<rect x="{op.x:.1f}" y="{op.y:.1f}" width="{op.w:.1f}" height="{op.h:.1f}" '
                        f'rx="{op.r:g}" fill="{op.color}"/>')
@@ -560,9 +596,15 @@ def svg(ops: list[Text | Rect]) -> str:
 def png(ops: list[Text | Rect], fonts: Fonts, path: Path) -> None:
     from PIL import Image, ImageDraw
     scale = 2  # draw at 2x and downsample, for smooth edges
-    img = Image.new("RGB", (W * scale, H * scale), PAPER)
+    w, h = int(ops[0].w), int(ops[0].h)
+    img = Image.new("RGB", (w * scale, h * scale), PAPER)
     d = ImageDraw.Draw(img)
     for op in ops:
+        if isinstance(op, Picture):
+            logo = Image.open(op.path).convert("RGBA").resize(
+                (round(op.w * scale), round(op.h * scale)), Image.LANCZOS)
+            img.paste(logo, (round(op.x * scale), round(op.y * scale)), logo)
+            continue
         if isinstance(op, Rect):
             box = [op.x * scale, op.y * scale, (op.x + op.w) * scale - 1, (op.y + op.h) * scale - 1]
             if op.r:
@@ -581,7 +623,7 @@ def png(ops: list[Text | Rect], fonts: Fonts, path: Path) -> None:
         else:
             d.text((x, op.y * scale), op.s, font=font, fill=op.color,
                    anchor="rs" if op.anchor == "end" else "ls")
-    img.resize((W, H), Image.LANCZOS).save(path, optimize=True)
+    img.resize((w, h), Image.LANCZOS).save(path, optimize=True)
 
 
 # --- the Decision Mirror card (references/decision-mirror.md -> Card) -------
@@ -600,32 +642,26 @@ def mirror_layout(summary: dict, fonts: "Fonts") -> list[Text | Rect]:
     ops: list[Text | Rect] = [Rect(0, 0, W, H, PAPER)]
     room = W - 2 * PAD
     right = W - PAD
-    ops.append(Rect(0, 0, W, 148, NAVY))
-    ops.append(Text(PAD, 56, "Holdnote · Decision Mirror", 20, "sans-bold", "#FFFFFF"))
-    ops.append(Text(PAD, 112, "Me vs my lazy twin", 44, "sans-bold", "#FFFFFF"))
-    ops.append(Text(right, 56, f"As of {_date(summary['as_of'])}", 18, "sans", "#FFFFFF", "end"))
-    if summary.get("demo"):
-        badge = "DEMO · SYNTHETIC"
-        bw = fonts.width(badge, 14, "sans-bold") + 28
-        ops.append(Rect(right - bw, 86, bw, 30, "#2C4B73", 4))
-        ops.append(Text(right - 14, 106, badge, 14, "sans-bold", ON_NAVY, "end"))
-
     lazy = summary["twin"] == "lazy"
+    _header(ops, fonts, "Me vs my lazy twin" if lazy else "My picks vs my twin's",
+            _date(summary["as_of"]), "DEMO · SYNTHETIC" if summary.get("demo") else None)
     twin_line = (f"The twin put every deposit into {summary['benchmark']} at once and never touched it."
                  if lazy else
                  f"The twin made the same purchases on the same days, in {summary['benchmark']}.")
-    ops.append(Text(PAD, 196, fonts.fit(twin_line, 20, room), 20, "sans", MUTED))
-    ops.append(Text(PAD, 224, f"{_date(summary['from'])} to {_date(summary['as_of'])}",
-                    20, "sans", MUTED))
+    ops.append(Text(PAD, 214, fonts.fit(twin_line, 21, room), 21, "sans", MUTED))
+    ops.append(Text(PAD, 244, f"{_date(summary['from'])} to {_date(summary['as_of'])}",
+                    21, "sans", MUTED))
 
-    # The headline
-    y = 290
-    ops.append(Rect(PAD, y, room, 210, PANEL))
-    ops.append(Rect(PAD, y, 6, 210, NAVY))
-    ops.append(Text(PAD + 36, y + 48, "Me minus my twin", 20, "sans", MUTED))
-    ops.append(Text(PAD + 36, y + 140, summary["gap_pct"], 96, "sans-bold", INK))
-    ops.append(Text(PAD + 36, y + 182, f"of {summary['basis']}", 20, "sans", MUTED))
-    y += 210 + 40
+    # The headline: the one number people share
+    y = 288
+    ops.append(Rect(PAD, y, room, 300, SAND, 24))
+    ops.append(Text(PAD + 40, y + 52, "ME MINUS MY TWIN", 15, "sans-bold", ON_SAND, spacing=1.6))
+    shown = summary["gap_pct"]
+    if shown.startswith("-"):
+        shown = "\u2212" + shown[1:]  # a true minus sign, as wide as the plus
+    ops.append(Text(PAD + 34, y + 206, shown, 160, "display", ON_SAND, spacing=-4))
+    ops.append(Text(PAD + 40, y + 262, f"of {summary['basis']}", 21, "sans", ON_SAND))
+    y += 300 + 36
 
     # Where it came from
     parts = [("What I picked", summary["picks_pct"])]
@@ -635,11 +671,10 @@ def mirror_layout(summary: dict, fonts: "Fonts") -> list[Text | Rect]:
     bw = (room - gap * (len(parts) - 1)) / len(parts)
     for i, (title, value) in enumerate(parts):
         px = PAD + i * (bw + gap)
-        ops.append(Rect(px, y, bw, 100, PANEL))
-        ops.append(Rect(px, y, 4, 100, NAVY))
-        ops.append(Text(px + 20, y + 30, title, 16, "sans", MUTED))
-        ops.append(Text(px + 20, y + 74, value or "-", 32, "sans-bold", INK))
-    y += 100 + 44
+        ops.append(Rect(px, y, bw, 104, PANEL, 18))
+        ops.append(Text(px + 24, y + 34, title.upper(), 13, "sans-bold", MUTED, spacing=1.2))
+        ops.append(Text(px + 24, y + 82, value or "-", 36, "display", INK))
+    y += 104 + 44
 
     # By holding: a bar either side of zero
     rows = [(t, v, raw) for t, raw in summary.get("holdings_pct", {}).items()
@@ -656,15 +691,15 @@ def mirror_layout(summary: dict, fonts: "Fonts") -> list[Text | Rect]:
             ops.append(Text(PAD, ry, fonts.fit(name, 18, 180), 18, "sans", INK))
             length = float(abs(v) / scale) * half
             x = mid if v >= 0 else mid - length
-            ops.append(Rect(x, ry - 14, max(length, 2), 16, NAVY if v >= 0 else "#8399B3"))
+            ops.append(Rect(x, ry - 14, max(length, 2), 16, SAND if v >= 0 else SEGMENTS[2]))
             ops.append(Text(right, ry, raw, 18, "sans-bold", INK, "end"))
             ry += 36
         ops.append(Rect(mid, y + 34, 1, ry - y - 46, RULE))
         y = ry + 8
         name, v, raw = rows[0]
         y += 24
-        ops.append(Rect(PAD, y, room, 72, PANEL))
-        ops.append(Rect(PAD, y, 4, 72, NAVY))
+        ops.append(Rect(PAD, y, room, 72, PANEL, 14))
+        ops.append(Rect(PAD, y + 14, 4, 44, SAND, 2))
         ops.append(Text(PAD + 20, y + 30, fonts.fit(f"Largest single holding: {name}, {raw}. "
                                                     f"Picks gap in total: {summary['picks_pct']}.",
                                                     17, room - 40), 17, "sans-bold", INK))
@@ -687,7 +722,81 @@ def mirror_layout(summary: dict, fonts: "Fonts") -> list[Text | Rect]:
                     14, "sans", MUTED))
     ops.append(Text(PAD, H - 48, "For research only, not financial advice. Made with Holdnote, "
                     "free and open source.", 14, "sans", MUTED))
-    ops.append(Text(right, H - 48, REPO, 14, "sans-bold", NAVY, "end"))
+    ops.append(Text(right, H - 48, REPO, 14, "sans-bold", SAND, "end"))
+    return ops
+
+
+WW, WH = 1200, 675  # the wide Mirror card: the shape X shows in full in a timeline
+
+
+def mirror_wide_layout(summary: dict, fonts: "Fonts") -> list[Text | Rect]:
+    """The same Mirror card for X's timeline: the big figure on the right, the
+    parts and the history under it. Percentages only, like the tall card."""
+    ops: list = [Rect(0, 0, WW, WH, PAPER)]
+    pad = 56
+    lazy = summary["twin"] == "lazy"
+    gh = 24
+    if LOGO.exists():
+        ops.append(Picture(pad, 44, gh * LOGO_RATIO, gh, LOGO))
+    ops.append(Text(pad + gh * LOGO_RATIO + 12, 64, "Holdnote", 24, "display-semi", SAND))
+    if summary.get("demo"):
+        badge = "DEMO · SYNTHETIC"
+        bw = fonts.width(badge, 12, "sans-bold", 1.2) + 26
+        ops.append(Rect(WW - pad - bw, 40, bw, 28, SAND, 14))
+        ops.append(Text(WW - pad - 13, 59, badge, 12, "sans-bold", ON_SAND, "end", 1.2))
+
+    left = 470
+    ops.append(Text(pad, 168, "Me vs my" if lazy else "My picks vs", 54, "display", SAND, spacing=-1))
+    ops.append(Text(pad, 228, "lazy twin" if lazy else "my twin's", 54, "display", SAND, spacing=-1))
+    words = (f"The twin put every deposit into {summary['benchmark']} at once and never touched it."
+             if lazy else f"The twin made the same purchases on the same days, in {summary['benchmark']}.").split()
+    lines, cur = [], ""
+    for wd in words:
+        trial = (cur + " " + wd).strip()
+        if fonts.width(trial, 18) <= left - pad - 10:
+            cur = trial
+        else:
+            lines.append(cur)
+            cur = wd
+    lines.append(cur)
+    ty = 282
+    for ln in lines[:4]:
+        ops.append(Text(pad, ty, ln, 18, "sans", MUTED))
+        ty += 26
+    ops.append(Text(pad, ty + 8, f"{_date(summary['from'])} to {_date(summary['as_of'])}", 18, "sans", MUTED))
+
+    # the big figure
+    bx, by, bw2, bh = left + 24, 100, WW - pad - left - 24, 300
+    ops.append(Rect(bx, by, bw2, bh, SAND, 24))
+    ops.append(Text(bx + 36, by + 50, "ME MINUS MY TWIN", 14, "sans-bold", ON_SAND, spacing=1.6))
+    shown = summary["gap_pct"]
+    if shown.startswith("-"):
+        shown = "\u2212" + shown[1:]
+    size = 150
+    while size > 90 and fonts.width(shown, size, "display", -4) > bw2 - 64:
+        size -= 6
+    ops.append(Text(bx + 30, by + 205, shown, size, "display", ON_SAND, spacing=-4))
+    ops.append(Text(bx + 36, by + 262, f"of {summary['basis']}", 19, "sans", ON_SAND))
+
+    parts = [("What I picked", summary["picks_pct"])]
+    if lazy and summary.get("waiting_pct"):
+        parts.append(("Cash left waiting", summary["waiting_pct"]))
+    py, gap = by + bh + 20, 20
+    pw = (bw2 - gap * (len(parts) - 1)) / len(parts)
+    for i, (title, value) in enumerate(parts):
+        px = bx + i * (pw + gap)
+        ops.append(Rect(px, py, pw, 96, PANEL, 18))
+        ops.append(Text(px + 22, py + 32, title.upper(), 12, "sans-bold", MUTED, spacing=1.2))
+        ops.append(Text(px + 22, py + 76, value or "-", 32, "display", INK))
+
+    note = (f"History: {summary['months']} months, {summary['trades']} trades."
+            + (" This much history says little about skill." if summary.get("short_history") else ""))
+    ops.append(Text(pad, WH - 92, fonts.fit(note, 15, WW - 2 * pad), 15,
+                    "sans-bold" if summary.get("short_history") else "sans", INK))
+    ops.append(Rect(pad, WH - 72, WW - 2 * pad, 1, RULE))
+    ops.append(Text(pad, WH - 40, "Percentages of the money put in. The past only. Not financial advice.",
+                    14, "sans", MUTED))
+    ops.append(Text(WW - pad, WH - 40, REPO, 14, "sans-bold", SAND, "end"))
     return ops
 
 
@@ -702,9 +811,14 @@ def make_mirror(summary_path: Path, out: Path) -> list[Path]:
     out.mkdir(parents=True, exist_ok=True)
     written = [out / "mirror-card.svg"]
     written[0].write_text(svg(ops), encoding="utf-8")
+    wide = mirror_wide_layout(summary, fonts)
+    (out / "mirror-card-wide.svg").write_text(svg(wide), encoding="utf-8")
     if fonts.ok:
         png(ops, fonts, out / "mirror-card.png")
         written.append(out / "mirror-card.png")
+        png(wide, fonts, out / "mirror-card-wide.png")
+        written.append(out / "mirror-card-wide.png")
+    written.append(out / "mirror-card-wide.svg")
     return written
 
 
