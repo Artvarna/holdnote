@@ -1,104 +1,106 @@
-Holdings (full issuer files, as of SPYI 2026-10-15, SPY5 2026-10-15)
+Holdings (full issuer files, as of SPYI 2026-11-23, SPY5 2026-11-23)
 | Pair | Shared names | Shared weight |
 |---|---|---|
-| SPYI - SPY5 | 497 (largest: NVIDIA Corporation, Apple Inc., Microsoft Corporation, Alphabet Inc., Amazon.com Inc., ...) | 56.91 |
+| SPYI - SPY5 | 497 (largest: Apple Inc., NVIDIA Corporation, Microsoft Corporation, Alphabet Inc., Amazon.com Inc., ...) | 56.68 |
 
-Look-through (market weights, as of 2026-10-16)
+Look-through (market weights, as of 2026-11-23)
 | Company | Direct | via SPYI | via SPY5 | Total |
 |---|---|---|---|---|
-| Amazon.com Inc. | 7.21 | 1.26 | 0.94 | 9.41 |
-| Coca-Cola Company | 8.46 | 0.16 | 0.13 | 8.75 |
-| NVIDIA Corporation | - | 2.60 | 1.97 | 4.57 |
-| Apple Inc. | - | 2.58 | 1.87 | 4.45 |
-| Microsoft Corporation | - | 1.95 | 1.50 | 3.45 |
-| Alphabet Inc. | - | 1.89 | 1.38 | 3.27 |
-| Meta Platforms Inc | - | 0.82 | 0.61 | 1.43 |
-| Broadcom Inc. | - | 0.80 | 0.61 | 1.41 |
-| Taiwan Semiconductor Manufacturing Co. Ltd. | - | 0.98 | - | 0.98 |
-| Micron Technology Inc. | - | 0.55 | 0.39 | 0.94 |
-| Tesla Inc. | - | 0.53 | 0.38 | 0.91 |
-| Eli Lilly and Company | - | 0.51 | 0.37 | 0.88 |
-| Advanced Micro Devices Inc. | - | 0.48 | 0.34 | 0.82 |
+| Amazon.com Inc. | 7.73 | 1.33 | 0.99 | 10.05 |
+| Coca-Cola Company | 9.07 | 0.17 | 0.15 | 9.39 |
+| Apple Inc. | - | 2.78 | 2.02 | 4.80 |
+| NVIDIA Corporation | - | 2.09 | 1.58 | 3.67 |
+| Microsoft Corporation | - | 1.87 | 1.45 | 3.32 |
+| Alphabet Inc. | - | 1.62 | 1.18 | 2.80 |
+| Broadcom Inc. | - | 0.77 | 0.59 | 1.36 |
+| Meta Platforms Inc | - | 0.70 | 0.52 | 1.22 |
+| Tesla Inc. | - | 0.59 | 0.43 | 1.02 |
+| Eli Lilly and Company | - | 0.58 | 0.43 | 1.01 |
+| Taiwan Semiconductor Manufacturing Co. Ltd. | - | 0.85 | - | 0.85 |
+| Berkshire Hathaway Inc. | - | 0.40 | 0.42 | 0.82 |
 | JPMorgan Chase & Co. | - | 0.47 | 0.33 | 0.80 |
-| Berkshire Hathaway Inc. | - | 0.35 | 0.37 | 0.72 |
-| Exxonmobil Holdings Corporation | - | 0.35 | 0.27 | 0.62 |
-| Visa Inc. | - | 0.31 | 0.26 | 0.57 |
+| Micron Technology Inc. | - | 0.44 | 0.32 | 0.76 |
+| Advanced Micro Devices Inc. | - | 0.41 | 0.29 | 0.70 |
+| Visa Inc. | - | 0.34 | 0.28 | 0.62 |
+| Exxonmobil Holdings Corporation | - | 0.33 | 0.26 | 0.59 |
 
-Hidden bets (market weights, as of 2026-10-16)
+Hidden bets (market weights, as of 2026-11-23)
 | Company | Through | Largest part | Total | Added by the others |
 |---|---|---|---|---|
-| Amazon.com Inc. | Direct 7.21 · via SPYI 1.26 · via SPY5 0.94 | Direct 7.21 | 9.41 | 2.20 |
-| Coca-Cola Company | Direct 8.46 · via SPYI 0.16 · via SPY5 0.13 | Direct 8.46 | 8.75 | 0.29 |
-| NVIDIA Corporation | via SPYI 2.60 · via SPY5 1.97 | via SPYI 2.60 | 4.57 | 1.97 |
-| Apple Inc. | via SPYI 2.58 · via SPY5 1.87 | via SPYI 2.58 | 4.45 | 1.87 |
-| Microsoft Corporation | via SPYI 1.95 · via SPY5 1.50 | via SPYI 1.95 | 3.45 | 1.50 |
-| Alphabet Inc. | via SPYI 1.89 · via SPY5 1.38 | via SPYI 1.89 | 3.27 | 1.38 |
-| Meta Platforms Inc | via SPYI 0.82 · via SPY5 0.61 | via SPYI 0.82 | 1.43 | 0.61 |
-| Broadcom Inc. | via SPYI 0.80 · via SPY5 0.61 | via SPYI 0.80 | 1.41 | 0.61 |
+| Amazon.com Inc. | Direct 7.73 · via SPYI 1.33 · via SPY5 0.99 | Direct 7.73 | 10.05 | 2.32 |
+| Coca-Cola Company | Direct 9.07 · via SPYI 0.17 · via SPY5 0.15 | Direct 9.07 | 9.39 | 0.32 |
+| Apple Inc. | via SPYI 2.78 · via SPY5 2.02 | via SPYI 2.78 | 4.80 | 2.02 |
+| NVIDIA Corporation | via SPYI 2.09 · via SPY5 1.58 | via SPYI 2.09 | 3.67 | 1.58 |
+| Microsoft Corporation | via SPYI 1.87 · via SPY5 1.45 | via SPYI 1.87 | 3.32 | 1.45 |
+| Alphabet Inc. | via SPYI 1.62 · via SPY5 1.18 | via SPYI 1.62 | 2.80 | 1.18 |
+| Broadcom Inc. | via SPYI 0.77 · via SPY5 0.59 | via SPYI 0.77 | 1.36 | 0.59 |
+| Meta Platforms Inc | via SPYI 0.70 · via SPY5 0.52 | via SPYI 0.70 | 1.22 | 0.52 |
+| Tesla Inc. | via SPYI 0.59 · via SPY5 0.43 | via SPYI 0.59 | 1.02 | 0.43 |
+| Eli Lilly and Company | via SPYI 0.58 · via SPY5 0.43 | via SPYI 0.58 | 1.01 | 0.43 |
 
-Countries (market weights, as of 2026-10-16)
+Countries (market weights, as of 2026-11-23)
 | Country | Direct | via SPYI | via SPY5 | Total |
 |---|---|---|---|---|
-| United States | 15.67 | 37.93 | 24.98 | 78.58 |
-| Japan | - | 3.34 | - | 3.34 |
-| United Kingdom | - | 1.98 | - | 1.98 |
-| Taiwan | - | 1.96 | - | 1.96 |
-| Canada | - | 1.88 | - | 1.88 |
-| China | - | 1.27 | - | 1.27 |
-| South Korea | - | 1.20 | - | 1.20 |
-| France | - | 1.14 | - | 1.14 |
-| Switzerland | - | 1.13 | - | 1.13 |
-| Germany | - | 1.08 | - | 1.08 |
-| India | - | 0.88 | - | 0.88 |
+| United States | 16.80 | 37.39 | 24.71 | 78.90 |
+| Japan | - | 3.22 | - | 3.22 |
+| United Kingdom | - | 2.00 | - | 2.00 |
+| Canada | - | 1.83 | - | 1.83 |
+| Taiwan | - | 1.63 | - | 1.63 |
+| China | - | 1.25 | - | 1.25 |
+| Switzerland | - | 1.21 | - | 1.21 |
+| France | - | 1.19 | - | 1.19 |
+| Germany | - | 1.12 | - | 1.12 |
+| South Korea | - | 1.08 | - | 1.08 |
+| India | - | 1.03 | - | 1.03 |
 | Australia | - | 0.87 | - | 0.87 |
-| Netherlands | - | 0.62 | - | 0.62 |
-| Other countries (36) | - | 4.07 | - | 4.07 |
-| Total | 15.67 | 59.35 | 24.98 | 100.00 |
+| Netherlands | - | 0.60 | - | 0.60 |
+| Other countries (35) | - | 4.10 | - | 4.10 |
+| Total | 16.80 | 58.52 | 24.71 | 100.03 |
 
-Sectors (market weights, as of 2026-10-16)
+Sectors (market weights, as of 2026-11-23)
 | Sector | Direct | via SPYI | via SPY5 | Total |
 |---|---|---|---|---|
-| Information Technology | - | 17.82 | 9.59 | 27.41 |
-| Consumer Discretionary | 7.21 | 5.13 | 2.20 | 14.54 |
-| Consumer Staples | 8.46 | 2.89 | 1.18 | 12.53 |
-| Financials | - | 9.59 | 2.92 | 12.51 |
-| Industrials | - | 6.57 | 2.00 | 8.57 |
-| Health Care | - | 5.35 | 2.40 | 7.75 |
-| Communication Services | - | 4.43 | 2.46 | 6.89 |
-| Energy | - | 2.59 | 0.91 | 3.50 |
-| Materials | - | 2.45 | 0.41 | 2.86 |
-| Utilities | - | 1.37 | 0.49 | 1.86 |
-| Real Estate | - | 1.19 | 0.43 | 1.62 |
-| Total | 15.67 | 59.38 | 24.99 | 100.04 |
+| Information Technology | - | 16.11 | 8.82 | 24.93 |
+| Consumer Discretionary | 7.73 | 5.41 | 2.39 | 15.53 |
+| Consumer Staples | 9.07 | 3.14 | 1.31 | 13.52 |
+| Financials | - | 9.93 | 3.10 | 13.03 |
+| Industrials | - | 6.64 | 2.04 | 8.68 |
+| Health Care | - | 5.73 | 2.57 | 8.30 |
+| Communication Services | - | 4.06 | 2.20 | 6.26 |
+| Energy | - | 2.42 | 0.86 | 3.28 |
+| Materials | - | 2.35 | 0.43 | 2.78 |
+| Utilities | - | 1.43 | 0.54 | 1.97 |
+| Real Estate | - | 1.26 | 0.46 | 1.72 |
+| Total | 16.80 | 58.48 | 24.72 | 100.00 |
 
-Currencies (market weights, as of 2026-10-16)
+Currencies (market weights, as of 2026-11-23)
 | Currency | Direct | via SPYI | via SPY5 | Total |
 |---|---|---|---|---|
-| USD | 15.67 | 38.21 | 24.98 | 78.86 |
-| EUR | - | 3.99 | - | 3.99 |
-| JPY | - | 3.34 | - | 3.34 |
-| TWD | - | 1.96 | - | 1.96 |
-| GBP | - | 1.91 | - | 1.91 |
-| CAD | - | 1.88 | - | 1.88 |
-| HKD | - | 1.29 | - | 1.29 |
-| KRW | - | 1.20 | - | 1.20 |
-| CHF | - | 1.13 | - | 1.13 |
-| INR | - | 0.88 | - | 0.88 |
+| USD | 16.80 | 37.67 | 24.71 | 79.18 |
+| EUR | - | 4.10 | - | 4.10 |
+| JPY | - | 3.22 | - | 3.22 |
+| GBP | - | 1.92 | - | 1.92 |
+| CAD | - | 1.83 | - | 1.83 |
+| TWD | - | 1.63 | - | 1.63 |
+| HKD | - | 1.26 | - | 1.26 |
+| CHF | - | 1.21 | - | 1.21 |
+| KRW | - | 1.08 | - | 1.08 |
+| INR | - | 1.03 | - | 1.03 |
 | AUD | - | 0.87 | - | 0.87 |
-| Other currencies (27) | - | 2.70 | - | 2.70 |
-| Total | 15.67 | 59.36 | 24.98 | 100.01 |
+| Other currencies (27) | - | 2.67 | - | 2.67 |
+| Total | 16.80 | 58.49 | 24.71 | 100.00 |
 
 METHOD
 Funds list: /home/runner/work/holdnote/holdnote/demo/funds.md, 2 funds
-Holdings file SPYI: SSGA daily holdings file (read by the snapshot job, not kept), ssga, as of 2026-10-15, 6036 rows, 5981 equity
-Holdings file SPY5: SSGA daily holdings file (read by the snapshot job, not kept), ssga, as of 2026-10-15, 510 rows, 504 equity
+Holdings file SPYI: SSGA daily holdings file (read by the snapshot job, not kept), ssga, as of 2026-11-23, 6109 rows, 6060 equity
+Holdings file SPY5: SSGA daily holdings file (read by the snapshot job, not kept), ssga, as of 2026-11-23, 510 rows, 504 equity
 Holdings matching: one company per issuer - US/CA ISINs by CUSIP issuer (first six characters, so share classes combine), other ISINs exactly; iShares files have no ISINs, their rows matched by ticker + exchange to Bloomberg tickers in Amundi's file
 Holdings arithmetic: Shared weight = sum over the shared companies of the smaller of the two funds' weights; via cell = fund Weight (market) x company weight in the fund / 100, to 0.01; Total = sum of the printed cells
-Look-through rows: the 17 printed are the directly held companies and the 15 largest others by Total, of 5965 companies; printed rows sum to 43.98 of the 96.96 the cells reach
-Hidden bets: companies with a Look-through Total of 1.00 or more reached through two or more holdings (a direct stock or a fund); Largest part = the largest single cell, which is all a single holding shows; Added by the others = Total - Largest part; 8 companies, 36.74 of the portfolio together
+Look-through rows: the 17 printed are the directly held companies and the 15 largest others by Total, of 6043 companies; printed rows sum to 43.78 of the 96.96 the cells reach
+Hidden bets: companies with a Look-through Total of 1.00 or more reached through two or more holdings (a direct stock or a fund); Largest part = the largest single cell, which is all a single holding shows; Added by the others = Total - Largest part; 10 companies, 38.64 of the portfolio together
 Countries basis: each issuer's own country field - SSGA (SPYI, SPY5) the country a security trades in; spellings aligned (Korea (South) and Korea -> South Korea, UAE -> United Arab Emirates, ISO codes -> names); non-equity rows (cash, FX, futures) are 'Cash and other'
 Countries direct stocks: the country the fund files give the same company - KO United States (from SPYI), AMZN United States (from SPYI)
-Countries rows: 13 countries with a Total of 0.50 or more printed; Other countries sums the remaining 36 cell by cell; Total row = column sums; printed rows sum to 100.00 of 100.00 - the gap is the funds' own rows not summing to 100 and each cell rounded to 0.01 on its own
+Countries rows: 13 countries with a Total of 0.50 or more printed; Other countries sums the remaining 35 cell by cell; Total row = column sums; printed rows sum to 100.03 of 100.00 - the gap is the funds' own rows not summing to 100 and each cell rounded to 0.01 on its own
 Sectors basis: the sector SSGA (SPYI, SPY5) states per row
 Currencies basis: the currency each line trades in - SSGA's Currency as stated. A trading currency, not where a company earns its revenue
 Sectors sources (% of each fund's equity): SPYI file 100.00; SPY5 file 100.00
@@ -108,12 +110,12 @@ Currencies direct stocks: KO USD (from SPYI), AMZN USD (from SPYI)
 Currencies rows: 11 currencies with a Total of 0.50 or more printed; Other currencies sums the remaining 27; Total row = column sums
 
 PROOF
-SPYI: all rows sum 100.0000, equity rows 99.9973, 5961 companies after share classes combine
+SPYI: all rows sum 100.0000, equity rows 99.9986, 6039 companies after share classes combine
 SPY5: all rows sum 100.0000, equity rows 100.0000, 501 companies after share classes combine
-Countries SPYI: 49 countries, equity 99.9973 + cash and other 0.0027; largest United States 63.90, Japan 5.62, United Kingdom 3.33
+Countries SPYI: 48 countries, equity 99.9986 + cash and other 0.0014; largest United States 63.92, Japan 5.50, United Kingdom 3.41
 Countries SPY5: 1 country, equity 100.0000 + cash and other 0.0000; largest United States 100.00
-Sectors SPYI: 11 buckets sum 100.0000; largest Information Technology 30.02, Financials 16.16, Industrials 11.06
-Sectors SPY5: 11 buckets sum 100.0000; largest Information Technology 38.37, Financials 11.67, Communication Services 9.84
-Currencies SPYI: 38 buckets sum 100.0000; largest USD 64.37, EUR 6.72, JPY 5.62
+Sectors SPYI: 11 buckets sum 100.0000; largest Information Technology 27.54, Financials 16.98, Industrials 11.35
+Sectors SPY5: 11 buckets sum 100.0000; largest Information Technology 35.70, Financials 12.55, Health Care 10.41
+Currencies SPYI: 38 buckets sum 100.0000; largest USD 64.41, EUR 7.02, JPY 5.50
 Currencies SPY5: 1 buckets sum 100.0000; largest USD 100.00
-Fund weights consumed: SPYI 59.36, SPY5 24.98
+Fund weights consumed: SPYI 58.49, SPY5 24.71

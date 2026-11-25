@@ -1,55 +1,49 @@
 {
-  "as_of": "2026-10-16",
+  "as_of": "2026-11-23",
   "prices": {
     "IE00B3YLTY66": {
-      "price": "13.18",
+      "price": "12.3650",
       "currency": "USD",
-      "date": "2026-10-16",
-      "source": "London Stock Exchange, IMID last close",
-      "confirmed_by": {
-        "source": "Yahoo Finance chart, IMID.L",
-        "price": "13.1800",
-        "diff_pct": "0.000"
-      }
+      "date": "2026-11-23",
+      "source": "Yahoo Finance chart, IMID.L close",
+      "confirmed_by": null,
+      "unconfirmed": "the London Stock Exchange did not answer the snapshot job, so Yahoo Finance is the only source"
     },
     "IE00B6YX5C33": {
-      "price": "770.415",
+      "price": "725.6950",
       "currency": "USD",
-      "date": "2026-10-16",
-      "source": "London Stock Exchange, SPY5 last close",
-      "confirmed_by": {
-        "source": "Yahoo Finance chart, SPY5.L",
-        "price": "770.4150",
-        "diff_pct": "0.000"
-      }
+      "date": "2026-11-23",
+      "source": "Yahoo Finance chart, SPY5.L close",
+      "confirmed_by": null,
+      "unconfirmed": "the London Stock Exchange did not answer the snapshot job, so Yahoo Finance is the only source"
     },
     "US1912161007": {
-      "price": "93.90",
+      "price": "95.88",
       "currency": "USD",
-      "date": "2026-10-16",
+      "date": "2026-11-23",
       "source": "Nasdaq historical quotes, KO close",
       "confirmed_by": {
         "source": "Yahoo Finance chart, KO",
-        "price": "93.9000",
+        "price": "95.8800",
         "diff_pct": "0.000"
       }
     },
     "US0231351067": {
-      "price": "250.00",
+      "price": "255.39",
       "currency": "USD",
-      "date": "2026-10-16",
+      "date": "2026-11-23",
       "source": "Nasdaq historical quotes, AMZN close",
       "confirmed_by": {
         "source": "Yahoo Finance chart, AMZN",
-        "price": "250.0000",
+        "price": "255.3900",
         "diff_pct": "0.000"
       }
     }
   },
   "fx": {
     "USD": {
-      "per_eur": "1.1253",
-      "date": "2026-10-16",
+      "per_eur": "1.0939",
+      "date": "2026-11-23",
       "source": "ECB euro foreign exchange reference rates"
     }
   }
