@@ -384,7 +384,10 @@ def test_a_holdnote_format_file_keeps_its_own_decisions(tmp_path):
     assert proc.returncode == 0, proc.stdout
     assert "guessed" not in proc.stdout
     text = out.read_text()
-    assert "# as_of: 2026-10-16" in text
+    # The demo's date moves with each snapshot; the import must keep it.
+    demo_as_of = next(ln for ln in (repo / "demo" / "holdings.csv").read_text().splitlines()
+                      if ln.startswith("# as_of: "))
+    assert demo_as_of in text
     rows = {r.split(",")[1]: r.split(",") for r in text.splitlines() if r and not r.startswith("#")}
     assert rows["SPYI"][3] == "fund" and rows["SPYI"][6] == "60"
     assert rows["KO"][3] == "stock" and rows["KO"][6] == "8"

@@ -290,8 +290,7 @@ def main() -> int:
                 prices[r["isin"]] = {
                     "price": str(close), "currency": ccy, "date": as_of.isoformat(),
                     "source": exch, "confirmed_by": None,
-                    "unconfirmed": "the London Stock Exchange did not answer the snapshot job, "
-                                   "so Yahoo Finance is the only source"}
+                    "unconfirmed": "the London Stock Exchange did not answer the snapshot job"}
                 currencies.add(ccy)
                 log.append(f"{r['ticker']}: {ccy} {close} ({exch}); one source")
                 continue

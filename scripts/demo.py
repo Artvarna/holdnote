@@ -176,11 +176,17 @@ def confirmation(prices: dict, tickers: dict[str, str]) -> tuple[str, int]:
         if p.get("confirmed_by"):
             two.append(f"{t} {p['confirmed_by']['diff_pct']}%")
         else:
-            one.append((t, p.get("unconfirmed", "no second source")))
+            # Which one source: the exchange, or Yahoo when the exchange did
+            # not answer the snapshot job (demo_snapshot.py).
+            src = "Yahoo Finance" if p.get("source", "").startswith("Yahoo") else "the exchange"
+            why = re.sub(r"^Yahoo Finance chart, [^,]+, has", "Yahoo had",
+                         p.get("unconfirmed", "no second source"))
+            one.append((t, src, re.sub(r", so Yahoo Finance is the only source$", "", why)))
     parts = []
-    if one:
-        why = dict.fromkeys(re.sub(r"^Yahoo Finance chart, [^,]+, has", "Yahoo had", w) for _, w in one)
-        parts.append(f"{', '.join(t for t, _ in one)} closes rest on one source, the exchange "
+    for src in dict.fromkeys(s for _, s, _ in one):
+        group = [(t, w) for t, s, w in one if s == src]
+        why = dict.fromkeys(w for _, w in group)
+        parts.append(f"{', '.join(t for t, _ in group)} closes rest on one source, {src} "
                      f"({'; '.join(why)})")
     if two:
         parts.append(f"{', '.join(t.split()[0] for t in two)} match Yahoo Finance "
