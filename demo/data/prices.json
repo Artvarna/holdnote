@@ -7,7 +7,7 @@
       "date": "2026-11-23",
       "source": "Yahoo Finance chart, IMID.L close",
       "confirmed_by": null,
-      "unconfirmed": "the London Stock Exchange did not answer the snapshot job, so Yahoo Finance is the only source"
+      "unconfirmed": "the London Stock Exchange did not answer the snapshot job"
     },
     "IE00B6YX5C33": {
       "price": "725.6950",
@@ -15,7 +15,7 @@
       "date": "2026-11-23",
       "source": "Yahoo Finance chart, SPY5.L close",
       "confirmed_by": null,
-      "unconfirmed": "the London Stock Exchange did not answer the snapshot job, so Yahoo Finance is the only source"
+      "unconfirmed": "the London Stock Exchange did not answer the snapshot job"
     },
     "US1912161007": {
       "price": "95.88",

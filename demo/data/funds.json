@@ -17,6 +17,6 @@
   },
   "inputs": {
     "demo/holdings.csv": "53effb249000c3152ed6da0cc196f6bbc861b70961310791bf8d65a7817e2f0c",
-    "demo/data/prices.json": "40a5d9f07138b4b9db71697644d6257d23c3bde40fd6f7f83fa248612c1861c7"
+    "demo/data/prices.json": "13d0794fcd188bcd457201779a7addbd8addc4428144431c6bbd0485f5f81a1c"
   }
 }
