@@ -1,4 +1,4 @@
-as_of 2026-11-23 · run 2026-11-25 06:34 UTC
+as_of 2026-11-23 · run 2026-11-25 06:36 UTC
 LSE did not answer (https://api.londonstockexchange.com/api/gw/lse/instruments/alldata/IMID returned 403); London closes from Yahoo Finance alone
 Yahoo IMID.L: USD 12.3650 on 2026-11-23
 Yahoo SPY5.L: USD 725.6950 on 2026-11-23
